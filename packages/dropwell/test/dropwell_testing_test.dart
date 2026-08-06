@@ -34,11 +34,26 @@ void main() {
     ]);
 
     expect(calls.single.method, 'setSystemClipboard');
-    final files = calls.single.arguments as List<Object?>;
+    final arguments = calls.single.arguments as Map<Object?, Object?>;
+    expect(arguments['asBitmap'], isFalse);
+    final files = arguments['files']! as List<Object?>;
     final file = files.single! as Map<Object?, Object?>;
     expect(file['fileName'], 'pixel.png');
     expect(file['mimeType'], 'image/png');
     expect(file['bytes'], <int>[1]);
+  });
+
+  test('offers a bitmap when asked for one', () async {
+    await DropwellTesting.setSystemClipboard(<DropwellFile>[
+      DropwellFile.bytes(
+        fileName: 'pixel.png',
+        bytes: Uint8List.fromList(<int>[1]),
+        mimeType: 'image/png',
+      ),
+    ], asBitmap: true);
+
+    final arguments = calls.single.arguments as Map<Object?, Object?>;
+    expect(arguments['asBitmap'], isTrue);
   });
 
   test('clears the clipboard without arguments', () async {

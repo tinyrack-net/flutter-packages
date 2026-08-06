@@ -237,5 +237,14 @@ void main() {
     test('encodes an empty list', () {
       expect(DropwellCodec.encodeRegions(const <Rect>[]), isEmpty);
     });
+
+    test('produces a typed buffer platform code can read as doubles', () {
+      // A plain List<double> crosses the channel as boxed values that no
+      // platform can decode as a double array, so the type is the contract.
+      expect(
+        DropwellCodec.encodeRegions(const <Rect>[Rect.fromLTRB(0, 1, 2, 3)]),
+        isA<Float64List>(),
+      );
+    });
   });
 }

@@ -88,6 +88,7 @@ void main() {
     await build().publishDropRegions(const <Rect>[Rect.fromLTRB(1, 2, 3, 4)]);
 
     expect(calls.single.method, 'publishDropRegions');
+    expect(calls.single.arguments, isA<Float64List>());
     expect(calls.single.arguments, <double>[1, 2, 3, 4]);
   });
 

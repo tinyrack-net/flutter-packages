@@ -91,17 +91,23 @@ abstract final class DropwellCodec {
     );
   }
 
-  /// Encodes drop regions as a flat physical-pixel `[l, t, r, b, …]` list.
+  /// Encodes drop regions as a flat physical-pixel `[l, t, r, b, …]` buffer.
   ///
-  /// Flat doubles keep the payload inside the standard codec's fast path and
-  /// keep every platform's parsing loop trivial; this list is republished
-  /// on layout changes, so it is the one message that must stay cheap.
-  static List<double> encodeRegions(List<Rect> regions) =>
-      List<double>.unmodifiable(
-        regions.expand(
-          (rect) => <double>[rect.left, rect.top, rect.right, rect.bottom],
-        ),
-      );
+  /// A `Float64List` and not a `List<double>`: the standard codec sends the
+  /// former as a typed buffer that platform code reads as a native double
+  /// array, and the latter as a generic list of boxed values that no platform
+  /// can read as doubles. This message is republished whenever a region moves,
+  /// so it is also the one that must stay cheap.
+  static Float64List encodeRegions(List<Rect> regions) => Float64List.fromList(
+    <double>[
+      for (final rect in regions) ...<double>[
+        rect.left,
+        rect.top,
+        rect.right,
+        rect.bottom,
+      ],
+    ],
+  );
 
   static Offset _decodeOffset(
     Map<Object?, Object?> payload,

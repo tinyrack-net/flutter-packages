@@ -102,7 +102,7 @@ void main() {
           bytes: pixelPng,
           mimeType: 'image/png',
         ),
-      ]);
+      ], asBitmap: true);
 
       final file = (await platform.readClipboardFiles()).single;
 

@@ -20,14 +20,22 @@ const MethodChannel kDropwellTestingChannel = MethodChannel('dropwell/testing');
 abstract final class DropwellTesting {
   /// Replaces the system clipboard with [files].
   ///
-  /// A file carrying a path is offered to the operating system as a file
-  /// reference; a file carrying bytes is offered as raw data of its declared
-  /// media type, which is how a pasted screenshot arrives in practice.
-  static Future<void> setSystemClipboard(List<DropwellFile> files) async {
+  /// Files are offered as real file references, which is what a copy from a
+  /// file manager produces. Set [asBitmap] to offer the single file's bytes as
+  /// a raw image instead, which is how a pasted screenshot arrives: no name,
+  /// no path, just pixels. Both shapes exist on every desktop platform and a
+  /// suite that only exercised one would miss half the reader.
+  static Future<void> setSystemClipboard(
+    List<DropwellFile> files, {
+    bool asBitmap = false,
+  }) async {
     _assertDebug();
     await kDropwellTestingChannel.invokeMethod<void>(
       'setSystemClipboard',
-      files.map(DropwellCodec.encodeFile).toList(growable: false),
+      <String, Object?>{
+        'files': files.map(DropwellCodec.encodeFile).toList(growable: false),
+        'asBitmap': asBitmap,
+      },
     );
   }
 

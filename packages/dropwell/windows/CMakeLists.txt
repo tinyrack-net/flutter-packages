@@ -18,8 +18,16 @@ set(PLUGIN_NAME "dropwell_plugin")
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
+  "dropwell_data.cpp"
+  "dropwell_data.h"
+  "dropwell_drop_target.cpp"
+  "dropwell_drop_target.h"
   "dropwell_plugin.cpp"
   "dropwell_plugin.h"
+  "dropwell_reader.cpp"
+  "dropwell_reader.h"
+  "dropwell_testing.cpp"
+  "dropwell_testing.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -47,6 +55,9 @@ target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin)
+# Ole32 registers the drop target; windowscodecs re-encodes a pasted bitmap;
+# shlwapi provides the in-memory stream both sides of that conversion need.
+target_link_libraries(${PLUGIN_NAME} PRIVATE ole32 windowscodecs shlwapi)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
@@ -82,23 +93,17 @@ set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
 # googletest pulls in GNUInstallDirs, which rewrites CMAKE_INSTALL_PREFIX when
 # it sees the generator expression the Flutter runner sets. The runner's own
 # install rule is generated afterwards, so without this save/restore the app
-# gets installed to "C:/Program Files/<app>" and the build fails at INSTALL.
-set(_dropwell_saved_install_prefix "${CMAKE_INSTALL_PREFIX}")
-# googletest pulls in GNUInstallDirs, which rewrites CMAKE_INSTALL_PREFIX when
-# it sees the generator expression the Flutter runner sets. The runner's own
-# install rule is generated afterwards, so without this save/restore the app
 # gets installed outside its bundle and the build fails at INSTALL.
 set(_dropwell_saved_install_prefix "${CMAKE_INSTALL_PREFIX}")
 FetchContent_MakeAvailable(googletest)
 set(CMAKE_INSTALL_PREFIX "${_dropwell_saved_install_prefix}" CACHE PATH "" FORCE)
 
-set(CMAKE_INSTALL_PREFIX "${_dropwell_saved_install_prefix}" CACHE PATH "" FORCE)
-
-# The plugin's C API is not very useful for unit testing, so build the sources
-# directly into the test binary rather than using the DLL.
+# The plugin's data handling is Flutter-free on purpose, so the test binary
+# compiles those sources directly instead of loading the DLL.
 add_executable(${TEST_RUNNER}
-  test/dropwell_plugin_test.cpp
-  ${PLUGIN_SOURCES}
+  test/dropwell_data_test.cpp
+  "dropwell_data.cpp"
+  "dropwell_data.h"
 )
 apply_standard_settings(${TEST_RUNNER})
 target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
