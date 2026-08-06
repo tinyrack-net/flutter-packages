@@ -208,6 +208,9 @@ jobs:
   android:
     name: Android (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest
+    # An emulator that never finishes booting otherwise holds the whole run
+    # open for hours and keeps every other job's logs out of reach.
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -277,7 +280,12 @@ jobs:
         env:
           DROPWELL_XCODE_DESTINATION: platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}
       - name: L4 ios conformance suite
-        run: flutter test integration_test -d "$SIMULATOR_UDID"
+        # The L3 xcodebuild run can shut the simulator down, and Flutter only
+        # lists a device that is booted right now, so re-boot before asking.
+        run: |
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          flutter test integration_test -d "$SIMULATOR_UDID"
         working-directory: packages/dropwell/example
       - name: L5 ios release build
         run: flutter build ios --release --no-codesign

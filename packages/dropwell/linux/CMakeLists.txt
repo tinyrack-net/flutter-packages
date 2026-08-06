@@ -45,6 +45,10 @@ target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
 target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
+# apply_standard_settings asks for C++14, which has no std::optional. Ubuntu
+# 24.04's clang defaults high enough to hide that; 22.04's does not, so the
+# requirement is stated rather than inherited from whichever runner builds.
+target_compile_features(${PLUGIN_NAME} PRIVATE cxx_std_17)
 
 # List of absolute paths to libraries that should be bundled with the plugin.
 # This list could contain prebuilt libraries, or libraries created by an
@@ -103,6 +107,7 @@ target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
 target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
 target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
+target_compile_features(${TEST_RUNNER} PRIVATE cxx_std_17)
 
 # Enable automatic test discovery.
 include(GoogleTest)
