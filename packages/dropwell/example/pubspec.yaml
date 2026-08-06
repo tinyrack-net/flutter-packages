@@ -1,0 +1,24 @@
+name: dropwell_example
+description: Hosts the dropwell platform conformance suite and release builds.
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  dropwell:
+    path: ../
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - integration_test/fixtures/

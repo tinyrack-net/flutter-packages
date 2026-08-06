@@ -1,0 +1,18 @@
+.dart_tool/
+.flutter-plugins-dependencies
+**/doc/api/
+build/
+coverage/
+node_modules/
+pubspec.lock
+
+# Generated platform runners for the example app are checked in; their build
+# artifacts are not.
+**/example/.flutter-plugins-dependencies
+**/example/android/.gradle/
+**/example/android/local.properties
+**/example/ios/Pods/
+**/example/macos/Pods/
+**/example/windows/flutter/ephemeral/
+**/example/linux/flutter/ephemeral/
+**/example/macos/Flutter/ephemeral/

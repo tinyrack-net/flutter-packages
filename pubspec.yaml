@@ -1,0 +1,20 @@
+name: flutter_packages_workspace
+description: Tinyrack Flutter packages monorepo.
+publish_to: none
+
+environment:
+  sdk: ^3.12.2
+
+# The example app is deliberately not a workspace member. Flutter writes a
+# workspace member's native_assets/ under the workspace root, while the
+# generated CMake install rule looks for it under the app's own build/, so a
+# member example cannot build on Windows. It resolves independently instead.
+workspace:
+  - packages/dropwell
+
+dev_dependencies:
+  coverage: ^1.15.1
+  path: ^1.9.1
+  test: ^1.31.0
+  very_good_analysis: ^10.3.0
+  yaml: ^3.1.3

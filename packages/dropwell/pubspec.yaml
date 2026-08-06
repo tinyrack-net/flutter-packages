@@ -1,0 +1,43 @@
+name: dropwell
+description: >-
+  Native file drag-and-drop and clipboard file reading for Flutter on Windows,
+  macOS, Linux, Web, Android, and iOS.
+version: 0.1.0
+repository: https://github.com/tinyrack-net/flutter-packages
+publish_to: none
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  meta: ^1.17.0
+  plugin_platform_interface: ^2.1.8
+  web: ^1.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: net.tinyrack.dropwell
+        pluginClass: DropwellPlugin
+      ios:
+        pluginClass: DropwellPlugin
+      linux:
+        pluginClass: DropwellPlugin
+      macos:
+        pluginClass: DropwellPlugin
+      windows:
+        pluginClass: DropwellPluginCApi
+      web:
+        pluginClass: DropwellWeb
+        fileName: dropwell_web.dart
