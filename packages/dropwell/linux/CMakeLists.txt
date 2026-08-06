@@ -13,7 +13,12 @@ set(PLUGIN_NAME "dropwell_plugin")
 
 # Any new source files that you add to the plugin should be added here.
 list(APPEND PLUGIN_SOURCES
+  "dropwell_data.cc"
+  "dropwell_data.h"
+  "dropwell_internal.h"
   "dropwell_plugin.cc"
+  "dropwell_testing.cc"
+  "dropwell_testing.h"
 )
 
 # Define the plugin library target. Its name must not be changed (see comment
@@ -86,9 +91,12 @@ set(CMAKE_INSTALL_PREFIX "${_dropwell_saved_install_prefix}" CACHE PATH "" FORCE
 
 # The plugin's exported API is not very useful for unit testing, so build the
 # sources directly into the test binary rather than using the shared library.
+# The plugin's data handling is Flutter-free on purpose, so the test binary
+# compiles those sources directly and needs no display to run.
 add_executable(${TEST_RUNNER}
-  test/dropwell_plugin_test.cc
-  ${PLUGIN_SOURCES}
+  test/dropwell_data_test.cc
+  "dropwell_data.cc"
+  "dropwell_data.h"
 )
 apply_standard_settings(${TEST_RUNNER})
 target_include_directories(${TEST_RUNNER} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")

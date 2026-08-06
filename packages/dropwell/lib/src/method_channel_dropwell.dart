@@ -14,11 +14,13 @@ import 'package:flutter/services.dart';
 /// deliver a drop is, by definition, the one defect this package cannot
 /// tolerate: consumers build their entire drop affordance on this answer.
 const Set<TargetPlatform> kDropCapablePlatforms = <TargetPlatform>{
+  TargetPlatform.linux,
   TargetPlatform.windows,
 };
 
 /// Platforms whose native clipboard implementation is complete.
 const Set<TargetPlatform> kClipboardCapablePlatforms = <TargetPlatform>{
+  TargetPlatform.linux,
   TargetPlatform.windows,
 };
 
