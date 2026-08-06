@@ -15,12 +15,14 @@ import 'package:flutter/services.dart';
 /// tolerate: consumers build their entire drop affordance on this answer.
 const Set<TargetPlatform> kDropCapablePlatforms = <TargetPlatform>{
   TargetPlatform.linux,
+  TargetPlatform.macOS,
   TargetPlatform.windows,
 };
 
 /// Platforms whose native clipboard implementation is complete.
 const Set<TargetPlatform> kClipboardCapablePlatforms = <TargetPlatform>{
   TargetPlatform.linux,
+  TargetPlatform.macOS,
   TargetPlatform.windows,
 };
 
