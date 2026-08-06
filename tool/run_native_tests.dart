@@ -32,21 +32,19 @@ Future<void> main(List<String> arguments) async {
       'build/linux/x64/debug/plugins/dropwell/dropwell_test',
     ),
     'android' => await _gradle(example),
-    'macos' => await _xcodebuild(package, 'macos', 'macOS'),
+    'macos' => await _xcodebuild(package, 'macos', 'platform=macOS'),
     'ios' => await _xcodebuild(
       package,
       'ios',
-      'iOS Simulator,name=iPhone 16',
+      'platform=iOS Simulator,name=iPhone 16',
+      configureArguments: const <String>['--simulator'],
     ),
+    // A browser test compiles against its own package root, so it must run
+    // from the package directory rather than the workspace root.
     'web' => await _run(
       _flutter,
-      <String>[
-        'test',
-        'packages/dropwell/test/dropwell_web_test.dart',
-        '--platform',
-        'chrome',
-      ],
-      root,
+      <String>['test', 'test/dropwell_web_test.dart', '--platform', 'chrome'],
+      package,
     ),
     _ => _unknown(platform),
   };
@@ -103,21 +101,31 @@ Future<int> _gradle(String example) async {
   );
 }
 
+/// Runs the example project's XCTest target for an Apple platform.
+///
+/// The example app owns the Xcode project, so its test target is where a Swift
+/// unit test can link against the plugin. Code signing is disabled because
+/// these tests run on a simulator or the host, where a developer certificate
+/// would only be a CI liability; `DROPWELL_XCODE_DESTINATION` lets CI name the
+/// simulator it actually booted instead of guessing a device model that a new
+/// Xcode release may have dropped.
 Future<int> _xcodebuild(
   String package,
   String platform,
-  String destination,
-) async {
-  // The example app owns the Xcode project, so its test target is where a
-  // Swift unit test can link against the plugin.
+  String defaultDestination, {
+  List<String> configureArguments = const <String>[],
+}) async {
   final directory = p.join(package, 'example', platform);
   final precache = await _run(_flutter, <String>[
     'build',
     platform,
     '--config-only',
     '--debug',
+    ...configureArguments,
   ], p.join(package, 'example'));
   if (precache != 0) return precache;
+  final destination =
+      Platform.environment['DROPWELL_XCODE_DESTINATION'] ?? defaultDestination;
   return _run('xcodebuild', <String>[
     'test',
     '-workspace',
@@ -125,7 +133,9 @@ Future<int> _xcodebuild(
     '-scheme',
     'Runner',
     '-destination',
-    'platform=$destination',
+    destination,
+    'CODE_SIGNING_ALLOWED=NO',
+    'CODE_SIGNING_REQUIRED=NO',
   ], directory);
 }
 

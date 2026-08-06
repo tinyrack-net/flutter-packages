@@ -188,7 +188,8 @@ jobs:
         run: flutter pub get
         working-directory: packages/dropwell/example
       - name: L3 web implementation unit tests
-        run: flutter test packages/dropwell/test/dropwell_web_test.dart --platform chrome
+        run: flutter test test/dropwell_web_test.dart --platform chrome
+        working-directory: packages/dropwell
       - name: L4 web conformance suite
         run: |
           chromedriver --port=4444 &
@@ -270,6 +271,8 @@ jobs:
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
       - name: L3 ios native unit tests
         run: dart run tool/run_native_tests.dart ios
+        env:
+          DROPWELL_XCODE_DESTINATION: platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}
       - name: L4 ios conformance suite
         run: flutter test integration_test -d "$SIMULATOR_UDID"
         working-directory: packages/dropwell/example
