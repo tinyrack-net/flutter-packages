@@ -189,7 +189,10 @@ final class _ImeHarness {
     await harness.keys(<String>['g']);
     if (harness.output == 'g') {
       harness.clear();
-      await harness.toggleLanguage();
+      await harness.enableHangul();
+      await harness.keys(<String>['g']);
+      expect(harness.output, isEmpty, reason: 'Hangul mode did not activate');
+      await harness.keys(<String>['BackSpace']);
     } else {
       expect(harness.output, isEmpty, reason: 'IBus mode probe was ambiguous');
       await harness.keys(<String>['BackSpace']);
@@ -247,6 +250,10 @@ final class _ImeHarness {
       'Shift_L',
     ]);
     await tester.pumpAndSettle();
+  }
+
+  Future<void> enableHangul() async {
+    await keys(<String>['Hangul']);
   }
 
   Future<void> click(Finder finder) async {

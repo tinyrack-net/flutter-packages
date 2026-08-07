@@ -23,6 +23,7 @@ gsettings set org.freedesktop.ibus.engine.hangul disable-latin-mode false
 gsettings set org.freedesktop.ibus.engine.hangul preedit-mode 'syllable'
 gsettings set org.freedesktop.ibus.engine.hangul word-commit false
 gsettings set org.freedesktop.ibus.engine.hangul switch-keys 'Shift+space'
+gsettings set org.freedesktop.ibus.engine.hangul on-keys 'Hangul'
 
 ibus-daemon --daemonize --xim
 engine_ready=false
