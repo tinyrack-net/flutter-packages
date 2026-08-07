@@ -156,12 +156,26 @@ final class _ImeHarness {
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
     expect(engineAvailable, isTrue, reason: 'IBus Hangul engine unavailable');
-    await _run('ibus', <String>['engine', 'hangul']);
+    var hangulEngineActive = false;
+    final engineDeadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(engineDeadline)) {
+      final selected = await Process.run('ibus', <String>[
+        'engine',
+        'hangul',
+      ]);
+      final current = await Process.run('ibus', <String>['engine']);
+      if (selected.exitCode == 0 &&
+          current.exitCode == 0 &&
+          current.stdout.toString().trim() == 'hangul') {
+        hangulEngineActive = true;
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    expect(hangulEngineActive, isTrue, reason: 'IBus engine did not activate');
 
-    final probeController = TermworldExampleController();
-    await tester.pumpWidget(
-      TermworldExampleApp(controller: probeController),
-    );
+    final controller = TermworldExampleController();
+    await tester.pumpWidget(TermworldExampleApp(controller: controller));
     await tester.pumpAndSettle();
     final search = await _run('xdotool', <String>[
       'search',
@@ -171,23 +185,16 @@ final class _ImeHarness {
     ]);
     final ids = search.stdout.toString().trim().split(RegExp(r'\s+'));
     final id = ids.last;
-    final probe = _ImeHarness._(tester, probeController, id);
-    await probe.focusTerminal();
-    await probe.keys(<String>['g']);
-    if (probe.output == 'g') {
-      await probe.toggleLanguage();
-    } else {
-      expect(probe.output, isEmpty, reason: 'IBus mode probe was ambiguous');
-    }
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pumpAndSettle();
-    await probe.dispose();
-
-    final controller = TermworldExampleController();
-    await tester.pumpWidget(TermworldExampleApp(controller: controller));
-    await tester.pumpAndSettle();
     final harness = _ImeHarness._(tester, controller, id);
     await harness.focusTerminal();
+    await harness.keys(<String>['g']);
+    if (harness.output == 'g') {
+      harness.clear();
+      await harness.toggleLanguage();
+    } else {
+      expect(harness.output, isEmpty, reason: 'IBus mode probe was ambiguous');
+      await harness.keys(<String>['BackSpace']);
+    }
     return harness;
   }
 
