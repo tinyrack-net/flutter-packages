@@ -25,14 +25,17 @@ gsettings set org.freedesktop.ibus.engine.hangul word-commit false
 gsettings set org.freedesktop.ibus.engine.hangul switch-keys 'Shift+space'
 
 ibus-daemon --daemonize --xim
-for _ in 1 2 3 4 5; do
-  if ibus list-engine | grep -q 'hangul - Hangul'; then
+engine_ready=false
+for _ in $(seq 1 50); do
+  if ibus list-engine | grep -q 'hangul - Hangul' &&
+    ibus engine hangul >/dev/null 2>&1 &&
+    [[ $(ibus engine 2>/dev/null) == hangul ]]; then
+    engine_ready=true
     break
   fi
-  sleep 1
+  sleep 0.2
 done
-ibus engine hangul
-[[ $(ibus engine) == hangul ]]
+[[ $engine_ready == true ]]
 
 cd packages/termworld/example
 mise exec -- flutter pub get
