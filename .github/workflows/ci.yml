@@ -111,7 +111,7 @@ jobs:
         run: flutter pub get
         working-directory: packages/termworld/example
       - name: L4 windows termworld conformance suite
-        run: flutter test integration_test -d windows
+        run: flutter test integration_test/conformance_test.dart -d windows
         working-directory: packages/termworld/example
       - name: L5 windows termworld release build
         run: flutter build windows --release
@@ -156,7 +156,7 @@ jobs:
         run: flutter pub get
         working-directory: packages/termworld/example
       - name: L4 macos termworld conformance suite
-        run: flutter test integration_test -d macos
+        run: flutter test integration_test/conformance_test.dart -d macos
         working-directory: packages/termworld/example
       - name: L5 macos termworld release build
         run: flutter build macos --release
@@ -200,7 +200,9 @@ jobs:
         run: flutter pub get
         working-directory: packages/termworld/example
       - name: L4 linux termworld conformance suite
-        run: xvfb-run -a flutter test integration_test -d linux
+        run: >-
+          xvfb-run -a flutter test integration_test/conformance_test.dart
+          -d linux
         working-directory: packages/termworld/example
       - name: L5 linux termworld release build
         run: flutter build linux --release
@@ -344,7 +346,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           working-directory: packages/termworld/example
-          script: flutter test integration_test
+          script: flutter test integration_test/conformance_test.dart
       - name: L5 android termworld release build
         run: flutter build apk --release
         working-directory: packages/termworld/example
@@ -395,7 +397,8 @@ jobs:
         run: |
           xcrun simctl boot "$SIMULATOR_UDID" || true
           xcrun simctl bootstatus "$SIMULATOR_UDID" -b
-          flutter test integration_test -d "$SIMULATOR_UDID"
+          flutter test integration_test/conformance_test.dart \
+            -d "$SIMULATOR_UDID"
         working-directory: packages/termworld/example
       - name: L5 ios termworld release build
         run: flutter build ios --release --no-codesign

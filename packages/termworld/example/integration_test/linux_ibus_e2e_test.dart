@@ -137,7 +137,6 @@ final class _ImeHarness {
   String get output => controller.output;
 
   static Future<_ImeHarness> start(WidgetTester tester) async {
-    final controller = TermworldExampleController();
     await _run('gsettings', <String>[
       'set',
       'org.freedesktop.ibus.engine.hangul',
@@ -158,7 +157,11 @@ final class _ImeHarness {
     }
     expect(engineAvailable, isTrue, reason: 'IBus Hangul engine unavailable');
     await _run('ibus', <String>['engine', 'hangul']);
-    await tester.pumpWidget(TermworldExampleApp(controller: controller));
+
+    final probeController = TermworldExampleController();
+    await tester.pumpWidget(
+      TermworldExampleApp(controller: probeController),
+    );
     await tester.pumpAndSettle();
     final search = await _run('xdotool', <String>[
       'search',
@@ -168,14 +171,23 @@ final class _ImeHarness {
     ]);
     final ids = search.stdout.toString().trim().split(RegExp(r'\s+'));
     final id = ids.last;
+    final probe = _ImeHarness._(tester, probeController, id);
+    await probe.focusTerminal();
+    await probe.keys(<String>['g']);
+    if (probe.output == 'g') {
+      await probe.toggleLanguage();
+    } else {
+      expect(probe.output, isEmpty, reason: 'IBus mode probe was ambiguous');
+    }
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+    await probe.dispose();
+
+    final controller = TermworldExampleController();
+    await tester.pumpWidget(TermworldExampleApp(controller: controller));
+    await tester.pumpAndSettle();
     final harness = _ImeHarness._(tester, controller, id);
     await harness.focusTerminal();
-    await _run('xdotool', <String>[
-      'key',
-      '--clearmodifiers',
-      'Shift+space',
-    ]);
-    await tester.pumpAndSettle();
     return harness;
   }
 
@@ -198,17 +210,38 @@ final class _ImeHarness {
   Future<void> keys(List<String> keys) async {
     final filtered = keys.where((key) => key.isNotEmpty).toList();
     if (filtered.isEmpty) return;
-    await _run('xdotool', <String>[
-      'key',
-      '--clearmodifiers',
-      '--delay',
-      '40',
-      ...filtered,
-    ]);
+    for (final key in filtered) {
+      await _run('xdotool', <String>[
+        'keydown',
+        '--clearmodifiers',
+        key,
+        'sleep',
+        '0.04',
+        'keyup',
+        key,
+      ]);
+    }
     await tester.pumpAndSettle();
   }
 
-  Future<void> toggleLanguage() => keys(<String>['Shift+space']);
+  Future<void> toggleLanguage() async {
+    await _run('xdotool', <String>[
+      'keydown',
+      '--clearmodifiers',
+      'Shift_L',
+      'sleep',
+      '0.04',
+      'keydown',
+      'space',
+      'sleep',
+      '0.04',
+      'keyup',
+      'space',
+      'keyup',
+      'Shift_L',
+    ]);
+    await tester.pumpAndSettle();
+  }
 
   Future<void> click(Finder finder) async {
     await tester.tap(finder);
