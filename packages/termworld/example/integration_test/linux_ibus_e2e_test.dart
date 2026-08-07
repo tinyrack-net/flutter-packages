@@ -160,8 +160,6 @@ final class _ImeHarness {
     if (filtered.isEmpty) return;
     await _run('xdotool', <String>[
       'key',
-      '--window',
-      windowId,
       '--clearmodifiers',
       '--delay',
       '40',
