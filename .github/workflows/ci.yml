@@ -111,7 +111,7 @@ jobs:
         run: flutter pub get
         working-directory: packages/termworld/example
       - name: L4 windows termworld conformance suite
-        run: flutter test integration_test -d windows
+        run: flutter test integration_test/conformance_test.dart -d windows
         working-directory: packages/termworld/example
       - name: L5 windows termworld release build
         run: flutter build windows --release
@@ -156,7 +156,7 @@ jobs:
         run: flutter pub get
         working-directory: packages/termworld/example
       - name: L4 macos termworld conformance suite
-        run: flutter test integration_test -d macos
+        run: flutter test integration_test/conformance_test.dart -d macos
         working-directory: packages/termworld/example
       - name: L5 macos termworld release build
         run: flutter build macos --release
@@ -200,13 +200,49 @@ jobs:
         run: flutter pub get
         working-directory: packages/termworld/example
       - name: L4 linux termworld conformance suite
-        run: xvfb-run -a flutter test integration_test -d linux
+        run: >-
+          xvfb-run -a flutter test integration_test/conformance_test.dart
+          -d linux
         working-directory: packages/termworld/example
       - name: L5 linux termworld release build
         run: flutter build linux --release
         working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart linux
+
+  linux-ibus:
+    name: Linux IBus Hangul E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: jdx/mise-action@v3
+        with:
+          tool_versions: flutter 3.44.4
+      - name: Install the IBus and X11 test toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            ibus ibus-gtk3 ibus-hangul xdotool xclip dbus-x11 xvfb scrot x11-utils \
+            clang cmake ninja-build pkg-config libgtk-3-dev
+      - name: Run the Linux IBus Hangul E2E
+        env:
+          GDK_BACKEND: x11
+          GTK_IM_MODULE: ibus
+          IBUS_USE_PORTAL: '0'
+          XMODIFIERS: '@im=ibus'
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/termworld-ibus-config"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/termworld-ibus-runtime"
+          mkdir -p "$XDG_CONFIG_HOME" "$XDG_RUNTIME_DIR" "$GITHUB_WORKSPACE/ibus-artifacts"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          xvfb-run -a dbus-run-session -- bash tool/run_linux_ibus_e2e.sh
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: linux-ibus-hangul-e2e
+          path: ibus-artifacts
+          if-no-files-found: warn
 
   web:
     name: Web
@@ -310,7 +346,7 @@ jobs:
           arch: x86_64
           disable-animations: true
           working-directory: packages/termworld/example
-          script: flutter test integration_test
+          script: flutter test integration_test/conformance_test.dart
       - name: L5 android termworld release build
         run: flutter build apk --release
         working-directory: packages/termworld/example
@@ -361,7 +397,8 @@ jobs:
         run: |
           xcrun simctl boot "$SIMULATOR_UDID" || true
           xcrun simctl bootstatus "$SIMULATOR_UDID" -b
-          flutter test integration_test -d "$SIMULATOR_UDID"
+          flutter test integration_test/conformance_test.dart \
+            -d "$SIMULATOR_UDID"
         working-directory: packages/termworld/example
       - name: L5 ios termworld release build
         run: flutter build ios --release --no-codesign

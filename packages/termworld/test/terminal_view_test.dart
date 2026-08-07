@@ -53,7 +53,7 @@ void main() {
     expect(output, <String>['가👩🏽‍💻', '\u007f\u007f', '나']);
   });
 
-  testWidgets('does not commit preedit on cancellation or focus loss', (
+  testWidgets('commits preedit once on focus loss', (
     tester,
   ) async {
     final output = <String>[];
@@ -73,7 +73,10 @@ void main() {
 
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pump();
-    expect(output, isEmpty);
+    expect(output, <String>['한']);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    expect(output, <String>['한']);
     expect(tester.testTextInput.hasAnyClients, isFalse);
   });
 

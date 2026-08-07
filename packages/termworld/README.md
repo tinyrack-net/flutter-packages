@@ -44,3 +44,6 @@ without guessing from UTF-16 string lengths.
 
 The same Dart implementation runs on Android, iOS, Linux, macOS, Windows and
 web. Platform conformance tests exercise one input contract on every target.
+Linux CI additionally runs a real IBus Hangul two-set session under X11. It
+injects physical key positions, language toggles and clipboard paste rather
+than calling Flutter's synthetic text-entry helpers.
