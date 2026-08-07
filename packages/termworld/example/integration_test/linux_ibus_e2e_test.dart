@@ -146,6 +146,12 @@ final class _ImeHarness {
     final ids = search.stdout.toString().trim().split(RegExp(r'\s+'));
     final id = ids.last;
     await _run('xdotool', <String>['windowfocus', '--sync', id]);
+    await _run('xdotool', <String>[
+      'key',
+      '--clearmodifiers',
+      'Shift+space',
+    ]);
+    await tester.pumpAndSettle();
     return _ImeHarness._(tester, controller, id);
   }
 

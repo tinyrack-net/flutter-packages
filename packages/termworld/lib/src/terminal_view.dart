@@ -476,11 +476,27 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   AutofillScope? get currentAutofillScope => null;
 
   @override
-  void updateEditingValue(TextEditingValue value) => _accept(value);
+  void updateEditingValue(TextEditingValue value) {
+    assert(
+      () {
+        debugPrint('termworld IME value: $_editingValue -> $value');
+        return true;
+      }(),
+      'The IME value trace is observational only.',
+    );
+    _accept(value);
+  }
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> textEditingDeltas) {
     for (final delta in textEditingDeltas) {
+      assert(
+        () {
+          debugPrint('termworld IME delta: $delta from $_editingValue');
+          return true;
+        }(),
+        'The IME delta trace is observational only.',
+      );
       _accept(delta.apply(_editingValue));
     }
   }
