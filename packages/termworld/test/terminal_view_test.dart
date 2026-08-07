@@ -106,6 +106,44 @@ void main() {
     expect(output, <String>['\r', '\u001b[A', '\u007f']);
   });
 
+  testWidgets('shifted control chords remain available to ancestor shortcuts', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final emulator = TerminalEmulator(onOutput: output.add);
+    var shortcuts = 0;
+    addTearDown(emulator.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(
+              LogicalKeyboardKey.keyB,
+              control: true,
+              shift: true,
+            ): () =>
+                shortcuts++,
+          },
+          child: SizedBox(
+            width: 400,
+            height: 200,
+            child: TerminalView(emulator: emulator, autofocus: true),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyB);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(shortcuts, 1);
+    expect(output, isEmpty);
+  });
+
   testWidgets('committed text makes deletion delta own Backspace', (
     tester,
   ) async {

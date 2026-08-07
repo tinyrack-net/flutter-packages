@@ -146,6 +146,7 @@ final class _TerminalViewState extends State<TerminalView> {
     final hardware = HardwareKeyboard.instance;
     final character = event.character;
     if (hardware.isControlPressed &&
+        !hardware.isShiftPressed &&
         character != null &&
         character.isNotEmpty) {
       final rune = character.toLowerCase().runes.first;
