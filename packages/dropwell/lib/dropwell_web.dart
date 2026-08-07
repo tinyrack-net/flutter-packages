@@ -42,7 +42,16 @@ base class DropwellWeb extends DropwellPlatform
       StreamController<DropwellDragEvent>.broadcast();
 
   List<Rect> _regions = const <Rect>[];
-  List<DropwellFile> _pasted = const <DropwellFile>[];
+
+  /// The in-flight read of the most recent paste.
+  ///
+  /// Reading a browser `File` is asynchronous, so storing the future rather
+  /// than its result means a consumer that calls readClipboardFiles the
+  /// instant its paste shortcut fires waits for the payload instead of
+  /// racing it to an empty list.
+  Future<List<DropwellFile>> _pasted = Future<List<DropwellFile>>.value(
+    const <DropwellFile>[],
+  );
 
   @override
   bool get supportsDrop => true;
@@ -62,7 +71,7 @@ base class DropwellWeb extends DropwellPlatform
   /// calls this from its own paste shortcut, which is exactly when the event
   /// has just fired.
   @override
-  Future<List<DropwellFile>> readClipboardFiles() async => _pasted;
+  Future<List<DropwellFile>> readClipboardFiles() => _pasted;
 
   @override
   Future<void> publishDropRegions(List<Rect> physicalRegions) async {
@@ -71,7 +80,7 @@ base class DropwellWeb extends DropwellPlatform
 
   @override
   Future<void> clearSystemClipboard() async {
-    _pasted = const <DropwellFile>[];
+    _pasted = Future<List<DropwellFile>>.value(const <DropwellFile>[]);
   }
 
   @override
@@ -89,7 +98,7 @@ base class DropwellWeb extends DropwellPlatform
         web.ClipboardEventInit(clipboardData: _transferFor(files)),
       ),
     );
-    await Future<void>.delayed(Duration.zero);
+    await _pasted;
   }
 
   @override
@@ -111,7 +120,7 @@ base class DropwellWeb extends DropwellPlatform
   }
 
   @override
-  Future<Uint8List> readFile(String path) =>
+  Future<Uint8List> readFile(String path) async =>
       throw UnsupportedError('a browser never reports a file by path');
 
   void _listen(String type, void Function(web.Event) handler) {
@@ -183,11 +192,8 @@ base class DropwellWeb extends DropwellPlatform
     );
   }
 
-  Future<void> _onPaste(web.Event event) async {
-    final files = await readDataTransfer(
-      (event as web.ClipboardEvent).clipboardData,
-    );
-    _pasted = files;
+  void _onPaste(web.Event event) {
+    _pasted = readDataTransfer((event as web.ClipboardEvent).clipboardData);
   }
 
   void _emit(

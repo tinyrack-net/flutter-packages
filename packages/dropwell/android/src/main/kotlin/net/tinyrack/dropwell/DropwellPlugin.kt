@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.net.Uri
+import android.os.StrictMode
 import android.provider.OpenableColumns
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -94,6 +95,12 @@ class DropwellPlugin :
 
     private fun registerTestingChannel(binding: FlutterPlugin.FlutterPluginBinding) {
         if (!BuildConfig.DEBUG) return
+        // A real Android clipboard carries a content:// URI from a provider the
+        // owning app declares. The suite has no app manifest to add one to, so
+        // it offers a file:// URI instead, which StrictMode refuses to let
+        // leave the process. Relaxing that policy is confined to this
+        // Debug-only channel, and the reader itself treats both schemes alike.
+        StrictMode.setVmPolicy(StrictMode.VmPolicy.Builder().build())
         val channel = MethodChannel(binding.binaryMessenger, "dropwell/testing")
         channel.setMethodCallHandler { call, result -> handleTestingCall(call, result) }
         testing = channel
