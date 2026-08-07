@@ -151,20 +151,22 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
   private static func sendScroll(deltaX: Double, deltaY: Double, to webView: WKWebView) {
     guard
       let window = webView.window,
-      let event = NSEvent.scrollWheel(
-        with: webView.convert(
-          NSPoint(x: webView.bounds.midX, y: webView.bounds.midY),
-          to: nil
-        ),
-        modifierFlags: [],
-        timestamp: ProcessInfo.processInfo.systemUptime,
-        windowNumber: window.windowNumber,
-        context: nil,
-        deltaX: -deltaX,
-        deltaY: -deltaY,
-        deltaZ: 0
+      let eventSource = CGEventSource(stateID: .privateState),
+      let cgEvent = CGEvent(
+        scrollWheelEvent2Source: eventSource,
+        units: .pixel,
+        wheelCount: 2,
+        wheel1: Int32(-deltaY),
+        wheel2: Int32(-deltaX),
+        wheel3: 0
       )
     else { return }
+    let windowPoint = webView.convert(
+      NSPoint(x: webView.bounds.midX, y: webView.bounds.midY),
+      to: nil
+    )
+    cgEvent.location = window.convertPoint(toScreen: windowPoint)
+    guard let event = NSEvent(cgEvent: cgEvent) else { return }
     webView.scrollWheel(with: event)
   }
 
