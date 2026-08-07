@@ -64,24 +64,39 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
       Self.sendMouse(.leftMouseUp, at: target, to: webView)
       result(nil)
     case "scroll":
+      Self.sendScroll(
+        deltaX: (arguments["deltaX"] as? NSNumber)?.doubleValue ?? 0,
+        deltaY: (arguments["deltaY"] as? NSNumber)?.doubleValue ?? 0,
+        to: webView
+      )
       result(nil)
     case "screenshot":
       let configuration = WKSnapshotConfiguration()
       if arguments["fullPage"] as? Bool == true {
-        configuration.rect = CGRect(origin: .zero, size: webView.scrollView.documentView?.bounds.size ?? webView.bounds.size)
-      }
-      webView.takeSnapshot(with: configuration) { image, error in
-        guard
-          error == nil,
-          let data = image?.tiffRepresentation,
-          let bitmap = NSBitmapImageRep(data: data),
-          let png = bitmap.representation(using: .png, properties: [:])
-        else {
-          result(FlutterError(code: "internal", message: error?.localizedDescription ?? "Snapshot failed.", details: nil))
-          return
+        webView.evaluateJavaScript(
+          "[document.documentElement.scrollWidth, document.documentElement.scrollHeight]"
+        ) { value, error in
+          guard
+            error == nil,
+            let dimensions = value as? [NSNumber],
+            dimensions.count == 2
+          else {
+            result(FlutterError(
+              code: "internal",
+              message: error?.localizedDescription ?? "Document size is unavailable.",
+              details: nil
+            ))
+            return
+          }
+          configuration.rect = CGRect(
+            origin: .zero,
+            size: CGSize(width: dimensions[0].doubleValue, height: dimensions[1].doubleValue)
+          )
+          Self.takeSnapshot(of: webView, configuration: configuration, result: result)
         }
-        result(FlutterStandardTypedData(bytes: png))
+        return
       }
+      Self.takeSnapshot(of: webView, configuration: configuration, result: result)
     case "upload":
       guard let path = (arguments["filePaths"] as? [String])?.first else {
         result(FlutterError(code: "denied", message: "Upload paths are missing.", details: nil))
@@ -106,6 +121,49 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
     }
   }
 
+  private static func takeSnapshot(
+    of webView: WKWebView,
+    configuration: WKSnapshotConfiguration,
+    result: @escaping FlutterResult
+  ) {
+    webView.takeSnapshot(with: configuration) { image, error in
+      guard
+        error == nil,
+        let data = image?.tiffRepresentation,
+        let bitmap = NSBitmapImageRep(data: data),
+        let png = bitmap.representation(using: .png, properties: [:])
+      else {
+        result(FlutterError(
+          code: "internal",
+          message: error?.localizedDescription ?? "Snapshot failed.",
+          details: nil
+        ))
+        return
+      }
+      result(FlutterStandardTypedData(bytes: png))
+    }
+  }
+
+  private static func sendScroll(deltaX: Double, deltaY: Double, to webView: WKWebView) {
+    guard
+      let window = webView.window,
+      let event = NSEvent.scrollWheel(
+        with: webView.convert(
+          NSPoint(x: webView.bounds.midX, y: webView.bounds.midY),
+          to: nil
+        ),
+        modifierFlags: [],
+        timestamp: ProcessInfo.processInfo.systemUptime,
+        windowNumber: window.windowNumber,
+        context: nil,
+        deltaX: -deltaX,
+        deltaY: -deltaY,
+        deltaZ: 0
+      )
+    else { return }
+    webView.scrollWheel(with: event)
+  }
+
   private static func findWebView(in view: NSView?) -> WKWebView? {
     guard let view else { return nil }
     if let webView = view as? WKWebView, !webView.isHidden { return webView }
@@ -117,7 +175,7 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
 
   private static func center(of value: Any?, in webView: WKWebView) -> NSPoint? {
     guard let rect = value as? [String: Any] else { return nil }
-    let x = (rect["left"] as? NSNumber)?.doubleValue ?? 0
+    let x = ((rect["left"] as? NSNumber)?.doubleValue ?? 0)
       + ((rect["width"] as? NSNumber)?.doubleValue ?? 0) / 2
     let top = (rect["top"] as? NSNumber)?.doubleValue ?? 0
     let height = (rect["height"] as? NSNumber)?.doubleValue ?? 0
