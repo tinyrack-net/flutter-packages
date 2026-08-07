@@ -12,6 +12,10 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "getPlatformVersion" {
+      result("macOS " + ProcessInfo.processInfo.operatingSystemVersionString)
+      return
+    }
     if call.method == "setViewport" {
       result(nil)
       return
