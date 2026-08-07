@@ -11,12 +11,13 @@ void main() => runApp(const TermworldExampleApp());
 final class TermworldExampleController extends ChangeNotifier {
   /// Creates an example controller and its terminal engine.
   TermworldExampleController() {
-    emulator = TerminalEmulator(onOutput: _recordOutput)
-      ..write('\u001b[1;36mtermworld\u001b[0m\r\n한글 IME: ');
+    terminal = Terminal();
+    terminal.onData.listen(_recordOutput);
+    terminal.write('\u001b[1;36mtermworld\u001b[0m\r\n한글 IME: ');
   }
 
   /// Terminal engine rendered by the example.
-  late final TerminalEmulator emulator;
+  late final Terminal terminal;
 
   final StringBuffer _output = StringBuffer();
 
@@ -36,19 +37,19 @@ final class TermworldExampleController extends ChangeNotifier {
 
   /// Enables or disables DEC bracketed-paste mode.
   void setBracketedPaste({required bool enabled}) {
-    emulator.write(enabled ? '\u001b[?2004h' : '\u001b[?2004l');
+    terminal.write(enabled ? '\u001b[?2004h' : '\u001b[?2004l');
   }
 
   /// Reads the real platform clipboard and sends it through terminal paste.
   Future<void> pasteClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text;
-    if (text != null && text.isNotEmpty) emulator.paste(text);
+    if (text != null && text.isNotEmpty) terminal.paste(text);
   }
 
   @override
   void dispose() {
-    emulator.dispose();
+    terminal.dispose();
     super.dispose();
   }
 }
@@ -86,7 +87,7 @@ class _TermworldExampleAppState extends State<TermworldExampleApp> {
           Expanded(
             child: TerminalView(
               key: const ValueKey<String>('terminal'),
-              emulator: _controller.emulator,
+              terminal: _controller.terminal,
               autofocus: true,
               semanticLabel: 'termworld terminal',
             ),

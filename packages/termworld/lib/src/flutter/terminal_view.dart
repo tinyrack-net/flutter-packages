@@ -1,0 +1,525 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:termworld/src/core/terminal.dart';
+import 'package:termworld/src/flutter/terminal_view_controller.dart';
+import 'package:xterm/core.dart' as xterm_core;
+import 'package:xterm/ui.dart' as xterm_ui;
+
+/// Flutter renderer and input surface for a headless [Terminal].
+class TerminalView extends StatefulWidget {
+  /// Creates a terminal view. The caller retains ownership of [terminal].
+  const TerminalView({
+    required this.terminal,
+    super.key,
+    this.controller,
+    this.theme = xterm_ui.TerminalThemes.defaultTheme,
+    this.style = const xterm_ui.TerminalStyle(),
+    this.padding,
+    this.focusNode,
+    this.autofocus = false,
+    this.readOnly = false,
+    this.autoResize = true,
+    this.backgroundOpacity = 1,
+    this.semanticLabel = 'terminal',
+    this.onTapUp,
+    this.onSecondaryTapDown,
+    this.onSecondaryTapUp,
+  });
+
+  /// Terminal model to render.
+  final Terminal terminal;
+
+  /// Optional externally owned controller.
+  final TerminalViewController? controller;
+
+  /// Renderer color theme.
+  final xterm_ui.TerminalTheme theme;
+
+  /// Renderer font style.
+  final xterm_ui.TerminalStyle style;
+
+  /// Space around the terminal viewport.
+  final EdgeInsets? padding;
+
+  /// Optional externally owned focus node.
+  final FocusNode? focusNode;
+
+  /// Whether this view requests initial focus.
+  final bool autofocus;
+
+  /// Whether user input is disabled.
+  final bool readOnly;
+
+  /// Whether measured cell dimensions resize [terminal].
+  final bool autoResize;
+
+  /// Opacity of the terminal background.
+  final double backgroundOpacity;
+
+  /// Accessibility label for the terminal surface.
+  final String semanticLabel;
+
+  /// Tap callback in terminal cell coordinates.
+  final void Function(TapUpDetails, xterm_core.CellOffset)? onTapUp;
+
+  /// Secondary pointer-down callback in terminal cell coordinates.
+  final void Function(TapDownDetails, xterm_core.CellOffset)?
+  onSecondaryTapDown;
+
+  /// Secondary pointer-up callback in terminal cell coordinates.
+  final void Function(TapUpDetails, xterm_core.CellOffset)? onSecondaryTapUp;
+
+  @override
+  State<TerminalView> createState() => _TerminalViewState();
+}
+
+final class _TerminalViewState extends State<TerminalView> {
+  final GlobalKey<_TerminalTextInputState> _inputKey =
+      GlobalKey<_TerminalTextInputState>();
+  late FocusNode _focusNode =
+      widget.focusNode ?? FocusNode(debugLabel: 'termworld-terminal-input');
+  late TerminalViewController _controller =
+      widget.controller ?? TerminalViewController();
+  MethodChannel? _testingChannel;
+
+  @override
+  void initState() {
+    super.initState();
+    _attach();
+    if (kDebugMode) {
+      _testingChannel = const MethodChannel('termworld/testing')
+        ..setMethodCallHandler(_handleTestingCall);
+    }
+  }
+
+  @override
+  void didUpdateWidget(TerminalView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      if (oldWidget.focusNode == null) _focusNode.dispose();
+      _focusNode =
+          widget.focusNode ?? FocusNode(debugLabel: 'termworld-terminal-input');
+    }
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.terminal != widget.terminal) {
+      _controller.detach();
+      if (oldWidget.controller == null) _controller.dispose();
+      _controller = widget.controller ?? TerminalViewController();
+      _attach();
+    }
+  }
+
+  void _attach() {
+    _controller.attach(widget.terminal, _requestKeyboard);
+    widget.terminal.attachFocusHandlers(
+      focus: _requestKeyboard,
+      blur: _focusNode.unfocus,
+    );
+  }
+
+  void _requestKeyboard() {
+    _focusNode.requestFocus();
+    _inputKey.currentState?.requestKeyboard();
+  }
+
+  Future<Object?> _handleTestingCall(MethodCall call) async {
+    if (call.method != 'injectEditingValue') {
+      throw MissingPluginException('Unknown termworld testing method');
+    }
+    final arguments = Map<String, dynamic>.from(call.arguments as Map);
+    _inputKey.currentState?.updateEditingValue(
+      TextEditingValue.fromJSON(arguments),
+    );
+    return null;
+  }
+
+  @override
+  void dispose() {
+    _testingChannel?.setMethodCallHandler(null);
+    _testingChannel = null;
+    _controller.detach();
+    widget.terminal.attachFocusHandlers();
+    if (widget.controller == null) _controller.dispose();
+    if (widget.focusNode == null) _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      _reportDimensions(context, constraints.biggest);
+      final renderer = xterm_ui.TerminalView(
+        widget.terminal.rendererDelegate,
+        controller: _controller.rendererController,
+        theme: widget.theme,
+        textStyle: widget.style,
+        padding: widget.padding,
+        autoResize: false,
+        focusNode: _focusNode,
+        autofocus: widget.autofocus,
+        readOnly: true,
+        backgroundOpacity: widget.backgroundOpacity,
+        onTapUp: widget.onTapUp,
+        onSecondaryTapDown: widget.onSecondaryTapDown,
+        onSecondaryTapUp: widget.onSecondaryTapUp,
+        onKeyEvent: _onKeyEvent,
+      );
+      final composingText = _inputKey.currentState?.composingText ?? '';
+      final padding = widget.padding ?? EdgeInsets.zero;
+      final dimensions = widget.terminal.dimensions;
+      final view = GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: _requestKeyboard,
+        child: _TerminalTextInput(
+          key: _inputKey,
+          focusNode: _focusNode,
+          autofocus: widget.autofocus,
+          readOnly: widget.readOnly,
+          terminal: widget.terminal,
+          onKeyEvent: _onKeyEvent,
+          onComposingChanged: () {
+            if (mounted) setState(() {});
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              renderer,
+              if (composingText.isNotEmpty && dimensions != null)
+                Positioned(
+                  left:
+                      padding.left +
+                      widget.terminal.buffer.active.cursorX *
+                          dimensions.cellWidth,
+                  top:
+                      padding.top +
+                      widget.terminal.buffer.active.cursorY *
+                          dimensions.cellHeight,
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: widget.theme.background,
+                        border: Border(
+                          bottom: BorderSide(color: widget.theme.foreground),
+                        ),
+                      ),
+                      child: Text(
+                        composingText,
+                        key: const ValueKey<String>('termworld-preedit'),
+                        style: widget.style.toTextStyle(
+                          color: widget.theme.foreground,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      );
+      return Semantics(
+        label: widget.semanticLabel,
+        textField: !widget.readOnly,
+        child: view,
+      );
+    },
+  );
+
+  KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent) return KeyEventResult.ignored;
+    final keyboard = HardwareKeyboard.instance;
+    final allowed = widget.terminal.handleKeyEvent(
+      TerminalKeyEvent(
+        key: event.logicalKey.keyLabel,
+        shift: keyboard.isShiftPressed,
+        alt: keyboard.isAltPressed,
+        control: keyboard.isControlPressed,
+        meta: keyboard.isMetaPressed,
+      ),
+    );
+    if (!allowed) return KeyEventResult.handled;
+    final sequence = _keySequence(event.logicalKey, keyboard);
+    if (sequence == null) return KeyEventResult.ignored;
+    widget.terminal.input(sequence);
+    return KeyEventResult.handled;
+  }
+
+  String? _keySequence(
+    LogicalKeyboardKey key,
+    HardwareKeyboard keyboard,
+  ) {
+    final shift = keyboard.isShiftPressed;
+    final alt = keyboard.isAltPressed || keyboard.isMetaPressed;
+    final control = keyboard.isControlPressed;
+    final modifier = 1 + (shift ? 1 : 0) + (alt ? 2 : 0) + (control ? 4 : 0);
+    String cursor(String finalByte) =>
+        modifier == 1 ? '\u001b[$finalByte' : '\u001b[1;$modifier$finalByte';
+    String tilde(int code) =>
+        modifier == 1 ? '\u001b[$code~' : '\u001b[$code;$modifier~';
+    if (key == LogicalKeyboardKey.backspace) {
+      final deletion = control ? '\b' : '\u007f';
+      return alt ? '\u001b$deletion' : deletion;
+    }
+    if (key == LogicalKeyboardKey.tab) {
+      if (shift && !alt && !control) return '\u001b[Z';
+      return alt ? '\u001b\t' : '\t';
+    }
+    if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter) {
+      return alt ? '\u001b\r' : '\r';
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      return alt ? '\u001b\u001b' : '\u001b';
+    }
+    if (key == LogicalKeyboardKey.arrowUp) return cursor('A');
+    if (key == LogicalKeyboardKey.arrowDown) return cursor('B');
+    if (key == LogicalKeyboardKey.arrowRight) return cursor('C');
+    if (key == LogicalKeyboardKey.arrowLeft) return cursor('D');
+    if (key == LogicalKeyboardKey.home) return cursor('H');
+    if (key == LogicalKeyboardKey.end) return cursor('F');
+    if (key == LogicalKeyboardKey.insert) return tilde(2);
+    if (key == LogicalKeyboardKey.delete) return tilde(3);
+    if (key == LogicalKeyboardKey.pageUp) return tilde(5);
+    if (key == LogicalKeyboardKey.pageDown) return tilde(6);
+    return null;
+  }
+
+  void _reportDimensions(BuildContext context, Size size) {
+    if (!size.isFinite || size.isEmpty) return;
+    final pixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final cellHeight = widget.style.fontSize * widget.style.height;
+    final cellWidth = widget.style.fontSize * 0.6;
+    final padding = widget.padding ?? EdgeInsets.zero;
+    final columns = ((size.width - padding.horizontal) / cellWidth).floor();
+    final rows = ((size.height - padding.vertical) / cellHeight).floor();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      widget.terminal.updateDimensions(
+        TerminalRenderDimensions(
+          width: size.width,
+          height: size.height,
+          cellWidth: cellWidth,
+          cellHeight: cellHeight,
+          devicePixelRatio: pixelRatio,
+        ),
+      );
+      if (widget.autoResize && columns > 0 && rows > 0) {
+        widget.terminal.resize(columns, rows);
+      }
+    });
+  }
+}
+
+final class _TerminalTextInput extends StatefulWidget {
+  const _TerminalTextInput({
+    required this.focusNode,
+    required this.autofocus,
+    required this.readOnly,
+    required this.terminal,
+    required this.onKeyEvent,
+    required this.onComposingChanged,
+    required this.child,
+    super.key,
+  });
+
+  final FocusNode focusNode;
+  final bool autofocus;
+  final bool readOnly;
+  final Terminal terminal;
+  final FocusOnKeyEventCallback onKeyEvent;
+  final VoidCallback onComposingChanged;
+  final Widget child;
+
+  @override
+  State<_TerminalTextInput> createState() => _TerminalTextInputState();
+}
+
+final class _TerminalTextInputState extends State<_TerminalTextInput>
+    with DeltaTextInputClient {
+  TextInputConnection? _connection;
+  TextEditingValue _editingValue = TextEditingValue.empty;
+  String _committedPrefix = '';
+
+  bool get _isComposing =>
+      _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
+
+  String get composingText {
+    if (!_isComposing) return '';
+    return _editingValue.composing.textInside(_editingValue.text);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_focusChanged);
+  }
+
+  @override
+  void didUpdateWidget(_TerminalTextInput oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.focusNode != widget.focusNode) {
+      oldWidget.focusNode.removeListener(_focusChanged);
+      widget.focusNode.addListener(_focusChanged);
+    }
+    if (oldWidget.terminal != widget.terminal) _resetEditingState();
+    if (widget.readOnly && !oldWidget.readOnly) _closeConnection();
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_focusChanged);
+    _closeConnection();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+
+  void requestKeyboard() {
+    if (!widget.focusNode.hasFocus) widget.focusNode.requestFocus();
+    _openConnection();
+  }
+
+  void _focusChanged() {
+    if (widget.focusNode.hasFocus) {
+      _openConnection();
+    } else {
+      _commitComposition();
+      _closeConnection();
+    }
+  }
+
+  void _commitComposition() {
+    if (!_isComposing) return;
+    _reconcileCommitted(_editingValue.text);
+    _resetEditingState();
+    widget.onComposingChanged();
+  }
+
+  void _resetEditingState() {
+    _editingValue = TextEditingValue.empty;
+    _committedPrefix = '';
+    _connection?.setEditingState(_editingValue);
+  }
+
+  void _openConnection() {
+    if (widget.readOnly) return;
+    if (_connection case final connection? when connection.attached) {
+      connection.show();
+      return;
+    }
+    _connection = TextInput.attach(
+      this,
+      TextInputConfiguration(
+        viewId: View.of(context).viewId,
+        inputAction: TextInputAction.newline,
+        autocorrect: false,
+        enableSuggestions: false,
+        enableIMEPersonalizedLearning: false,
+        enableDeltaModel: true,
+      ),
+    )..setEditingState(_editingValue);
+    _connection?.show();
+  }
+
+  void _closeConnection() {
+    _connection?.close();
+    _connection = null;
+  }
+
+  @override
+  TextEditingValue? get currentTextEditingValue => _editingValue;
+
+  @override
+  AutofillScope? get currentAutofillScope => null;
+
+  @override
+  void updateEditingValue(TextEditingValue value) => _accept(value);
+
+  @override
+  void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
+    for (final delta in deltas) {
+      _accept(delta.apply(_editingValue));
+    }
+  }
+
+  void _accept(TextEditingValue value) {
+    _editingValue = value;
+    final composing = value.composing;
+    final committedEnd = composing.isValid && !composing.isCollapsed
+        ? composing.start
+        : value.text.length;
+    _reconcileCommitted(value.text.substring(0, committedEnd));
+    widget.onComposingChanged();
+  }
+
+  void _reconcileCommitted(String next) {
+    final previousClusters = _committedPrefix.characters.toList();
+    final nextClusters = next.characters.toList();
+    var common = 0;
+    while (common < previousClusters.length &&
+        common < nextClusters.length &&
+        previousClusters[common] == nextClusters[common]) {
+      common++;
+    }
+    final removed = previousClusters.length - common;
+    if (removed > 0) widget.terminal.input('\u007f' * removed);
+    if (common < nextClusters.length) {
+      widget.terminal.input(nextClusters.skip(common).join());
+    }
+    _committedPrefix = next;
+  }
+
+  @override
+  void performAction(TextInputAction action) {
+    if (action == TextInputAction.newline || action == TextInputAction.done) {
+      widget.terminal.input('\r');
+    }
+  }
+
+  @override
+  void connectionClosed() {
+    _connection?.connectionClosedReceived();
+    _connection = null;
+    if (!mounted || widget.readOnly || !widget.focusNode.hasFocus) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !widget.readOnly && widget.focusNode.hasFocus) {
+        _openConnection();
+      }
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
+
+  @override
+  void showAutocorrectionPromptRect(int start, int end) {}
+
+  @override
+  void showToolbar() {}
+
+  @override
+  void updateFloatingCursor(RawFloatingCursorPoint point) {}
+
+  @override
+  void performPrivateCommand(String action, Map<String, dynamic> data) {}
+
+  @override
+  void insertTextPlaceholder(Size size) {}
+
+  @override
+  void removeTextPlaceholder() {}
+
+  @override
+  void didChangeInputControl(
+    TextInputControl? oldControl,
+    TextInputControl? newControl,
+  ) {}
+
+  @override
+  void insertContent(KeyboardInsertedContent content) {}
+
+  @override
+  bool onFocusReceived() => false;
+
+  @override
+  void performSelector(String selectorName) {}
+}
