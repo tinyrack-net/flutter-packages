@@ -124,6 +124,19 @@ void main() {
     await harness.paste('붙여넣기');
     await harness.waitForOutput('한붙여넣기');
   });
+
+  testWidgets('real hardware Backspace and Alt Backspace emit once', (
+    tester,
+  ) async {
+    final harness = await _ImeHarness.start(tester);
+    addTearDown(harness.dispose);
+    await harness.toggleLanguage();
+
+    await harness.keys(<String>[...'word'.split('')]);
+    await harness.keys(<String>['BackSpace']);
+    await harness.chord(<String>['Alt_L'], 'BackSpace');
+    await harness.waitForOutput('word\u007f\u001b\u007f');
+  });
 }
 
 final class _ImeHarness {
@@ -249,6 +262,23 @@ final class _ImeHarness {
       'keyup',
       'Shift_L',
     ]);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> chord(List<String> modifiers, String key) async {
+    final arguments = <String>['keydown', '--clearmodifiers'];
+    for (final modifier in modifiers) {
+      arguments.addAll(<String>[modifier, 'sleep', '0.04', 'keydown']);
+    }
+    arguments
+      ..addAll(<String>[key, 'sleep', '0.04', 'keyup', key])
+      ..addAll(<String>[
+        for (final modifier in modifiers.reversed) ...<String>[
+          'keyup',
+          modifier,
+        ],
+      ]);
+    await _run('xdotool', arguments);
     await tester.pumpAndSettle();
   }
 

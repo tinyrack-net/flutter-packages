@@ -40,6 +40,18 @@ range, the committed grapheme delta is emitted once. This covers Hangul, Kana,
 Chinese candidate replacement, dead keys, combining marks and emoji sequences
 without guessing from UTF-16 string lengths.
 
+## Keyboard input
+
+`TerminalView` translates editing, navigation, function, and application-keypad
+keys to standard VT/xterm byte sequences. Shift, Alt/Option, Control, and Meta
+modifiers are encoded consistently on every supported platform. In particular,
+Backspace emits DEL and Alt/Option+Backspace emits ESC DEL so the program in the
+PTY remains responsible for character and word deletion.
+
+An externally owned `TerminalViewController` can call `requestKeyboard()` after
+a native menu or another platform interaction ends. The view restores focus and
+its platform text connection without changing terminal selection.
+
 ## Platforms
 
 The same Dart implementation runs on Android, iOS, Linux, macOS, Windows and

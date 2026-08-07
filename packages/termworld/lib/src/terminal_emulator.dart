@@ -646,42 +646,108 @@ final class TerminalEmulator extends ChangeNotifier {
     }
   }
 
-  /// Escape sequence for a non-printing key.
-  String? keySequence(LogicalKeyboardKey key) {
+  /// Escape sequence for a key and its active modifiers.
+  ///
+  /// Printable text without Control, Alt, or Meta remains owned by the
+  /// platform text-input client and therefore returns `null`.
+  String? keySequence(
+    LogicalKeyboardKey key, {
+    String? character,
+    bool shift = false,
+    bool alt = false,
+    bool control = false,
+    bool meta = false,
+  }) {
+    final modifier =
+        1 + (shift ? 1 : 0) + (alt || meta ? 2 : 0) + (control ? 4 : 0);
+    final modified = modifier != 1;
     final applicationPrefix = _applicationCursor ? '\u001bO' : '\u001b[';
-    if (key == LogicalKeyboardKey.arrowUp) return '${applicationPrefix}A';
-    if (key == LogicalKeyboardKey.arrowDown) return '${applicationPrefix}B';
-    if (key == LogicalKeyboardKey.arrowRight) return '${applicationPrefix}C';
-    if (key == LogicalKeyboardKey.arrowLeft) return '${applicationPrefix}D';
-    if (key == LogicalKeyboardKey.home) return '\u001b[H';
-    if (key == LogicalKeyboardKey.end) return '\u001b[F';
-    if (key == LogicalKeyboardKey.insert) return '\u001b[2~';
-    if (key == LogicalKeyboardKey.delete) return '\u001b[3~';
-    if (key == LogicalKeyboardKey.pageUp) return '\u001b[5~';
-    if (key == LogicalKeyboardKey.pageDown) return '\u001b[6~';
+    String cursor(String finalByte) => modified
+        ? '\u001b[1;$modifier$finalByte'
+        : '$applicationPrefix$finalByte';
+    String tilde(int code) =>
+        modified ? '\u001b[$code;$modifier~' : '\u001b[$code~';
+    if (key == LogicalKeyboardKey.arrowUp) return cursor('A');
+    if (key == LogicalKeyboardKey.arrowDown) return cursor('B');
+    if (key == LogicalKeyboardKey.arrowRight) return cursor('C');
+    if (key == LogicalKeyboardKey.arrowLeft) return cursor('D');
+    if (key == LogicalKeyboardKey.home) {
+      return modified ? '\u001b[1;${modifier}H' : '\u001b[H';
+    }
+    if (key == LogicalKeyboardKey.end) {
+      return modified ? '\u001b[1;${modifier}F' : '\u001b[F';
+    }
+    if (key == LogicalKeyboardKey.insert) return tilde(2);
+    if (key == LogicalKeyboardKey.delete) return tilde(3);
+    if (key == LogicalKeyboardKey.pageUp) return tilde(5);
+    if (key == LogicalKeyboardKey.pageDown) return tilde(6);
     if (key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter) {
-      return '\r';
+      return alt || meta ? '\u001b\r' : '\r';
     }
-    if (key == LogicalKeyboardKey.backspace) return '\u007f';
-    if (key == LogicalKeyboardKey.tab) return '\t';
-    if (key == LogicalKeyboardKey.escape) return '\u001b';
+    if (key == LogicalKeyboardKey.backspace) {
+      final deletion = control ? '\b' : '\u007f';
+      return alt || meta ? '\u001b$deletion' : deletion;
+    }
+    if (key == LogicalKeyboardKey.tab) {
+      if (shift && !alt && !control && !meta) return '\u001b[Z';
+      return alt || meta ? '\u001b\t' : '\t';
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      return alt || meta ? '\u001b\u001b' : '\u001b';
+    }
+    final functionKeys = <LogicalKeyboardKey, (String, int?)>{
+      LogicalKeyboardKey.f1: ('P', null),
+      LogicalKeyboardKey.f2: ('Q', null),
+      LogicalKeyboardKey.f3: ('R', null),
+      LogicalKeyboardKey.f4: ('S', null),
+      LogicalKeyboardKey.f5: ('', 15),
+      LogicalKeyboardKey.f6: ('', 17),
+      LogicalKeyboardKey.f7: ('', 18),
+      LogicalKeyboardKey.f8: ('', 19),
+      LogicalKeyboardKey.f9: ('', 20),
+      LogicalKeyboardKey.f10: ('', 21),
+      LogicalKeyboardKey.f11: ('', 23),
+      LogicalKeyboardKey.f12: ('', 24),
+    };
+    if (functionKeys[key] case (_, final code?)) {
+      return tilde(code);
+    } else if (functionKeys[key] case (final finalByte, null)) {
+      return modified ? '\u001b[1;$modifier$finalByte' : '\u001bO$finalByte';
+    }
     if (_applicationKeypad) {
-      if (key == LogicalKeyboardKey.numpad0) return '\u001bOp';
-      if (key == LogicalKeyboardKey.numpad1) return '\u001bOq';
-      if (key == LogicalKeyboardKey.numpad2) return '\u001bOr';
-      if (key == LogicalKeyboardKey.numpad3) return '\u001bOs';
-      if (key == LogicalKeyboardKey.numpad4) return '\u001bOt';
-      if (key == LogicalKeyboardKey.numpad5) return '\u001bOu';
-      if (key == LogicalKeyboardKey.numpad6) return '\u001bOv';
-      if (key == LogicalKeyboardKey.numpad7) return '\u001bOw';
-      if (key == LogicalKeyboardKey.numpad8) return '\u001bOx';
-      if (key == LogicalKeyboardKey.numpad9) return '\u001bOy';
-      if (key == LogicalKeyboardKey.numpadDecimal) return '\u001bOn';
-      if (key == LogicalKeyboardKey.numpadAdd) return '\u001bOk';
-      if (key == LogicalKeyboardKey.numpadSubtract) return '\u001bOm';
-      if (key == LogicalKeyboardKey.numpadMultiply) return '\u001bOj';
-      if (key == LogicalKeyboardKey.numpadDivide) return '\u001bOo';
+      final keypad = <LogicalKeyboardKey, String>{
+        LogicalKeyboardKey.numpad0: 'p',
+        LogicalKeyboardKey.numpad1: 'q',
+        LogicalKeyboardKey.numpad2: 'r',
+        LogicalKeyboardKey.numpad3: 's',
+        LogicalKeyboardKey.numpad4: 't',
+        LogicalKeyboardKey.numpad5: 'u',
+        LogicalKeyboardKey.numpad6: 'v',
+        LogicalKeyboardKey.numpad7: 'w',
+        LogicalKeyboardKey.numpad8: 'x',
+        LogicalKeyboardKey.numpad9: 'y',
+        LogicalKeyboardKey.numpadDecimal: 'n',
+        LogicalKeyboardKey.numpadAdd: 'k',
+        LogicalKeyboardKey.numpadSubtract: 'm',
+        LogicalKeyboardKey.numpadMultiply: 'j',
+        LogicalKeyboardKey.numpadDivide: 'o',
+      };
+      final finalByte = keypad[key];
+      if (finalByte != null) {
+        final sequence = '\u001bO$finalByte';
+        return alt || meta ? '\u001b$sequence' : sequence;
+      }
+    }
+    if (character != null && character.isNotEmpty) {
+      if (control && !shift) {
+        final rune = character.toLowerCase().runes.first;
+        if (rune >= 0x61 && rune <= 0x7a) {
+          final sequence = String.fromCharCode(rune - 0x60);
+          return alt || meta ? '\u001b$sequence' : sequence;
+        }
+      }
+      if (alt || meta) return '\u001b$character';
     }
     return null;
   }
