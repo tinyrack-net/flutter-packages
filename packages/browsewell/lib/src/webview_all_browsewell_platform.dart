@@ -161,14 +161,17 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
     String id, {
     required Rect rect,
     required bool visible,
-  }) => _automation.invokeMethod<void>('setViewport', <String, Object?>{
-    'id': id,
-    'left': rect.left,
-    'top': rect.top,
-    'width': rect.width,
-    'height': rect.height,
-    'visible': visible,
-  });
+  }) {
+    _browser(id).viewportRect = rect;
+    return _automation.invokeMethod<void>('setViewport', <String, Object?>{
+      'id': id,
+      'left': rect.left,
+      'top': rect.top,
+      'width': rect.width,
+      'height': rect.height,
+      'visible': visible,
+    });
+  }
 
   @override
   Future<void> disposeBrowser(String id) async {
@@ -223,7 +226,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
               )
             : await _automation.invokeMethod<Object?>(
                 'screenshot',
-                <String, Object?>{'id': id, ...arguments},
+                _nativeArguments(id, browser, arguments),
               );
         final bytes = browsewellBytes(rawBytes);
         if (bytes.length > browser.policy.maxScreenshotBytes) {
@@ -241,10 +244,12 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       case 'click':
       case 'hover':
         _ensureCurrentRef(browser, arguments['ref']! as String);
-        await _automation.invokeMethod<void>(command.name, <String, Object?>{
-          'id': id,
-          'rect': await _rect(browser, arguments['ref']! as String),
-        });
+        await _automation.invokeMethod<void>(
+          command.name,
+          _nativeArguments(id, browser, <String, Object?>{
+            'rect': await _rect(browser, arguments['ref']! as String),
+          }),
+        );
       case 'fill':
         _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
@@ -262,39 +267,47 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
           _ensureCurrentRef(browser, ref);
           await _focus(browser, ref);
         }
-        await _automation.invokeMethod<void>('keypress', <String, Object?>{
-          'id': id,
-          'key': arguments['key'],
-        });
+        await _automation.invokeMethod<void>(
+          'keypress',
+          _nativeArguments(id, browser, <String, Object?>{
+            'key': arguments['key'],
+          }),
+        );
       case 'select':
         _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
-        await _automation.invokeMethod<void>('select', <String, Object?>{
-          'id': id,
-          'value': arguments['value'],
-        });
+        await _automation.invokeMethod<void>(
+          'select',
+          _nativeArguments(id, browser, <String, Object?>{
+            'value': arguments['value'],
+          }),
+        );
       case 'drag':
         _ensureCurrentRef(browser, arguments['sourceRef']! as String);
         _ensureCurrentRef(browser, arguments['targetRef']! as String);
-        await _automation.invokeMethod<void>('drag', <String, Object?>{
-          'id': id,
-          'source': await _rect(browser, arguments['sourceRef']! as String),
-          'target': await _rect(browser, arguments['targetRef']! as String),
-        });
+        await _automation.invokeMethod<void>(
+          'drag',
+          _nativeArguments(id, browser, <String, Object?>{
+            'source': await _rect(browser, arguments['sourceRef']! as String),
+            'target': await _rect(browser, arguments['targetRef']! as String),
+          }),
+        );
       case 'upload':
         _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
-        await _automation.invokeMethod<void>('upload', <String, Object?>{
-          'id': id,
-          'filePaths': arguments['filePaths'],
-        });
+        await _automation.invokeMethod<void>(
+          'upload',
+          _nativeArguments(id, browser, <String, Object?>{
+            'filePaths': arguments['filePaths'],
+          }),
+        );
       case 'scroll':
         final ref = arguments['ref'] as String?;
         if (ref != null) _ensureCurrentRef(browser, ref);
-        await _automation.invokeMethod<void>('scroll', <String, Object?>{
-          'id': id,
-          ...arguments,
-        });
+        await _automation.invokeMethod<void>(
+          'scroll',
+          _nativeArguments(id, browser, arguments),
+        );
       case 'evaluate':
         final ref = arguments['ref'] as String?;
         final target = ref == null
@@ -411,11 +424,26 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
   );
 
   Future<void> _type(String id, String value, {required bool replace}) =>
-      _automation.invokeMethod<void>('type', <String, Object?>{
-        'id': id,
-        'text': value,
-        'replace': replace,
-      });
+      _automation.invokeMethod<void>(
+        'type',
+        _nativeArguments(id, _browser(id), <String, Object?>{
+          'text': value,
+          'replace': replace,
+        }),
+      );
+
+  Map<String, Object?> _nativeArguments(
+    String id,
+    _Browser browser,
+    Map<String, Object?> arguments,
+  ) => <String, Object?>{
+    'id': id,
+    'viewportLeft': browser.viewportRect.left,
+    'viewportTop': browser.viewportRect.top,
+    'devicePixelRatio':
+        ui.PlatformDispatcher.instance.views.first.devicePixelRatio,
+    ...arguments,
+  };
 
   Future<void> _wait(_Browser browser, Map<String, Object?> arguments) async {
     final deadline = DateTime.now().add(
@@ -559,6 +587,7 @@ final class _Browser {
   final Set<String> networkEntries = <String>{};
   final GlobalKey captureKey = GlobalKey();
   final ValueNotifier<Size?> viewportSize = ValueNotifier<Size?>(null);
+  Rect viewportRect = Rect.zero;
 
   int get maxLogEntries => policy.maxLogEntries;
 }

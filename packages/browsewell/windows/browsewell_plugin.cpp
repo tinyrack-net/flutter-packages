@@ -60,11 +60,13 @@ POINT Center(const EncodableMap& arguments,
   const auto viewport = viewports.find(id);
   const double left = viewport == viewports.end() ? 0 : viewport->second.left;
   const double top = viewport == viewports.end() ? 0 : viewport->second.top;
+  const double scale = Number(Find(arguments, "devicePixelRatio"));
+  const double ratio = scale > 0 ? scale : 1;
   if (rect != nullptr) {
-    point.x = static_cast<LONG>(left + Number(Find(*rect, "left")) +
-                                Number(Find(*rect, "width")) / 2);
-    point.y = static_cast<LONG>(top + Number(Find(*rect, "top")) +
-                                Number(Find(*rect, "height")) / 2);
+    point.x = static_cast<LONG>((left + Number(Find(*rect, "left")) +
+                                 Number(Find(*rect, "width")) / 2) * ratio);
+    point.y = static_cast<LONG>((top + Number(Find(*rect, "top")) +
+                                 Number(Find(*rect, "height")) / 2) * ratio);
   }
   return point;
 }
@@ -183,6 +185,7 @@ void BrowsewellPlugin::HandleMethodCall(
   } else if (window_ == nullptr) {
     result->Error("no_host", "No Flutter window is available.");
   } else if (method == "click" || method == "hover") {
+    SetFocus(window_);
     const POINT point = Center(args, viewports_);
     Mouse(window_, WM_MOUSEMOVE, point);
     if (method == "click") {

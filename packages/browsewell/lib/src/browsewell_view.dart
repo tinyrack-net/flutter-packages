@@ -20,7 +20,15 @@ final class _BrowsewellViewState extends State<BrowsewellView> {
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) => _reportViewport());
-    return BrowsewellPlatform.instance.buildView(widget.controller.id);
+    return NotificationListener<SizeChangedLayoutNotification>(
+      onNotification: (_) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _reportViewport());
+        return false;
+      },
+      child: SizeChangedLayoutNotifier(
+        child: BrowsewellPlatform.instance.buildView(widget.controller.id),
+      ),
+    );
   }
 
   @override

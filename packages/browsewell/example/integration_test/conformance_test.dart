@@ -166,6 +166,15 @@ void main() {
     expect(first.capabilities.multipleInstances, isTrue);
     await first.waitFor(text: 'Browsewell fixture');
     await second.waitFor(text: 'Browsewell fixture');
+    final secondRefs = _refs((await second.snapshot()).document);
+    await second.click(secondRefs['Trusted click']!);
+    await second.waitFor(text: 'trusted-click');
+    expect(
+      await first.evaluate(
+        '() => document.querySelector("#result").textContent',
+      ),
+      'Ready',
+    );
     await first.evaluate(
       '() => { localStorage.shared = "persisted"; return true; }',
     );

@@ -16,11 +16,15 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
       result(nil)
       return
     }
-    guard let webView = Self.findWebView(in: NSApp.keyWindow?.contentView) else {
+    let arguments = call.arguments as? [String: Any] ?? [:]
+    guard let webView = Self.findWebView(
+      in: NSApp.keyWindow?.contentView,
+      nearX: (arguments["viewportLeft"] as? NSNumber)?.doubleValue ?? 0,
+      top: (arguments["viewportTop"] as? NSNumber)?.doubleValue ?? 0
+    ) else {
       result(FlutterError(code: "no_host", message: "No visible WKWebView is available.", details: nil))
       return
     }
-    let arguments = call.arguments as? [String: Any] ?? [:]
     webView.window?.makeFirstResponder(webView)
 
     switch call.method {
@@ -160,13 +164,26 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
     webView.scrollWheel(with: event)
   }
 
-  private static func findWebView(in view: NSView?) -> WKWebView? {
-    guard let view else { return nil }
-    if let webView = view as? WKWebView, !webView.isHidden { return webView }
-    for child in view.subviews {
-      if let webView = findWebView(in: child) { return webView }
+  private static func findWebView(
+    in root: NSView?,
+    nearX x: Double,
+    top: Double
+  ) -> WKWebView? {
+    guard let root else { return nil }
+    var best: (view: WKWebView, distance: Double)?
+    func visit(_ view: NSView) {
+      if let webView = view as? WKWebView, !webView.isHidden {
+        let origin = webView.convert(.zero, to: root)
+        let viewTop = root.bounds.height - origin.y - webView.bounds.height
+        let distance = pow(origin.x - x, 2) + pow(viewTop - top, 2)
+        if distance < (best?.distance ?? .greatestFiniteMagnitude) {
+          best = (webView, distance)
+        }
+      }
+      view.subviews.forEach(visit)
     }
-    return nil
+    visit(root)
+    return best?.view
   }
 
   private static func center(of value: Any?, in webView: WKWebView) -> NSPoint? {

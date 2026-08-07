@@ -7,6 +7,7 @@
 #include <webkit2/webkit2.h>
 
 #include <cstring>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -25,20 +26,35 @@ G_DEFINE_TYPE(BrowsewellPlugin, browsewell_plugin, g_object_get_type())
 
 namespace {
 
-WebKitWebView* FindWebView(GtkWidget* widget) {
-  if (WEBKIT_IS_WEB_VIEW(widget) && gtk_widget_get_visible(widget)) {
-    return WEBKIT_WEB_VIEW(widget);
-  }
-  if (!GTK_IS_CONTAINER(widget)) return nullptr;
+struct WebViewSearch {
+  GtkWidget* root;
+  double target_x;
+  double target_y;
+  double distance = std::numeric_limits<double>::max();
   WebKitWebView* found = nullptr;
+};
+
+void FindWebView(GtkWidget* widget, WebViewSearch* search) {
+  if (WEBKIT_IS_WEB_VIEW(widget) && gtk_widget_get_visible(widget)) {
+    gint x = 0;
+    gint y = 0;
+    if (gtk_widget_translate_coordinates(widget, search->root, 0, 0, &x, &y)) {
+      const double dx = x - search->target_x;
+      const double dy = y - search->target_y;
+      const double distance = dx * dx + dy * dy;
+      if (distance < search->distance) {
+        search->distance = distance;
+        search->found = WEBKIT_WEB_VIEW(widget);
+      }
+    }
+  }
+  if (!GTK_IS_CONTAINER(widget)) return;
   gtk_container_forall(
       GTK_CONTAINER(widget),
       [](GtkWidget* child, gpointer data) {
-        auto** result = static_cast<WebKitWebView**>(data);
-        if (*result == nullptr) *result = FindWebView(child);
+        FindWebView(child, static_cast<WebViewSearch*>(data));
       },
-      &found);
-  return found;
+      search);
 }
 
 FlValue* Argument(FlMethodCall* call, const char* key) {
@@ -254,7 +270,10 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
     return;
   }
   GtkWidget* root = gtk_widget_get_toplevel(GTK_WIDGET(self->view));
-  WebKitWebView* webview = FindWebView(root);
+  WebViewSearch search{root, Number(Argument(call, "viewportLeft")),
+                       Number(Argument(call, "viewportTop"))};
+  FindWebView(root, &search);
+  WebKitWebView* webview = search.found;
   if (webview == nullptr) {
     RespondError(call, "no_host", "No visible WebKitWebView is available.");
     return;
