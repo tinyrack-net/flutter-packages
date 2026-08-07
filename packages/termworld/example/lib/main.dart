@@ -74,6 +74,11 @@ class _TermworldExampleAppState extends State<TermworldExampleApp> {
     debugLabel: 'termworld-example-focus-target',
   );
 
+  Future<void> _pasteClipboard() async {
+    _focusTargetNode.requestFocus();
+    await _controller.pasteClipboard();
+  }
+
   @override
   void dispose() {
     _focusTargetNode.dispose();
@@ -100,7 +105,7 @@ class _TermworldExampleAppState extends State<TermworldExampleApp> {
             children: <Widget>[
               TextButton(
                 key: const ValueKey<String>('paste-clipboard'),
-                onPressed: _controller.pasteClipboard,
+                onPressed: _pasteClipboard,
                 child: const Text('Paste'),
               ),
               TextButton(
