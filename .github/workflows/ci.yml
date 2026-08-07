@@ -37,6 +37,12 @@ jobs:
       - name: Analyze the example app
         run: flutter analyze --fatal-infos
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: Analyze the termworld example app
+        run: flutter analyze --fatal-infos
+        working-directory: packages/termworld/example
       - name: Verify the platform matrix
         run: dart run tool/verify_platform_matrix.dart
 
@@ -58,7 +64,9 @@ jobs:
           channel: stable
       - run: flutter pub get
       - name: L1 and L2 Dart unit and widget tests
-        run: flutter test packages/dropwell/test --test-randomize-ordering-seed=random
+        run: |
+          flutter test packages/dropwell/test --test-randomize-ordering-seed=random
+          flutter test packages/termworld/test --test-randomize-ordering-seed=random
 
   coverage:
     name: Coverage
@@ -70,7 +78,7 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter pub get
-      - run: dart run tool/verify_coverage.dart dropwell
+      - run: dart run tool/verify_coverage.dart
 
   windows:
     name: Windows (${{ matrix.os }})
@@ -99,6 +107,15 @@ jobs:
       - name: L5 windows release build
         run: flutter build windows --release
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: L4 windows termworld conformance suite
+        run: flutter test integration_test -d windows
+        working-directory: packages/termworld/example
+      - name: L5 windows termworld release build
+        run: flutter build windows --release
+        working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart windows
       - uses: actions/upload-artifact@v4
@@ -135,6 +152,15 @@ jobs:
       - name: L5 macos release build
         run: flutter build macos --release
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: L4 macos termworld conformance suite
+        run: flutter test integration_test -d macos
+        working-directory: packages/termworld/example
+      - name: L5 macos termworld release build
+        run: flutter build macos --release
+        working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart macos
 
@@ -170,6 +196,15 @@ jobs:
       - name: L5 linux release build
         run: flutter build linux --release
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: L4 linux termworld conformance suite
+        run: xvfb-run -a flutter test integration_test -d linux
+        working-directory: packages/termworld/example
+      - name: L5 linux termworld release build
+        run: flutter build linux --release
+        working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart linux
 
@@ -204,6 +239,21 @@ jobs:
       - name: L5 web release build
         run: flutter build web --release
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: L4 web termworld conformance suite
+        run: |
+          flutter drive \
+            --driver=test_driver/integration_test.dart \
+            --target=integration_test/conformance_test.dart \
+            -d web-server \
+            --browser-name=chrome \
+            --web-browser-flag=--headless=new
+        working-directory: packages/termworld/example
+      - name: L5 web termworld release build
+        run: flutter build web --release
+        working-directory: packages/termworld/example
 
   android:
     name: Android (API ${{ matrix.api-level }})
@@ -250,6 +300,20 @@ jobs:
       - name: L5 android release build
         run: flutter build apk --release
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: L4 android termworld conformance suite
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          disable-animations: true
+          working-directory: packages/termworld/example
+          script: flutter test integration_test
+      - name: L5 android termworld release build
+        run: flutter build apk --release
+        working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart android
 
@@ -290,5 +354,17 @@ jobs:
       - name: L5 ios release build
         run: flutter build ios --release --no-codesign
         working-directory: packages/dropwell/example
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: L4 ios termworld conformance suite
+        run: |
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+          flutter test integration_test -d "$SIMULATOR_UDID"
+        working-directory: packages/termworld/example
+      - name: L5 ios termworld release build
+        run: flutter build ios --release --no-codesign
+        working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart ios

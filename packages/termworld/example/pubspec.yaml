@@ -1,0 +1,24 @@
+name: termworld_example
+description: Hosts termworld's platform conformance suite and manual IME app.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=3.44.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  termworld:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+  very_good_analysis: ^10.3.0
+
+flutter:
+  uses-material-design: true

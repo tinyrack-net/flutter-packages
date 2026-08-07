@@ -61,7 +61,7 @@ List<String> verifyPackages(String root) {
     final manifest = File(p.join(package.path, 'pubspec.yaml'));
     if (!manifest.existsSync()) continue;
     final platforms = _declaredPlatforms(manifest);
-    if (platforms.isEmpty) continue;
+    final conformancePlatforms = _conformancePlatforms(package);
 
     for (final platform in platforms) {
       final candidates = kNativeTestPaths[platform];
@@ -87,8 +87,28 @@ List<String> verifyPackages(String root) {
         }
       }
     }
+    for (final platform in conformancePlatforms) {
+      for (final layer in const <String>['L4', 'L5']) {
+        final marker = '$layer $platform $name';
+        if (!steps.any((step) => step.startsWith(marker))) {
+          violations.add(
+            '$name: $platform is missing a CI step named "$marker …"',
+          );
+        }
+      }
+    }
   }
   return violations;
+}
+
+Set<String> _conformancePlatforms(Directory package) {
+  final declaration = File(p.join(package.path, 'platforms.yaml'));
+  if (!declaration.existsSync()) return const <String>{};
+  final document = loadYaml(declaration.readAsStringSync());
+  if (document is! YamlMap || document['platforms'] is! YamlList) {
+    return const <String>{};
+  }
+  return (document['platforms'] as YamlList).whereType<String>().toSet();
 }
 
 Set<String> _declaredPlatforms(File manifest) {
