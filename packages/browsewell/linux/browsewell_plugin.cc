@@ -164,6 +164,43 @@ struct UploadRequest {
   std::vector<std::string> paths;
 };
 
+struct DragRequest {
+  FlMethodCall* call;
+  WebKitWebView* webview;
+  double source_x;
+  double source_y;
+  double target_x;
+  double target_y;
+  int step;
+};
+
+gboolean ContinueDrag(gpointer data) {
+  auto* request = static_cast<DragRequest*>(data);
+  constexpr int kMotionSteps = 8;
+  if (request->step == 0) {
+    SendPointer(request->webview, GDK_BUTTON_PRESS, request->source_x,
+                request->source_y, 1);
+  } else if (request->step <= kMotionSteps) {
+    const double progress = static_cast<double>(request->step) / kMotionSteps;
+    SendPointer(request->webview, GDK_MOTION_NOTIFY,
+                request->source_x +
+                    (request->target_x - request->source_x) * progress,
+                request->source_y +
+                    (request->target_y - request->source_y) * progress,
+                0, GDK_BUTTON1_MASK);
+  } else {
+    SendPointer(request->webview, GDK_BUTTON_RELEASE, request->target_x,
+                request->target_y, 1);
+    RespondSuccess(request->call);
+    g_object_unref(request->call);
+    g_object_unref(request->webview);
+    delete request;
+    return G_SOURCE_REMOVE;
+  }
+  request->step += 1;
+  return G_SOURCE_CONTINUE;
+}
+
 gboolean FileChooserReady(WebKitWebView* webview,
                           WebKitFileChooserRequest* chooser,
                           gpointer user_data) {
@@ -267,10 +304,10 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
       return;
     }
     SendPointer(webview, GDK_MOTION_NOTIFY, sx, sy);
-    SendPointer(webview, GDK_BUTTON_PRESS, sx, sy, 1);
-    SendPointer(webview, GDK_MOTION_NOTIFY, tx, ty, 0, GDK_BUTTON1_MASK);
-    SendPointer(webview, GDK_BUTTON_RELEASE, tx, ty, 1);
-    RespondSuccess(call);
+    auto* request = new DragRequest{FL_METHOD_CALL(g_object_ref(call)),
+                                    WEBKIT_WEB_VIEW(g_object_ref(webview)),
+                                    sx, sy, tx, ty, 0};
+    g_timeout_add(16, ContinueDrag, request);
   } else if (strcmp(method, "scroll") == 0) {
     GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(webview));
     GdkEvent* event = gdk_event_new(GDK_SCROLL);

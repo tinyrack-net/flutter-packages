@@ -115,7 +115,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       controller: controller,
       events: events,
       logs: logs,
-      maxLogEntries: request.policy.maxLogEntries,
+      policy: request.policy,
     );
     await controller.loadRequest(request.initialUrl);
     return BrowsewellCreateResult(
@@ -125,10 +125,33 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
   }
 
   @override
-  Widget buildView(String id) => RepaintBoundary(
-    key: _browser(id).captureKey,
-    child: WebViewWidget(controller: _browser(id).controller),
-  );
+  Widget buildView(String id) {
+    final browser = _browser(id);
+    return ValueListenableBuilder<Size?>(
+      valueListenable: browser.viewportSize,
+      builder: (context, size, child) {
+        if (size == null) {
+          return KeyedSubtree(
+            key: ValueKey<String>('$id-viewport'),
+            child: child!,
+          );
+        }
+        return Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            key: ValueKey<String>('$id-viewport'),
+            width: size.width,
+            height: size.height,
+            child: child,
+          ),
+        );
+      },
+      child: RepaintBoundary(
+        key: browser.captureKey,
+        child: WebViewWidget(controller: browser.controller),
+      ),
+    );
+  }
 
   @override
   Stream<BrowsewellEvent> events(String id) => _browser(id).events.stream;
@@ -150,7 +173,10 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
   @override
   Future<void> disposeBrowser(String id) async {
     final browser = _browsers.remove(id);
-    if (browser != null) await browser.events.close();
+    if (browser != null) {
+      browser.viewportSize.dispose();
+      await browser.events.close();
+    }
   }
 
   @override
@@ -169,23 +195,44 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       case 'reload':
         await browser.controller.reload();
       case 'resize':
-        return null;
-      case 'snapshot':
-        return _run(browser, _snapshotScript);
-      case 'screenshot':
-        if (_captureFlutterTexture) {
-          return _captureFlutter(
-            browser,
-            fullPage: arguments['fullPage'] == true,
+        final width = arguments['width'];
+        final height = arguments['height'];
+        if (width is! num || height is! num || width <= 0 || height <= 0) {
+          throw const BrowsewellException(
+            BrowsewellErrorCode.denied,
+            'Viewport dimensions must be positive numbers.',
           );
         }
-        return _automation.invokeMethod<Object?>(
-          'screenshot',
-          <String, Object?>{
-            'id': id,
-            ...arguments,
-          },
-        );
+        browser.viewportSize.value = Size(width.toDouble(), height.toDouble());
+      case 'snapshot':
+        final snapshot = await _run(browser, _snapshotScript);
+        if (snapshot is! Map<Object?, Object?> ||
+            snapshot['generation'] is! int) {
+          throw const BrowsewellException(
+            BrowsewellErrorCode.internal,
+            'The page returned an invalid snapshot.',
+          );
+        }
+        browser.snapshotGeneration = snapshot['generation']! as int;
+        return snapshot;
+      case 'screenshot':
+        final rawBytes = _captureFlutterTexture
+            ? await _captureFlutter(
+                browser,
+                fullPage: arguments['fullPage'] == true,
+              )
+            : await _automation.invokeMethod<Object?>(
+                'screenshot',
+                <String, Object?>{'id': id, ...arguments},
+              );
+        final bytes = browsewellBytes(rawBytes);
+        if (bytes.length > browser.policy.maxScreenshotBytes) {
+          throw const BrowsewellException(
+            BrowsewellErrorCode.denied,
+            'The screenshot exceeds the configured result limit.',
+          );
+        }
+        return bytes;
       case 'logs':
         await _collectNetworkLogs(browser);
         return _encodedLogs(browser, arguments['maxEntries']! as int);
@@ -193,43 +240,57 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
         await _wait(browser, arguments);
       case 'click':
       case 'hover':
+        _ensureCurrentRef(browser, arguments['ref']! as String);
         await _automation.invokeMethod<void>(command.name, <String, Object?>{
           'id': id,
           'rect': await _rect(browser, arguments['ref']! as String),
         });
       case 'fill':
+        _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
         await _type(id, arguments['value']! as String, replace: true);
       case 'type':
         final ref = arguments['ref'] as String?;
-        if (ref != null) await _focus(browser, ref);
+        if (ref != null) {
+          _ensureCurrentRef(browser, ref);
+          await _focus(browser, ref);
+        }
         await _type(id, arguments['text']! as String, replace: false);
       case 'keypress':
         final ref = arguments['ref'] as String?;
-        if (ref != null) await _focus(browser, ref);
+        if (ref != null) {
+          _ensureCurrentRef(browser, ref);
+          await _focus(browser, ref);
+        }
         await _automation.invokeMethod<void>('keypress', <String, Object?>{
           'id': id,
           'key': arguments['key'],
         });
       case 'select':
+        _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
         await _automation.invokeMethod<void>('select', <String, Object?>{
           'id': id,
           'value': arguments['value'],
         });
       case 'drag':
+        _ensureCurrentRef(browser, arguments['sourceRef']! as String);
+        _ensureCurrentRef(browser, arguments['targetRef']! as String);
         await _automation.invokeMethod<void>('drag', <String, Object?>{
           'id': id,
           'source': await _rect(browser, arguments['sourceRef']! as String),
           'target': await _rect(browser, arguments['targetRef']! as String),
         });
       case 'upload':
+        _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
         await _automation.invokeMethod<void>('upload', <String, Object?>{
           'id': id,
           'filePaths': arguments['filePaths'],
         });
       case 'scroll':
+        final ref = arguments['ref'] as String?;
+        if (ref != null) _ensureCurrentRef(browser, ref);
         await _automation.invokeMethod<void>('scroll', <String, Object?>{
           'id': id,
           ...arguments,
@@ -239,10 +300,19 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
         final target = ref == null
             ? 'undefined'
             : 'window.__browsewellRefs?.[${jsonEncode(ref)}]';
-        return _run(
+        if (ref != null) _ensureCurrentRef(browser, ref);
+        final value = await _run(
           browser,
           '(() => (${arguments['function']})($target))()',
         );
+        if (utf8.encode(jsonEncode(value)).length >
+            browser.policy.maxEvaluateResultBytes) {
+          throw const BrowsewellException(
+            BrowsewellErrorCode.denied,
+            'The evaluation result exceeds the configured result limit.',
+          );
+        }
+        return value;
       default:
         throw BrowsewellException(
           BrowsewellErrorCode.unsupported,
@@ -287,21 +357,37 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
           .toList(growable: false);
 
   Future<void> _focus(_Browser browser, String ref) async {
-    await _run(
+    await _rect(browser, ref);
+    final status = await _run(
       browser,
       '(() => { const element = window.__browsewellRefs?.['
-      '${jsonEncode(ref)}]; if (!element) throw new Error("stale_ref"); '
-      'element.focus(); })()',
+      '${jsonEncode(ref)}]; if (!element?.isConnected) return "stale_ref"; '
+      'element.focus(); return "ok"; })()',
     );
+    if (status == 'stale_ref') _throwStaleRef();
+  }
+
+  void _ensureCurrentRef(_Browser browser, String ref) {
+    final match = RegExp(r'^@(\d+):\d+$').firstMatch(ref);
+    if (match == null ||
+        int.tryParse(match.group(1)!) != browser.snapshotGeneration) {
+      _throwStaleRef();
+    }
   }
 
   Future<Map<String, Object?>> _rect(_Browser browser, String ref) async {
     final raw = await _run(
       browser,
       '(() => { const element = window.__browsewellRefs?.['
-      '${jsonEncode(ref)}]; if (!element) throw new Error("stale_ref"); '
-      'const rect = element.getBoundingClientRect(); return {left: rect.left, '
-      'top: rect.top, width: rect.width, height: rect.height}; })()',
+      '${jsonEncode(ref)}]; if (!element?.isConnected) '
+      'return {error:"stale_ref"}; '
+      'const rect = element.getBoundingClientRect(); '
+      'const style = getComputedStyle(element); '
+      'if (element.disabled || rect.width <= 0 || rect.height <= 0 || '
+      'style.display === "none" || style.visibility === "hidden" || '
+      'style.pointerEvents === "none") return {error:"denied"}; '
+      'return {left: rect.left, top: rect.top, width: rect.width, '
+      'height: rect.height}; })()',
     );
     if (raw is! Map<Object?, Object?>) {
       throw const BrowsewellException(
@@ -309,8 +395,20 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
         'Invalid element bounds.',
       );
     }
+    if (raw['error'] == 'stale_ref') _throwStaleRef();
+    if (raw['error'] == 'denied') {
+      throw const BrowsewellException(
+        BrowsewellErrorCode.denied,
+        'The element is not actionable.',
+      );
+    }
     return raw.map((key, value) => MapEntry(key.toString(), value));
   }
+
+  Never _throwStaleRef() => throw const BrowsewellException(
+    BrowsewellErrorCode.staleRef,
+    'The element reference is stale.',
+  );
 
   Future<void> _type(String id, String value, {required bool replace}) =>
       _automation.invokeMethod<void>('type', <String, Object?>{
@@ -450,15 +548,19 @@ final class _Browser {
     required this.controller,
     required this.events,
     required this.logs,
-    required this.maxLogEntries,
+    required this.policy,
   });
 
   final WebViewController controller;
   final StreamController<BrowsewellEvent> events;
   final List<BrowsewellLogEntry> logs;
-  final int maxLogEntries;
+  final BrowsewellPolicy policy;
+  int snapshotGeneration = 0;
   final Set<String> networkEntries = <String>{};
   final GlobalKey captureKey = GlobalKey();
+  final ValueNotifier<Size?> viewportSize = ValueNotifier<Size?>(null);
+
+  int get maxLogEntries => policy.maxLogEntries;
 }
 
 const _snapshotScript = r'''

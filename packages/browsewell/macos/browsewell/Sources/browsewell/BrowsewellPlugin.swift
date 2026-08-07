@@ -58,11 +58,7 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
         result(FlutterError(code: "internal", message: "Drag bounds are missing.", details: nil))
         return
       }
-      Self.sendMouse(.mouseMoved, at: source, to: webView)
-      Self.sendMouse(.leftMouseDown, at: source, to: webView)
-      Self.sendMouse(.leftMouseDragged, at: target, to: webView)
-      Self.sendMouse(.leftMouseUp, at: target, to: webView)
-      result(nil)
+      Self.sendDrag(from: source, to: target, in: webView, result: result)
     case "scroll":
       Self.sendScroll(
         deltaX: (arguments["deltaX"] as? NSNumber)?.doubleValue ?? 0,
@@ -202,6 +198,43 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
     case .leftMouseUp: webView.mouseUp(with: event)
     case .leftMouseDragged: webView.mouseDragged(with: event)
     default: webView.mouseMoved(with: event)
+    }
+  }
+
+  private static func sendDrag(
+    from source: NSPoint,
+    to target: NSPoint,
+    in webView: WKWebView,
+    step: Int = 0,
+    result: @escaping FlutterResult
+  ) {
+    let motionSteps = 8
+    if step == 0 {
+      sendMouse(.mouseMoved, at: source, to: webView)
+      sendMouse(.leftMouseDown, at: source, to: webView)
+    } else if step <= motionSteps {
+      let progress = CGFloat(step) / CGFloat(motionSteps)
+      sendMouse(
+        .leftMouseDragged,
+        at: NSPoint(
+          x: source.x + (target.x - source.x) * progress,
+          y: source.y + (target.y - source.y) * progress
+        ),
+        to: webView
+      )
+    } else {
+      sendMouse(.leftMouseUp, at: target, to: webView)
+      result(nil)
+      return
+    }
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.016) {
+      sendDrag(
+        from: source,
+        to: target,
+        in: webView,
+        step: step + 1,
+        result: result
+      )
     }
   }
 

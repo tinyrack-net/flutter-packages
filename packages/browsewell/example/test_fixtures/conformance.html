@@ -27,6 +27,9 @@
     document.querySelector('#name').addEventListener('input', event => {
       result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.value}`;
     });
+    document.querySelector('#name').addEventListener('keydown', event => {
+      result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}-key:${event.key}`;
+    });
     document.querySelector('#choice').addEventListener('change', event => {
       result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.value}`;
     });
@@ -35,6 +38,9 @@
       result.textContent = event.isTrusted ? 'trusted-drop' : 'untrusted-drop';
     });
     document.querySelector('#drag-target').addEventListener('dragover', event => event.preventDefault());
+    document.querySelector('#drag-source').addEventListener('mouseover', event => {
+      result.textContent = event.isTrusted ? 'trusted-hover' : 'untrusted-hover';
+    });
     document.querySelector('#upload').addEventListener('change', event => {
       result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.files[0]?.name}`;
     });

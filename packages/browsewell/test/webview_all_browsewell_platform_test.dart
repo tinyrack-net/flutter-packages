@@ -103,8 +103,21 @@ void main() {
       }),
     );
     for (final name in <String>['back', 'forward', 'reload', 'resize']) {
-      await platform.execute(id, BrowsewellCommand(name));
+      await platform.execute(
+        id,
+        BrowsewellCommand(
+          name,
+          name == 'resize'
+              ? const <String, Object?>{'width': 320.0, 'height': 240.0}
+              : const <String, Object?>{},
+        ),
+      );
     }
+    await tester.pump();
+    expect(
+      tester.getSize(find.byKey(ValueKey<String>('$id-viewport'))),
+      const Size(320, 240),
+    );
     expect(
       await platform.execute(id, const BrowsewellCommand('snapshot')),
       isA<Map<Object?, Object?>>(),
@@ -223,6 +236,72 @@ void main() {
     );
   });
 
+  test('rejects stale refs and policy-sized results', () async {
+    final created = await platform.create(
+      BrowsewellCreateRequest(
+        profile: const BrowsewellProfile(directory: '/profile'),
+        initialUrl: Uri.parse('about:blank'),
+        policy: const BrowsewellPolicy(
+          maxEvaluateResultBytes: 4,
+          maxScreenshotBytes: 3,
+        ),
+      ),
+    );
+    final first =
+        (await platform.execute(
+              created.id,
+              const BrowsewellCommand('snapshot'),
+            ))!
+            as Map<Object?, Object?>;
+    await platform.execute(created.id, const BrowsewellCommand('snapshot'));
+
+    await expectLater(
+      platform.execute(
+        created.id,
+        BrowsewellCommand('click', <String, Object?>{
+          'ref': '@${first['generation']}:1',
+        }),
+      ),
+      throwsA(
+        isA<BrowsewellException>().having(
+          (error) => error.code,
+          'code',
+          BrowsewellErrorCode.staleRef,
+        ),
+      ),
+    );
+    await expectLater(
+      platform.execute(
+        created.id,
+        const BrowsewellCommand('evaluate', <String, Object?>{
+          'function': '() => "oversized"',
+        }),
+      ),
+      throwsA(
+        isA<BrowsewellException>().having(
+          (error) => error.code,
+          'code',
+          BrowsewellErrorCode.denied,
+        ),
+      ),
+    );
+    await expectLater(
+      platform.execute(
+        created.id,
+        const BrowsewellCommand('screenshot', <String, Object?>{
+          'fullPage': false,
+        }),
+      ),
+      throwsA(
+        isA<BrowsewellException>().having(
+          (error) => error.code,
+          'code',
+          BrowsewellErrorCode.denied,
+        ),
+      ),
+    );
+  });
+
   testWidgets('captures the Windows texture for viewport and full page', (
     tester,
   ) async {
@@ -291,6 +370,7 @@ final class _FakeController extends PlatformWebViewController {
   Future<bool> Function(JavaScriptConfirmDialogRequest request)? confirm;
   Future<String> Function(JavaScriptTextInputDialogRequest request)? prompt;
   bool waitMatches = true;
+  int snapshotGeneration = 0;
 
   @override
   Future<void> setJavaScriptMode(JavaScriptMode javaScriptMode) async {}
@@ -338,7 +418,9 @@ final class _FakeController extends PlatformWebViewController {
   @override
   Future<Object> runJavaScriptReturningResult(String javaScript) async {
     if (javaScript.contains('__browsewellGeneration')) {
-      return '{"generation":1,"document":{"role":"document","name":"Fixture"}}';
+      snapshotGeneration += 1;
+      return '{"generation":$snapshotGeneration,'
+          '"document":{"role":"document","name":"Fixture"}}';
     }
     if (javaScript.contains('getBoundingClientRect')) {
       return <String, Object?>{
@@ -362,6 +444,7 @@ final class _FakeController extends PlatformWebViewController {
     if (javaScript.contains('scrollY')) return 0.0;
     if (javaScript.contains('includes(')) return waitMatches;
     if (javaScript.contains('document.title')) return '"Fixture"';
+    if (javaScript.contains('oversized')) return '"oversized"';
     return true;
   }
 }

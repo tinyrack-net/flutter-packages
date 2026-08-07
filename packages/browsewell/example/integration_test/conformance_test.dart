@@ -60,21 +60,38 @@ void main() {
     await controller.click(refs['Trusted click']!);
     await controller.waitFor(text: 'trusted-click');
     await controller.fill(refs['Name']!, 'Ada');
+    await controller.waitFor(text: 'trusted:Ada');
     await controller.type(' Lovelace', ref: refs['Name']);
+    await controller.waitFor(text: 'trusted:Ada Lovelace');
     await controller.keypress('End', ref: refs['Name']);
+    await controller.waitFor(text: 'trusted-key:End');
     await controller.select(refs['Choice']!, 'two');
+    await controller.waitFor(text: 'trusted:two');
     await controller.hover(refs['Drag source']!);
+    await controller.waitFor(text: 'trusted-hover');
     await controller.drag(refs['Drag source']!, refs['Drag target']!);
     await controller.waitFor(text: 'trusted-drop');
     final upload = File('${profileDirectory.path}/upload.txt');
     await upload.writeAsString('browsewell');
     await controller.upload(refs['Upload']!, <String>[upload.path]);
     await controller.waitFor(text: 'trusted:upload.txt');
+    final scrollBefore = await controller.evaluate('() => window.scrollY');
     await controller.scroll(deltaX: 0, deltaY: 120);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(
+      await controller.evaluate('() => window.scrollY'),
+      greaterThan(scrollBefore! as num),
+    );
     await controller.resize(const Size(640, 480));
+    await tester.pumpAndSettle();
+    expect(
+      await controller.evaluate('() => window.innerWidth'),
+      closeTo(640, 2),
+    );
 
     final png = await controller.screenshot(fullPage: true);
     expect(png.take(4), orderedEquals(<int>[137, 80, 78, 71]));
+    expect(_pngHeight(png), greaterThanOrEqualTo(1400));
     expect(
       await controller.evaluate('() => document.title'),
       'Browsewell fixture',
@@ -97,6 +114,18 @@ void main() {
         (entry) => entry.message.contains('browsewell-fixture-ready'),
       ),
       isTrue,
+    );
+
+    await controller.snapshot();
+    await expectLater(
+      controller.click(refs['Trusted click']!),
+      throwsA(
+        isA<BrowsewellException>().having(
+          (error) => error.code,
+          'code',
+          BrowsewellErrorCode.staleRef,
+        ),
+      ),
     );
 
     await controller.reload();
@@ -140,6 +169,8 @@ void main() {
     await first.evaluate(
       '() => { localStorage.shared = "persisted"; return true; }',
     );
+    await second.reload();
+    await second.waitFor(text: 'Browsewell fixture');
     expect(await second.evaluate('() => localStorage.shared'), 'persisted');
 
     await first.dispose();
@@ -154,6 +185,8 @@ void main() {
     expect(await restored.evaluate('() => localStorage.shared'), 'persisted');
   });
 }
+
+int _pngHeight(Uint8List png) => ByteData.sublistView(png, 20, 24).getUint32(0);
 
 Map<String, String> _refs(BrowsewellSnapshotNode root) {
   final result = <String, String>{};
