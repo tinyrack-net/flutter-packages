@@ -1,0 +1,236 @@
+@TestOn('linux')
+library;
+
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:integration_test/integration_test.dart';
+import 'package:termworld_example/main.dart';
+
+void main() {
+  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('real IBus composition commits graphemes once', (tester) async {
+    final harness = await _ImeHarness.start(tester);
+    addTearDown(harness.dispose);
+
+    await harness.keys(<String>['g', 'k', 's']);
+    expect(harness.output, isEmpty, reason: 'active preedit reached the PTY');
+
+    await harness.keys(<String>['r']);
+    await harness.waitForOutput('한');
+    await harness.keys(<String>['m', 'f']);
+    expect(harness.output, '한');
+    await harness.keys(<String>['space']);
+    await harness.waitForOutput('한글 ');
+  });
+
+  testWidgets('real IBus handles words, correction, and boundaries', (
+    tester,
+  ) async {
+    final harness = await _ImeHarness.start(tester);
+    addTearDown(harness.dispose);
+
+    await harness.keys('gksrmf space dlqfur space dkssud space'.split(' '));
+    await harness.waitForOutput('한글 입력 안녕 ');
+
+    harness.clear();
+    await harness.keys(<String>['r', 'k', 'r', 'BackSpace', 's', 'space']);
+    await harness.waitForOutput('간 ');
+
+    harness.clear();
+    await harness.keys(<String>[
+      'g',
+      'k',
+      's',
+      'r',
+      'm',
+      'f',
+      'comma',
+      'period',
+      '4',
+      '2',
+      'space',
+      'Tab',
+      'Return',
+    ]);
+    await harness.waitForOutput('한글,.42 \t\r');
+  });
+
+  testWidgets('real IBus switches to Latin and back without ghost commits', (
+    tester,
+  ) async {
+    final harness = await _ImeHarness.start(tester);
+    addTearDown(harness.dispose);
+
+    await harness.keys('gksrmf space'.split(' '));
+    await harness.toggleLanguage();
+    await harness.keys('a b c minus 4 2 space'.split(' '));
+    await harness.toggleLanguage();
+    await harness.keys('dkssud space'.split(' '));
+    await harness.waitForOutput('한글 abc-42 안녕 ');
+
+    harness.clear();
+    await harness.keys(<String>['g', 'k', 's']);
+    await harness.toggleLanguage();
+    await harness.waitForOutput('한');
+    await harness.keys(<String>['a', 'b', 'c', 'space']);
+    await harness.toggleLanguage();
+    await harness.keys(<String>['d', 'k', 's', 'space']);
+    await harness.waitForOutput('한abc 안 ');
+
+    for (var index = 0; index < 4; index++) {
+      await harness.toggleLanguage();
+    }
+    expect(harness.output, '한abc 안 ');
+  });
+
+  testWidgets('focus and real clipboard paste do not duplicate composition', (
+    tester,
+  ) async {
+    final harness = await _ImeHarness.start(tester);
+    addTearDown(harness.dispose);
+
+    await harness.keys(<String>['g', 'k', 's']);
+    await harness.click(find.byKey(const ValueKey<String>('focus-target')));
+    await harness.focusTerminal();
+    expect(harness.output, isEmpty);
+    await harness.keys(<String>['space']);
+    await harness.waitForOutput(' ');
+
+    harness.clear();
+    const pasted = '붙여넣기 👩🏽\u200d💻 e\u0301\n둘째 줄';
+    await harness.paste(pasted);
+    await harness.waitForOutput(pasted);
+
+    harness.clear();
+    harness.controller.setBracketedPaste(enabled: true);
+    await harness.paste(pasted);
+    await harness.waitForOutput('\u001b[200~$pasted\u001b[201~');
+    harness.controller.setBracketedPaste(enabled: false);
+
+    harness.clear();
+    await harness.focusTerminal();
+    await harness.keys(<String>['g', 'k', 's']);
+    await harness.paste('붙여넣기');
+    await harness.waitForOutput('붙여넣기');
+  });
+}
+
+final class _ImeHarness {
+  _ImeHarness._(this.tester, this.controller, this.windowId);
+
+  final WidgetTester tester;
+  final TermworldExampleController controller;
+  final String windowId;
+  Process? _clipboard;
+
+  String get output => controller.output;
+
+  static Future<_ImeHarness> start(WidgetTester tester) async {
+    final controller = TermworldExampleController();
+    await tester.pumpWidget(TermworldExampleApp(controller: controller));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey<String>('terminal')));
+    await tester.pumpAndSettle();
+    await _run('ibus', <String>['engine', 'xkb:us::eng']);
+    await _run('ibus', <String>['engine', 'hangul']);
+    final search = await _run('xdotool', <String>[
+      'search',
+      '--onlyvisible',
+      '--name',
+      'termworld',
+    ]);
+    final ids = search.stdout.toString().trim().split(RegExp(r'\s+'));
+    final id = ids.last;
+    await _run('xdotool', <String>['windowfocus', '--sync', id]);
+    return _ImeHarness._(tester, controller, id);
+  }
+
+  Future<void> focusTerminal() async {
+    await tester.tap(find.byKey(const ValueKey<String>('terminal')));
+    await tester.pumpAndSettle();
+    await _run('xdotool', <String>['windowfocus', '--sync', windowId]);
+  }
+
+  Future<void> keys(List<String> keys) async {
+    final filtered = keys.where((key) => key.isNotEmpty).toList();
+    if (filtered.isEmpty) return;
+    await _run('xdotool', <String>[
+      'key',
+      '--window',
+      windowId,
+      '--clearmodifiers',
+      '--delay',
+      '40',
+      ...filtered,
+    ]);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> toggleLanguage() => keys(<String>['Shift+space']);
+
+  Future<void> click(Finder finder) async {
+    final center = tester.getCenter(finder);
+    await _run('xdotool', <String>[
+      'mousemove',
+      '--window',
+      windowId,
+      center.dx.round().toString(),
+      center.dy.round().toString(),
+      'click',
+      '1',
+    ]);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> paste(String text) async {
+    _clipboard?.kill();
+    final clipboard = await Process.start('xclip', <String>[
+      '-selection',
+      'clipboard',
+      '-loops',
+      '1',
+    ]);
+    _clipboard = clipboard;
+    clipboard.stdin.write(text);
+    await clipboard.stdin.close();
+    await click(find.byKey(const ValueKey<String>('paste-clipboard')));
+  }
+
+  void clear() => controller.clearOutput();
+
+  Future<void> waitForOutput(String expected) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (output != expected && DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    expect(
+      output,
+      expected,
+      reason: 'PTY bytes: ${utf8.encode(output).map(_hex).join(' ')}',
+    );
+  }
+
+  Future<void> dispose() async {
+    _clipboard?.kill();
+    controller.dispose();
+  }
+}
+
+String _hex(int value) => value.toRadixString(16).padLeft(2, '0');
+
+Future<ProcessResult> _run(String executable, List<String> arguments) async {
+  final result = await Process.run(executable, arguments);
+  if (result.exitCode != 0) {
+    throw ProcessException(
+      executable,
+      arguments,
+      '${result.stdout}\n${result.stderr}',
+      result.exitCode,
+    );
+  }
+  return result;
+}

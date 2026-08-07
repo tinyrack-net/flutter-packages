@@ -50,6 +50,24 @@ List<String> verifyPackages(String root) {
   }
   final steps = _workflowStepNames(workflow);
   final violations = <String>[];
+  final ibusRunner = File(p.join(root, 'tool', 'run_linux_ibus_e2e.sh'));
+  final workflowText = <String>[
+    workflow.readAsStringSync(),
+    if (ibusRunner.existsSync()) ibusRunner.readAsStringSync(),
+  ].join('\n');
+  const ibusMarkers = <String>[
+    'Linux IBus Hangul E2E',
+    'ibus-hangul',
+    'xdotool',
+    'xclip',
+    'dbus-run-session',
+    'linux_ibus_e2e_test.dart',
+  ];
+  for (final marker in ibusMarkers) {
+    if (!workflowText.contains(marker)) {
+      violations.add('termworld: Linux IBus CI is missing "$marker"');
+    }
+  }
   final packages =
       Directory(
           p.join(root, 'packages'),
