@@ -216,9 +216,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - uses: jdx/mise-action@v3
+      - uses: subosito/flutter-action@v2
         with:
-          tool_versions: flutter 3.44.4
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
       - name: Install the IBus and X11 test toolchain
         run: |
           sudo apt-get update
