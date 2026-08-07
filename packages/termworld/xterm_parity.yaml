@@ -1,0 +1,105 @@
+schema_version: 1
+reference:
+  repository: https://github.com/xtermjs/xterm.js
+  revision: 904ae935269eef5ec6a1415b64463c3d02eff1eb
+  package_version: 6.0.0
+
+upstream_fixture_exclusions:
+  # These are excluded by the pinned src/browser/Terminal2.test.ts harness.
+  # Equivalent focused InputHandler contracts are ported into the core test.
+  t0084-CBT: cursor backward tab focused test
+  t0103-reverse_wrap: reverse-wraparound focused test
+  t0504-vim: DECSET 1049 alternate-buffer focused test
+
+contracts:
+  core:
+    entrypoint: lib/termworld_headless.dart
+    implementation:
+      - lib/src/core/terminal.dart
+      - lib/src/core/buffer.dart
+      - lib/src/core/parser.dart
+      - lib/src/core/options.dart
+    tests:
+      - test/xterm_core_parity_test.dart
+  flutter:
+    entrypoint: lib/termworld.dart
+    implementation:
+      - lib/src/flutter/terminal_view.dart
+      - lib/src/flutter/terminal_view_controller.dart
+    tests:
+      - test/terminal_view_test.dart
+  addons:
+    addon-attach: {entrypoint: lib/addon_attach.dart, test: test/addons_test.dart}
+    addon-clipboard: {entrypoint: lib/addon_clipboard.dart, test: test/addons_test.dart}
+    addon-fit: {entrypoint: lib/addon_fit.dart, test: test/addons_test.dart}
+    addon-image: {entrypoint: lib/addon_image.dart, test: test/addons_test.dart}
+    addon-ligatures: {entrypoint: lib/addon_ligatures.dart, test: test/addons_test.dart}
+    addon-progress: {entrypoint: lib/addon_progress.dart, test: test/addons_test.dart}
+    addon-search: {entrypoint: lib/addon_search.dart, test: test/addons_test.dart}
+    addon-serialize: {entrypoint: lib/addon_serialize.dart, test: test/addons_test.dart}
+    addon-unicode-graphemes: {entrypoint: lib/addon_unicode_graphemes.dart, test: test/addons_test.dart}
+    addon-unicode11: {entrypoint: lib/addon_unicode11.dart, test: test/addons_test.dart}
+    addon-web-fonts: {entrypoint: lib/addon_web_fonts.dart, test: test/addons_test.dart, platform: web}
+    addon-web-links: {entrypoint: lib/addon_web_links.dart, test: test/addons_test.dart}
+    addon-webgl: {entrypoint: lib/addon_webgl.dart, test: test/addons_test.dart, platform: web}
+
+required_terminal_api:
+  - buffer
+  - markers
+  - parser
+  - unicode
+  - modes
+  - dimensions
+  - options
+  - onBell
+  - onBinary
+  - onCursorMove
+  - onData
+  - onKey
+  - onLineFeed
+  - onRender
+  - onWriteParsed
+  - onResize
+  - onScroll
+  - onSelectionChange
+  - onTitleChange
+  - onDimensionsChange
+  - input
+  - resize
+  - focus
+  - blur
+  - attachCustomKeyEventHandler
+  - attachCustomWheelEventHandler
+  - registerLinkProvider
+  - registerCharacterJoiner
+  - deregisterCharacterJoiner
+  - registerMarker
+  - registerDecoration
+  - hasSelection
+  - getSelection
+  - getSelectionPosition
+  - clearSelection
+  - select
+  - selectAll
+  - selectLines
+  - scrollLines
+  - scrollPages
+  - scrollToTop
+  - scrollToBottom
+  - scrollToLine
+  - clear
+  - write
+  - writeln
+  - paste
+  - refresh
+  - clearTextureAtlas
+  - reset
+  - loadAddon
+
+platform_adaptations:
+  - source: DOM element, screenElement, and textarea
+    dart: TerminalView widget lifecycle and FocusNode
+  - source: WebGL renderer and browser FontFaceSet
+    dart: WebglAddon and WebFontsAddon with explicit web capability checks
+  - source: browser WebSocket and Clipboard
+    dart: WebSocketChannel and TerminalClipboardProvider
