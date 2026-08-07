@@ -10,6 +10,7 @@ environment:
 # generated CMake install rule looks for it under the app's own build/, so a
 # member example cannot build on Windows. It resolves independently instead.
 workspace:
+  - packages/browsewell
   - packages/dropwell
   - packages/termworld
 

@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Browsewell fixture</title>
+  <style>
+    body { font: 16px sans-serif; min-height: 1400px; }
+    #drag-target { width: 120px; height: 48px; border: 1px solid black; }
+  </style>
+</head>
+<body>
+  <h1>Browsewell fixture</h1>
+  <button id="trusted-button">Trusted click</button>
+  <label>Name <input id="name" aria-label="Name"></label>
+  <select id="choice" aria-label="Choice">
+    <option value="one">One</option><option value="two">Two</option>
+  </select>
+  <button id="drag-source" draggable="true">Drag source</button>
+  <div id="drag-target" role="button" tabindex="0">Drag target</div>
+  <input id="upload" type="file" aria-label="Upload">
+  <p id="result">Ready</p>
+  <script>
+    const result = document.querySelector('#result');
+    document.querySelector('#trusted-button').addEventListener('click', event => {
+      result.textContent = event.isTrusted ? 'trusted-click' : 'untrusted-click';
+    });
+    document.querySelector('#name').addEventListener('input', event => {
+      result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.value}`;
+    });
+    document.querySelector('#choice').addEventListener('change', event => {
+      result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.value}`;
+    });
+    document.querySelector('#drag-target').addEventListener('drop', event => {
+      event.preventDefault();
+      result.textContent = event.isTrusted ? 'trusted-drop' : 'untrusted-drop';
+    });
+    document.querySelector('#drag-target').addEventListener('dragover', event => event.preventDefault());
+    document.querySelector('#upload').addEventListener('change', event => {
+      result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.files[0]?.name}`;
+    });
+    console.info('browsewell-fixture-ready');
+  </script>
+</body>
+</html>

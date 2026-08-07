@@ -4,6 +4,7 @@ Reusable Flutter packages maintained by Tinyrack.
 
 | Package | Description |
 | --- | --- |
+| [`browsewell`](packages/browsewell) | Native desktop webviews with persistent profiles and trusted browser automation on Windows, macOS, and Linux. |
 | [`dropwell`](packages/dropwell) | Native file drag-and-drop and clipboard file reading for Flutter on Windows, macOS, Linux, Web, Android, and iOS. |
 | [`termworld`](packages/termworld) | VT/ANSI terminal emulation and composition-safe Flutter input on desktop, mobile, and web. |
 

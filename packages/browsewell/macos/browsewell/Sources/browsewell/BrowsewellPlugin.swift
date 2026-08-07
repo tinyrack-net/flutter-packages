@@ -1,0 +1,177 @@
+import Cocoa
+import FlutterMacOS
+import WebKit
+
+public final class BrowsewellPlugin: NSObject, FlutterPlugin {
+  public static func register(with registrar: FlutterPluginRegistrar) {
+    let channel = FlutterMethodChannel(
+      name: "net.tinyrack.browsewell/automation",
+      binaryMessenger: registrar.messenger
+    )
+    registrar.addMethodCallDelegate(BrowsewellPlugin(), channel: channel)
+  }
+
+  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    if call.method == "setViewport" {
+      result(nil)
+      return
+    }
+    guard let webView = Self.findWebView(in: NSApp.keyWindow?.contentView) else {
+      result(FlutterError(code: "no_host", message: "No visible WKWebView is available.", details: nil))
+      return
+    }
+    let arguments = call.arguments as? [String: Any] ?? [:]
+    webView.window?.makeFirstResponder(webView)
+
+    switch call.method {
+    case "click", "hover":
+      guard let point = Self.center(of: arguments["rect"], in: webView) else {
+        result(FlutterError(code: "internal", message: "Element bounds are missing.", details: nil))
+        return
+      }
+      Self.sendMouse(.mouseMoved, at: point, to: webView)
+      if call.method == "click" {
+        Self.sendMouse(.leftMouseDown, at: point, to: webView)
+        Self.sendMouse(.leftMouseUp, at: point, to: webView)
+      }
+      result(nil)
+    case "type":
+      if arguments["replace"] as? Bool == true {
+        Self.sendKey("a", code: 0, modifiers: .command, to: webView)
+      }
+      Self.sendText(arguments["text"] as? String ?? "", to: webView)
+      result(nil)
+    case "keypress":
+      let key = arguments["key"] as? String ?? ""
+      Self.sendNamedKey(key, to: webView)
+      result(nil)
+    case "select":
+      Self.sendNamedKey("Home", to: webView)
+      Self.sendText(arguments["value"] as? String ?? "", to: webView)
+      Self.sendNamedKey("Enter", to: webView)
+      result(nil)
+    case "drag":
+      guard
+        let source = Self.center(of: arguments["source"], in: webView),
+        let target = Self.center(of: arguments["target"], in: webView)
+      else {
+        result(FlutterError(code: "internal", message: "Drag bounds are missing.", details: nil))
+        return
+      }
+      Self.sendMouse(.mouseMoved, at: source, to: webView)
+      Self.sendMouse(.leftMouseDown, at: source, to: webView)
+      Self.sendMouse(.leftMouseDragged, at: target, to: webView)
+      Self.sendMouse(.leftMouseUp, at: target, to: webView)
+      result(nil)
+    case "scroll":
+      result(nil)
+    case "screenshot":
+      let configuration = WKSnapshotConfiguration()
+      if arguments["fullPage"] as? Bool == true {
+        configuration.rect = CGRect(origin: .zero, size: webView.scrollView.documentView?.bounds.size ?? webView.bounds.size)
+      }
+      webView.takeSnapshot(with: configuration) { image, error in
+        guard
+          error == nil,
+          let data = image?.tiffRepresentation,
+          let bitmap = NSBitmapImageRep(data: data),
+          let png = bitmap.representation(using: .png, properties: [:])
+        else {
+          result(FlutterError(code: "internal", message: error?.localizedDescription ?? "Snapshot failed.", details: nil))
+          return
+        }
+        result(FlutterStandardTypedData(bytes: png))
+      }
+    case "upload":
+      result(FlutterError(code: "unsupported", message: "Native upload is not implemented yet.", details: nil))
+    default:
+      result(FlutterMethodNotImplemented)
+    }
+  }
+
+  private static func findWebView(in view: NSView?) -> WKWebView? {
+    guard let view else { return nil }
+    if let webView = view as? WKWebView, !webView.isHidden { return webView }
+    for child in view.subviews {
+      if let webView = findWebView(in: child) { return webView }
+    }
+    return nil
+  }
+
+  private static func center(of value: Any?, in webView: WKWebView) -> NSPoint? {
+    guard let rect = value as? [String: Any] else { return nil }
+    let x = (rect["left"] as? NSNumber)?.doubleValue ?? 0
+      + ((rect["width"] as? NSNumber)?.doubleValue ?? 0) / 2
+    let top = (rect["top"] as? NSNumber)?.doubleValue ?? 0
+    let height = (rect["height"] as? NSNumber)?.doubleValue ?? 0
+    return NSPoint(x: x, y: webView.bounds.height - top - height / 2)
+  }
+
+  private static func sendMouse(_ type: NSEvent.EventType, at point: NSPoint, to webView: WKWebView) {
+    guard
+      let window = webView.window,
+      let event = NSEvent.mouseEvent(
+        with: type,
+        location: webView.convert(point, to: nil),
+        modifierFlags: [],
+        timestamp: ProcessInfo.processInfo.systemUptime,
+        windowNumber: window.windowNumber,
+        context: nil,
+        eventNumber: 0,
+        clickCount: type == .leftMouseUp || type == .leftMouseDown ? 1 : 0,
+        pressure: type == .leftMouseDown || type == .leftMouseDragged ? 1 : 0
+      )
+    else { return }
+    switch type {
+    case .leftMouseDown: webView.mouseDown(with: event)
+    case .leftMouseUp: webView.mouseUp(with: event)
+    case .leftMouseDragged: webView.mouseDragged(with: event)
+    default: webView.mouseMoved(with: event)
+    }
+  }
+
+  private static func sendText(_ text: String, to webView: WKWebView) {
+    for character in text {
+      sendKey(String(character), code: 0, modifiers: [], to: webView)
+    }
+  }
+
+  private static func sendNamedKey(_ key: String, to webView: WKWebView) {
+    let values: [String: (String, UInt16)] = [
+      "Enter": ("\r", 36), "Tab": ("\t", 48), "Escape": ("\u{1b}", 53),
+      "Backspace": ("\u{8}", 51), "Delete": ("\u{7f}", 117),
+      "Home": (String(UnicodeScalar(NSHomeFunctionKey)!), 115),
+      "End": (String(UnicodeScalar(NSEndFunctionKey)!), 119),
+      "ArrowLeft": (String(UnicodeScalar(NSLeftArrowFunctionKey)!), 123),
+      "ArrowRight": (String(UnicodeScalar(NSRightArrowFunctionKey)!), 124),
+      "ArrowDown": (String(UnicodeScalar(NSDownArrowFunctionKey)!), 125),
+      "ArrowUp": (String(UnicodeScalar(NSUpArrowFunctionKey)!), 126),
+    ]
+    let value = values[key] ?? (key, 0)
+    sendKey(value.0, code: value.1, modifiers: [], to: webView)
+  }
+
+  private static func sendKey(
+    _ characters: String,
+    code: UInt16,
+    modifiers: NSEvent.ModifierFlags,
+    to webView: WKWebView
+  ) {
+    guard let window = webView.window else { return }
+    for type in [NSEvent.EventType.keyDown, .keyUp] {
+      guard let event = NSEvent.keyEvent(
+        with: type,
+        location: .zero,
+        modifierFlags: modifiers,
+        timestamp: ProcessInfo.processInfo.systemUptime,
+        windowNumber: window.windowNumber,
+        context: nil,
+        characters: characters,
+        charactersIgnoringModifiers: characters,
+        isARepeat: false,
+        keyCode: code
+      ) else { continue }
+      if type == .keyDown { webView.keyDown(with: event) } else { webView.keyUp(with: event) }
+    }
+  }
+}

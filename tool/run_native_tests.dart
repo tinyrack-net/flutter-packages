@@ -10,26 +10,27 @@ import 'package:path/path.dart' as p;
 /// `CF_HDROP` walked with the wrong stride — are invisible from Dart until a
 /// user drops a file with a space in its name.
 Future<void> main(List<String> arguments) async {
-  if (arguments.length != 1) {
-    stderr.writeln('usage: run_native_tests.dart <platform>');
+  if (arguments.isEmpty || arguments.length > 2) {
+    stderr.writeln('usage: run_native_tests.dart <platform> [package]');
     exitCode = 64;
     return;
   }
-  final platform = arguments.single;
+  final platform = arguments.first;
+  final packageName = arguments.length == 2 ? arguments[1] : 'dropwell';
   final root = File.fromUri(Platform.script).parent.parent.absolute.path;
-  final package = p.join(root, 'packages', 'dropwell');
+  final package = p.join(root, 'packages', packageName);
 
   final example = p.join(package, 'example');
   final code = switch (platform) {
     'windows' => await _gtest(
       example,
       'windows',
-      'build/windows/x64/plugins/dropwell/Debug/dropwell_test.exe',
+      'build/windows/x64/plugins/$packageName/Debug/${packageName}_test.exe',
     ),
     'linux' => await _gtest(
       example,
       'linux',
-      'build/linux/x64/debug/plugins/dropwell/dropwell_test',
+      'build/linux/x64/debug/plugins/$packageName/${packageName}_test',
     ),
     'android' => await _gradle(example),
     'macos' => await _xcodebuild(package, 'macos', 'platform=macOS'),

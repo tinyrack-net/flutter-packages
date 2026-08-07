@@ -103,16 +103,9 @@ List<String> verifyPackages(String root) {
           '(expected one of ${candidates.join(', ')})',
         );
       }
-      for (final layer in const <String>['L4', 'L5']) {
-        final marker = '$layer $platform';
-        if (!steps.any((step) => step.startsWith(marker))) {
-          violations.add(
-            '$name: $platform is missing a CI step named "$marker …"',
-          );
-        }
-      }
     }
-    for (final platform in conformancePlatforms) {
+    final requiredPlatforms = <String>{...platforms, ...conformancePlatforms};
+    for (final platform in requiredPlatforms) {
       for (final layer in const <String>['L4', 'L5']) {
         final marker = '$layer $platform $name';
         if (!steps.any((step) => step.startsWith(marker))) {
