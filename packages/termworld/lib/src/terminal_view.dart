@@ -451,7 +451,8 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     }
     _connection = TextInput.attach(
       this,
-      const TextInputConfiguration(
+      TextInputConfiguration(
+        viewId: View.of(context).viewId,
         inputAction: TextInputAction.newline,
         autocorrect: false,
         enableSuggestions: false,

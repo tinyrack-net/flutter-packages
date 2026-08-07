@@ -24,6 +24,7 @@ void main() {
 
     expect(output.join(), '한 ');
     expect(tester.testTextInput.setClientArgs?['enableDeltaModel'], isTrue);
+    expect(tester.testTextInput.setClientArgs?['viewId'], isNotNull);
   });
 
   testWidgets('handles committed replacement and deletion by grapheme', (
