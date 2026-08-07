@@ -216,12 +216,12 @@ jobs:
       - uses: actions/checkout@v5
       - uses: jdx/mise-action@v3
         with:
-          tool_versions: flutter@3.44.4
+          tool_versions: flutter 3.44.4
       - name: Install the IBus and X11 test toolchain
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            ibus ibus-hangul xdotool xclip dbus-x11 xvfb scrot \
+            ibus ibus-hangul xdotool xclip dbus-x11 xvfb scrot x11-utils \
             clang cmake ninja-build pkg-config libgtk-3-dev
       - name: Run the Linux IBus Hangul E2E
         env:
