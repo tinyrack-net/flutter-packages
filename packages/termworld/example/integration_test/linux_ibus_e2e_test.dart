@@ -109,13 +109,14 @@ void main() {
 
     harness.clear();
     const pasted = '붙여넣기 👩🏽\u200d💻 e\u0301\n둘째 줄';
+    const terminalPaste = '붙여넣기 👩🏽\u200d💻 e\u0301\r둘째 줄';
     await harness.paste(pasted);
-    await harness.waitForOutput(pasted);
+    await harness.waitForOutput(terminalPaste);
 
     harness.clear();
     harness.controller.setBracketedPaste(enabled: true);
     await harness.paste(pasted);
-    await harness.waitForOutput('\u001b[200~$pasted\u001b[201~');
+    await harness.waitForOutput('\u001b[200~$terminalPaste\u001b[201~');
     harness.controller.setBracketedPaste(enabled: false);
 
     harness.clear();
