@@ -57,6 +57,7 @@ List<String> verifyPackages(String root) {
   ].join('\n');
   const ibusMarkers = <String>[
     'Linux IBus Hangul E2E',
+    'subosito/flutter-action@v2',
     'ibus-gtk3',
     'ibus-hangul',
     'xdotool',
@@ -68,6 +69,11 @@ List<String> verifyPackages(String root) {
     if (!workflowText.contains(marker)) {
       violations.add('termworld: Linux IBus CI is missing "$marker"');
     }
+  }
+  if (workflowText.contains('mise')) {
+    violations.add(
+      'termworld: Linux IBus CI must use the workflow-installed Flutter SDK',
+    );
   }
   final packages =
       Directory(

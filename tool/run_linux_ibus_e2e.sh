@@ -39,5 +39,5 @@ done
 [[ $engine_ready == true ]]
 
 cd packages/termworld/example
-mise exec -- flutter pub get
-mise exec -- flutter test integration_test/linux_ibus_e2e_test.dart -d linux
+flutter pub get
+flutter test integration_test/linux_ibus_e2e_test.dart -d linux
