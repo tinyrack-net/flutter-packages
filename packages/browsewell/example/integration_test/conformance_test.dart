@@ -11,13 +11,25 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   late HttpServer server;
+  late HttpServer frameServer;
   late Directory profileDirectory;
   late Uri fixtureUrl;
 
   setUpAll(() async {
-    final fixture = await rootBundle.loadString(
+    final fixtureTemplate = await rootBundle.loadString(
       'test_fixtures/conformance.html',
     );
+    final frameFixture = await rootBundle.loadString(
+      'test_fixtures/frame.html',
+    );
+    frameServer = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    frameServer.listen((request) async {
+      request.response.headers.contentType = ContentType.html;
+      request.response.write(frameFixture);
+      await request.response.close();
+    });
+    final frameUrl = 'http://127.0.0.1:${frameServer.port}/';
+    final fixture = fixtureTemplate.replaceFirst('__FRAME_URL__', frameUrl);
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {
       request.response.headers.contentType = ContentType.html;
@@ -32,6 +44,7 @@ void main() {
 
   tearDownAll(() async {
     await server.close(force: true);
+    await frameServer.close(force: true);
     await profileDirectory.delete(recursive: true);
   });
 
@@ -55,10 +68,15 @@ void main() {
     final snapshot = await controller.snapshot();
     final refs = _refs(snapshot.document);
     expect(snapshot.generation, greaterThan(0));
-    expect(refs.keys, containsAll(<String>['Trusted click', 'Name', 'Choice']));
+    expect(
+      refs.keys,
+      containsAll(<String>['Trusted click', 'Name', 'Choice', 'Frame button']),
+    );
 
     await controller.click(refs['Trusted click']!);
     await controller.waitFor(text: 'trusted-click');
+    await controller.click(refs['Frame button']!);
+    await controller.waitFor(text: 'trusted-frame-click');
     await controller.fill(refs['Name']!, 'Ada');
     await controller.waitFor(text: 'trusted:Ada');
     await controller.type(' Lovelace', ref: refs['Name']);

@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<body>
+  <button id="frame-button">Frame button</button>
+  <p id="frame-result">Frame ready</p>
+  <script>
+    document.querySelector('#frame-button').addEventListener('click', event => {
+      document.querySelector('#frame-result').textContent =
+        event.isTrusted ? 'trusted-frame-click' : 'untrusted-frame-click';
+    });
+  </script>
+</body>
+</html>
