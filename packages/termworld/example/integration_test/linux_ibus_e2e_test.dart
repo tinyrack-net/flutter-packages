@@ -33,7 +33,14 @@ void main() {
     final harness = await _ImeHarness.start(tester);
     addTearDown(harness.dispose);
 
-    await harness.keys('gksrmf space dlqfur space dkssud space'.split(' '));
+    await harness.keys(<String>[
+      ...'gksrmf'.split(''),
+      'space',
+      ...'dlqfur'.split(''),
+      'space',
+      ...'dkssud'.split(''),
+      'space',
+    ]);
     await harness.waitForOutput('한글 입력 안녕 ');
 
     harness.clear();
@@ -65,11 +72,11 @@ void main() {
     final harness = await _ImeHarness.start(tester);
     addTearDown(harness.dispose);
 
-    await harness.keys('gksrmf space'.split(' '));
+    await harness.keys(<String>[...'gksrmf'.split(''), 'space']);
     await harness.toggleLanguage();
     await harness.keys('a b c minus 4 2 space'.split(' '));
     await harness.toggleLanguage();
-    await harness.keys('dkssud space'.split(' '));
+    await harness.keys(<String>[...'dkssud'.split(''), 'space']);
     await harness.waitForOutput('한글 abc-42 안녕 ');
 
     harness.clear();
@@ -96,9 +103,9 @@ void main() {
     await harness.keys(<String>['g', 'k', 's']);
     await harness.click(find.byKey(const ValueKey<String>('focus-target')));
     await harness.focusTerminal();
-    expect(harness.output, isEmpty);
+    expect(harness.output, '한');
     await harness.keys(<String>['space']);
-    await harness.waitForOutput(' ');
+    await harness.waitForOutput('한 ');
 
     harness.clear();
     const pasted = '붙여넣기 👩🏽\u200d💻 e\u0301\n둘째 줄';
@@ -115,7 +122,7 @@ void main() {
     await harness.focusTerminal();
     await harness.keys(<String>['g', 'k', 's']);
     await harness.paste('붙여넣기');
-    await harness.waitForOutput('붙여넣기');
+    await harness.waitForOutput('한붙여넣기');
   });
 }
 
@@ -131,12 +138,28 @@ final class _ImeHarness {
 
   static Future<_ImeHarness> start(WidgetTester tester) async {
     final controller = TermworldExampleController();
+    await _run('gsettings', <String>[
+      'set',
+      'org.freedesktop.ibus.engine.hangul',
+      'disable-latin-mode',
+      'false',
+    ]);
+    await _run('ibus', <String>['restart']);
+    var engineAvailable = false;
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      final engines = await Process.run('ibus', <String>['list-engine']);
+      if (engines.exitCode == 0 &&
+          engines.stdout.toString().contains('hangul')) {
+        engineAvailable = true;
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    expect(engineAvailable, isTrue, reason: 'IBus Hangul engine unavailable');
+    await _run('ibus', <String>['engine', 'hangul']);
     await tester.pumpWidget(TermworldExampleApp(controller: controller));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('terminal')));
-    await tester.pumpAndSettle();
-    await _run('ibus', <String>['engine', 'xkb:us::eng']);
-    await _run('ibus', <String>['engine', 'hangul']);
     final search = await _run('xdotool', <String>[
       'search',
       '--onlyvisible',
@@ -145,20 +168,31 @@ final class _ImeHarness {
     ]);
     final ids = search.stdout.toString().trim().split(RegExp(r'\s+'));
     final id = ids.last;
-    await _run('xdotool', <String>['windowfocus', '--sync', id]);
+    final harness = _ImeHarness._(tester, controller, id);
+    await harness.focusTerminal();
     await _run('xdotool', <String>[
       'key',
       '--clearmodifiers',
       'Shift+space',
     ]);
     await tester.pumpAndSettle();
-    return _ImeHarness._(tester, controller, id);
+    return harness;
   }
 
   Future<void> focusTerminal() async {
     await tester.tap(find.byKey(const ValueKey<String>('terminal')));
     await tester.pumpAndSettle();
     await _run('xdotool', <String>['windowfocus', '--sync', windowId]);
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (FocusManager.instance.primaryFocus?.debugLabel !=
+            'termworld-terminal-input' &&
+        DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'termworld-terminal-input',
+    );
   }
 
   Future<void> keys(List<String> keys) async {
@@ -177,16 +211,7 @@ final class _ImeHarness {
   Future<void> toggleLanguage() => keys(<String>['Shift+space']);
 
   Future<void> click(Finder finder) async {
-    final center = tester.getCenter(finder);
-    await _run('xdotool', <String>[
-      'mousemove',
-      '--window',
-      windowId,
-      center.dx.round().toString(),
-      center.dy.round().toString(),
-      'click',
-      '1',
-    ]);
+    await tester.tap(finder);
     await tester.pumpAndSettle();
   }
 
@@ -195,12 +220,26 @@ final class _ImeHarness {
     final clipboard = await Process.start('xclip', <String>[
       '-selection',
       'clipboard',
-      '-loops',
-      '1',
+      '-silent',
     ]);
     _clipboard = clipboard;
     clipboard.stdin.write(text);
     await clipboard.stdin.close();
+    var clipboardReady = false;
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      final read = await Process.run('xclip', <String>[
+        '-selection',
+        'clipboard',
+        '-out',
+      ]);
+      if (read.exitCode == 0 && read.stdout == text) {
+        clipboardReady = true;
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+    }
+    expect(clipboardReady, isTrue, reason: 'X clipboard was not populated');
     await click(find.byKey(const ValueKey<String>('paste-clipboard')));
   }
 

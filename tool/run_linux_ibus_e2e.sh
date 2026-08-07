@@ -19,6 +19,7 @@ trap capture_failure EXIT
 
 gsettings set org.freedesktop.ibus.engine.hangul hangul-keyboard '2'
 gsettings set org.freedesktop.ibus.engine.hangul initial-input-mode 'hangul'
+gsettings set org.freedesktop.ibus.engine.hangul disable-latin-mode false
 gsettings set org.freedesktop.ibus.engine.hangul preedit-mode 'syllable'
 gsettings set org.freedesktop.ibus.engine.hangul word-commit false
 gsettings set org.freedesktop.ibus.engine.hangul switch-keys 'Shift+space'

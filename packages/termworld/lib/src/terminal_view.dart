@@ -69,7 +69,9 @@ class TerminalView extends StatefulWidget {
 final class _TerminalViewState extends State<TerminalView> {
   late TerminalViewController _controller;
   late bool _ownsController;
-  final FocusNode _focusNode = FocusNode();
+  final FocusNode _focusNode = FocusNode(
+    debugLabel: 'termworld-terminal-input',
+  );
   final GlobalKey<_TerminalTextInputState> _inputKey =
       GlobalKey<_TerminalTextInputState>();
   Offset? _dragStart;
@@ -270,21 +272,24 @@ final class _TerminalViewState extends State<TerminalView> {
             ),
           ),
         );
-        return Semantics(
-          label: widget.semanticLabel,
-          textField: !widget.readOnly,
-          readOnly: widget.readOnly,
-          child: ColoredBox(
-            color: widget.theme.background,
-            child: _TerminalTextInput(
-              key: _inputKey,
-              focusNode: _focusNode,
-              autofocus: widget.autofocus,
-              readOnly: widget.readOnly,
-              emulator: widget.emulator,
-              onKeyEvent: _handleKey,
-              onComposingChanged: _changed,
-              child: viewport,
+        return TapRegion(
+          onTapOutside: (_) => _focusNode.unfocus(),
+          child: Semantics(
+            label: widget.semanticLabel,
+            textField: !widget.readOnly,
+            readOnly: widget.readOnly,
+            child: ColoredBox(
+              color: widget.theme.background,
+              child: _TerminalTextInput(
+                key: _inputKey,
+                focusNode: _focusNode,
+                autofocus: widget.autofocus,
+                readOnly: widget.readOnly,
+                emulator: widget.emulator,
+                onKeyEvent: _handleKey,
+                onComposingChanged: _changed,
+                child: viewport,
+              ),
             ),
           ),
         );
@@ -440,8 +445,18 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     if (widget.focusNode.hasFocus) {
       _openConnection();
     } else {
+      _commitComposition();
       _closeConnection();
     }
+  }
+
+  void _commitComposition() {
+    if (!isComposing) return;
+    _reconcileCommitted(_editingValue.text);
+    _editingValue = TextEditingValue.empty;
+    _committedPrefix = '';
+    _connection?.setEditingState(_editingValue);
+    widget.onComposingChanged();
   }
 
   void _openConnection() {
@@ -477,26 +492,12 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    assert(
-      () {
-        debugPrint('termworld IME value: $_editingValue -> $value');
-        return true;
-      }(),
-      'The IME value trace is observational only.',
-    );
     _accept(value);
   }
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> textEditingDeltas) {
     for (final delta in textEditingDeltas) {
-      assert(
-        () {
-          debugPrint('termworld IME delta: $delta from $_editingValue');
-          return true;
-        }(),
-        'The IME delta trace is observational only.',
-      );
       _accept(delta.apply(_editingValue));
     }
   }
