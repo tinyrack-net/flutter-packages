@@ -62,6 +62,12 @@ void main() {
     await controller.keypress('End', ref: refs['Name']);
     await controller.select(refs['Choice']!, 'two');
     await controller.hover(refs['Drag source']!);
+    await controller.drag(refs['Drag source']!, refs['Drag target']!);
+    await controller.waitFor(text: 'trusted-drop');
+    final upload = File('${profileDirectory.path}/upload.txt');
+    await upload.writeAsString('browsewell');
+    await controller.upload(refs['Upload']!, <String>[upload.path]);
+    await controller.waitFor(text: 'trusted:upload.txt');
     await controller.scroll(deltaX: 0, deltaY: 120);
     await controller.resize(const Size(640, 480));
 
@@ -107,6 +113,8 @@ void main() {
 
     expect(first.id, isNot(second.id));
     expect(first.capabilities.multipleInstances, isTrue);
+    await first.waitFor(text: 'Browsewell fixture');
+    await second.waitFor(text: 'Browsewell fixture');
     await first.evaluate(
       '() => { localStorage.shared = "persisted"; return true; }',
     );

@@ -8,9 +8,11 @@
 #include <flutter/standard_method_codec.h>
 
 #include <cstdint>
+#include <chrono>
 #include <memory>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <vector>
 
 namespace browsewell {
@@ -101,6 +103,38 @@ void Text(HWND window, const std::string& utf8) {
   for (const wchar_t character : wide) SendMessage(window, WM_CHAR, character, 0);
 }
 
+BOOL CALLBACK FindFileDialog(HWND window, LPARAM data) {
+  DWORD process = 0;
+  GetWindowThreadProcessId(window, &process);
+  wchar_t class_name[32] = {};
+  GetClassName(window, class_name, 32);
+  if (process == GetCurrentProcessId() && wcscmp(class_name, L"#32770") == 0 &&
+      IsWindowVisible(window)) {
+    *reinterpret_cast<HWND*>(data) = window;
+    return FALSE;
+  }
+  return TRUE;
+}
+
+BOOL CALLBACK FindEdit(HWND window, LPARAM data) {
+  wchar_t class_name[32] = {};
+  GetClassName(window, class_name, 32);
+  if (wcscmp(class_name, L"Edit") == 0) {
+    *reinterpret_cast<HWND*>(data) = window;
+    return FALSE;
+  }
+  return TRUE;
+}
+
+std::wstring Wide(const std::string& utf8) {
+  const int length = MultiByteToWideChar(CP_UTF8, 0, utf8.data(),
+                                         static_cast<int>(utf8.size()), nullptr, 0);
+  std::wstring wide(length, L'\0');
+  MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()),
+                      wide.data(), length);
+  return wide;
+}
+
 const std::vector<uint8_t> kTransparentPng = {
     137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
     0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137,
@@ -184,7 +218,33 @@ void BrowsewellPlugin::HandleMethodCall(
   } else if (method == "screenshot") {
     result->Success(EncodableValue(kTransparentPng));
   } else if (method == "upload") {
-    result->Error("unsupported", "Native upload is not implemented yet.");
+    const auto* raw_paths = Find(args, "filePaths");
+    const auto* paths = raw_paths == nullptr ? nullptr
+                                              : std::get_if<EncodableList>(raw_paths);
+    if (paths == nullptr || paths->empty()) {
+      result->Error("denied", "Upload paths are missing.");
+      return;
+    }
+    const std::string path = String(&paths->front());
+    Key(window_, VK_RETURN);
+    std::thread([path]() {
+      for (int attempt = 0; attempt < 40; ++attempt) {
+        HWND dialog = nullptr;
+        EnumWindows(FindFileDialog, reinterpret_cast<LPARAM>(&dialog));
+        if (dialog != nullptr) {
+          HWND edit = nullptr;
+          EnumChildWindows(dialog, FindEdit, reinterpret_cast<LPARAM>(&edit));
+          if (edit != nullptr) {
+            const std::wstring wide = Wide(path);
+            SetWindowText(edit, wide.c_str());
+            SendMessage(dialog, WM_COMMAND, IDOK, 0);
+            return;
+          }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      }
+    }).detach();
+    result->Success();
   } else {
     result->NotImplemented();
   }

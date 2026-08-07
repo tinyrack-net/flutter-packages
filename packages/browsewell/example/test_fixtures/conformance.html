@@ -39,6 +39,7 @@
       result.textContent = `${event.isTrusted ? 'trusted' : 'untrusted'}:${event.target.files[0]?.name}`;
     });
     console.info('browsewell-fixture-ready');
+    fetch('/resource?network').then(() => console.info('network-ready'));
   </script>
 </body>
 </html>

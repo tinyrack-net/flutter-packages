@@ -64,7 +64,7 @@ void main() {
     await controller.scroll(deltaX: 0, deltaY: 420, ref: '@e8');
     await controller.waitFor(text: 'Saved');
     await controller.waitFor(url: 'example.test');
-    expect(() => controller.waitFor(), throwsArgumentError);
+    expect(controller.waitFor, throwsArgumentError);
 
     expect(await controller.snapshot(), isA<BrowsewellSnapshot>());
     expect(

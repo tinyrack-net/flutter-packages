@@ -7,6 +7,7 @@
 #include <webkit2/webkit2.h>
 
 #include <cstring>
+#include <string>
 #include <vector>
 
 #include "browsewell_plugin_private.h"
@@ -40,14 +41,14 @@ WebKitWebView* FindWebView(GtkWidget* widget) {
   return found;
 }
 
-const FlValue* Argument(FlMethodCall* call, const char* key) {
+FlValue* Argument(FlMethodCall* call, const char* key) {
   FlValue* arguments = fl_method_call_get_args(call);
   if (arguments == nullptr || fl_value_get_type(arguments) != FL_VALUE_TYPE_MAP)
     return nullptr;
   return fl_value_lookup_string(arguments, key);
 }
 
-double Number(const FlValue* value) {
+double Number(FlValue* value) {
   if (value == nullptr) return 0;
   if (fl_value_get_type(value) == FL_VALUE_TYPE_FLOAT)
     return fl_value_get_float(value);
@@ -126,7 +127,7 @@ void SendPointer(WebKitWebView* webview, GdkEventType type, double x, double y,
   gdk_event_free(event);
 }
 
-bool RectCenter(const FlValue* rect, double* x, double* y) {
+bool RectCenter(FlValue* rect, double* x, double* y) {
   if (rect == nullptr || fl_value_get_type(rect) != FL_VALUE_TYPE_MAP)
     return false;
   *x = Number(fl_value_lookup_string(rect, "left")) +
@@ -156,6 +157,32 @@ struct SnapshotRequest {
   FlMethodCall* call;
   std::vector<uint8_t> bytes;
 };
+
+struct UploadRequest {
+  FlMethodCall* call;
+  gulong handler;
+  std::vector<std::string> paths;
+};
+
+gboolean FileChooserReady(WebKitWebView* webview,
+                          WebKitFileChooserRequest* chooser,
+                          gpointer user_data) {
+  auto* request = static_cast<UploadRequest*>(user_data);
+  std::vector<const gchar*> paths;
+  paths.reserve(request->paths.size() + 1);
+  for (const auto& path : request->paths) paths.push_back(path.c_str());
+  paths.push_back(nullptr);
+  webkit_file_chooser_request_select_files(chooser, paths.data());
+  RespondSuccess(request->call);
+  g_signal_handler_disconnect(webview, request->handler);
+  return TRUE;
+}
+
+void DeleteUploadRequest(gpointer data, GClosure*) {
+  auto* request = static_cast<UploadRequest*>(data);
+  g_object_unref(request->call);
+  delete request;
+}
 
 cairo_status_t WritePng(void* closure, const unsigned char* data,
                         unsigned int length) {
@@ -211,8 +238,8 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
     }
     RespondSuccess(call);
   } else if (strcmp(method, "type") == 0) {
-    const FlValue* text = Argument(call, "text");
-    const FlValue* replace = Argument(call, "replace");
+    FlValue* text = Argument(call, "text");
+    FlValue* replace = Argument(call, "replace");
     if (replace != nullptr && fl_value_get_type(replace) == FL_VALUE_TYPE_BOOL &&
         fl_value_get_bool(replace)) {
       SendKey(webview, GDK_KEY_a, GDK_CONTROL_MASK);
@@ -220,11 +247,11 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
     SendText(webview, text == nullptr ? "" : fl_value_get_string(text));
     RespondSuccess(call);
   } else if (strcmp(method, "keypress") == 0) {
-    const FlValue* key = Argument(call, "key");
+    FlValue* key = Argument(call, "key");
     SendKey(webview, KeyValue(key == nullptr ? nullptr : fl_value_get_string(key)));
     RespondSuccess(call);
   } else if (strcmp(method, "select") == 0) {
-    const FlValue* value = Argument(call, "value");
+    FlValue* value = Argument(call, "value");
     SendKey(webview, GDK_KEY_Home);
     SendText(webview, value == nullptr ? "" : fl_value_get_string(value));
     SendKey(webview, GDK_KEY_Return);
@@ -257,7 +284,7 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
     gdk_event_free(event);
     RespondSuccess(call);
   } else if (strcmp(method, "screenshot") == 0) {
-    const FlValue* full_page = Argument(call, "fullPage");
+    FlValue* full_page = Argument(call, "fullPage");
     const bool full = full_page != nullptr &&
                       fl_value_get_type(full_page) == FL_VALUE_TYPE_BOOL &&
                       fl_value_get_bool(full_page);
@@ -268,7 +295,22 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
              : WEBKIT_SNAPSHOT_REGION_VISIBLE,
         WEBKIT_SNAPSHOT_OPTIONS_NONE, nullptr, SnapshotReady, request);
   } else if (strcmp(method, "upload") == 0) {
-    RespondError(call, "unsupported", "Native upload is not implemented yet.");
+    FlValue* raw_paths = Argument(call, "filePaths");
+    if (raw_paths == nullptr ||
+        fl_value_get_type(raw_paths) != FL_VALUE_TYPE_LIST) {
+      RespondError(call, "denied", "Upload paths are missing.");
+      return;
+    }
+    auto* request = new UploadRequest{FL_METHOD_CALL(g_object_ref(call)), 0, {}};
+    for (size_t index = 0; index < fl_value_get_length(raw_paths); ++index) {
+      FlValue* value = fl_value_get_list_value(raw_paths, index);
+      if (fl_value_get_type(value) == FL_VALUE_TYPE_STRING)
+        request->paths.emplace_back(fl_value_get_string(value));
+    }
+    request->handler = g_signal_connect_data(
+        webview, "run-file-chooser", G_CALLBACK(FileChooserReady), request,
+        DeleteUploadRequest, static_cast<GConnectFlags>(0));
+    SendKey(webview, GDK_KEY_Return);
   } else {
     g_autoptr(FlMethodResponse) response =
         FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());

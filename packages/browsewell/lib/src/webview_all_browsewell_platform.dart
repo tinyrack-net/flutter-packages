@@ -24,16 +24,50 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
     final controller = WebViewController();
     await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
     await controller.setOnConsoleMessage((message) {
-      logs.add(
+      _appendLog(
+        logs,
+        request.policy.maxLogEntries,
         BrowsewellLogEntry(
           level: message.level.name,
           message: message.message,
           timestampMicros: DateTime.now().microsecondsSinceEpoch,
         ),
       );
-      if (logs.length > request.policy.maxLogEntries) {
-        logs.removeAt(0);
-      }
+    });
+    await controller.setOnJavaScriptAlertDialog((dialog) async {
+      _appendLog(
+        logs,
+        request.policy.maxLogEntries,
+        BrowsewellLogEntry(
+          level: 'dialog',
+          message: 'alert accepted: ${dialog.message}',
+          timestampMicros: DateTime.now().microsecondsSinceEpoch,
+        ),
+      );
+    });
+    await controller.setOnJavaScriptConfirmDialog((dialog) async {
+      _appendLog(
+        logs,
+        request.policy.maxLogEntries,
+        BrowsewellLogEntry(
+          level: 'dialog',
+          message: 'confirm rejected: ${dialog.message}',
+          timestampMicros: DateTime.now().microsecondsSinceEpoch,
+        ),
+      );
+      return false;
+    });
+    await controller.setOnJavaScriptTextInputDialog((dialog) async {
+      _appendLog(
+        logs,
+        request.policy.maxLogEntries,
+        BrowsewellLogEntry(
+          level: 'dialog',
+          message: 'prompt rejected: ${dialog.message}',
+          timestampMicros: DateTime.now().microsecondsSinceEpoch,
+        ),
+      );
+      return '';
     });
     await controller.setNavigationDelegate(
       NavigationDelegate(
@@ -73,6 +107,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       controller: controller,
       events: events,
       logs: logs,
+      maxLogEntries: request.policy.maxLogEntries,
     );
     await controller.loadRequest(request.initialUrl);
     return BrowsewellCreateResult(
@@ -136,6 +171,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
           },
         );
       case 'logs':
+        await _collectNetworkLogs(browser);
         return _encodedLogs(browser, arguments['maxEntries']! as int);
       case 'wait':
         await _wait(browser, arguments);
@@ -281,6 +317,37 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       'Wait condition timed out.',
     );
   }
+
+  Future<void> _collectNetworkLogs(_Browser browser) async {
+    final raw = await _run(
+      browser,
+      "performance.getEntriesByType('resource').map((entry) => "
+      '({name: entry.name, duration: entry.duration}))',
+    );
+    if (raw is! List<Object?>) return;
+    for (final value in raw.whereType<Map<Object?, Object?>>()) {
+      final name = value['name'];
+      if (name is! String || !browser.networkEntries.add(name)) continue;
+      _appendLog(
+        browser.logs,
+        browser.maxLogEntries,
+        BrowsewellLogEntry(
+          level: 'network',
+          message: '$name ${value['duration'] ?? 0}ms',
+          timestampMicros: DateTime.now().microsecondsSinceEpoch,
+        ),
+      );
+    }
+  }
+}
+
+void _appendLog(
+  List<BrowsewellLogEntry> logs,
+  int maximum,
+  BrowsewellLogEntry entry,
+) {
+  logs.add(entry);
+  if (logs.length > maximum) logs.removeAt(0);
 }
 
 final class _Browser {
@@ -288,11 +355,14 @@ final class _Browser {
     required this.controller,
     required this.events,
     required this.logs,
+    required this.maxLogEntries,
   });
 
   final WebViewController controller;
   final StreamController<BrowsewellEvent> events;
   final List<BrowsewellLogEntry> logs;
+  final int maxLogEntries;
+  final Set<String> networkEntries = <String>{};
 }
 
 const _snapshotScript = r'''

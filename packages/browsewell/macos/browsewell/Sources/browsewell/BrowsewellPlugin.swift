@@ -83,7 +83,24 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
         result(FlutterStandardTypedData(bytes: png))
       }
     case "upload":
-      result(FlutterError(code: "unsupported", message: "Native upload is not implemented yet.", details: nil))
+      guard let path = (arguments["filePaths"] as? [String])?.first else {
+        result(FlutterError(code: "denied", message: "Upload paths are missing.", details: nil))
+        return
+      }
+      Self.sendNamedKey("Enter", to: webView)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+        let panel = (NSApp.modalWindow as? NSOpenPanel)
+          ?? NSApp.windows.compactMap { $0 as? NSOpenPanel }.first
+        guard let panel else {
+          result(FlutterError(code: "internal", message: "The file chooser did not open.", details: nil))
+          return
+        }
+        let file = URL(fileURLWithPath: path)
+        panel.directoryURL = file.deletingLastPathComponent()
+        panel.nameFieldStringValue = file.lastPathComponent
+        panel.ok(nil)
+        result(nil)
+      }
     default:
       result(FlutterMethodNotImplemented)
     }

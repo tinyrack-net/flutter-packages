@@ -69,6 +69,31 @@ void main() {
         message: 'ready',
       ),
     );
+    await webviews.controller.alert?.call(
+      const JavaScriptAlertDialogRequest(
+        message: 'alert',
+        url: 'https://example.test',
+      ),
+    );
+    expect(
+      await webviews.controller.confirm?.call(
+        const JavaScriptConfirmDialogRequest(
+          message: 'confirm',
+          url: 'https://example.test',
+        ),
+      ),
+      isFalse,
+    );
+    expect(
+      await webviews.controller.prompt?.call(
+        const JavaScriptTextInputDialogRequest(
+          message: 'prompt',
+          url: 'https://example.test',
+          defaultText: 'default',
+        ),
+      ),
+      isEmpty,
+    );
     expect(events.map((event) => event.type), <String>['loadStart', 'loadEnd']);
 
     await platform.execute(
@@ -225,6 +250,9 @@ final class _FakeController extends PlatformWebViewController {
     : super.implementation(const PlatformWebViewControllerCreationParams());
 
   void Function(JavaScriptConsoleMessage message)? console;
+  Future<void> Function(JavaScriptAlertDialogRequest request)? alert;
+  Future<bool> Function(JavaScriptConfirmDialogRequest request)? confirm;
+  Future<String> Function(JavaScriptTextInputDialogRequest request)? prompt;
   bool waitMatches = true;
 
   @override
@@ -234,6 +262,21 @@ final class _FakeController extends PlatformWebViewController {
   Future<void> setOnConsoleMessage(
     void Function(JavaScriptConsoleMessage message) onConsoleMessage,
   ) async => console = onConsoleMessage;
+
+  @override
+  Future<void> setOnJavaScriptAlertDialog(
+    Future<void> Function(JavaScriptAlertDialogRequest request) callback,
+  ) async => alert = callback;
+
+  @override
+  Future<void> setOnJavaScriptConfirmDialog(
+    Future<bool> Function(JavaScriptConfirmDialogRequest request) callback,
+  ) async => confirm = callback;
+
+  @override
+  Future<void> setOnJavaScriptTextInputDialog(
+    Future<String> Function(JavaScriptTextInputDialogRequest request) callback,
+  ) async => prompt = callback;
 
   @override
   Future<void> setPlatformNavigationDelegate(
@@ -267,6 +310,14 @@ final class _FakeController extends PlatformWebViewController {
         'width': 10.0,
         'height': 12.0,
       };
+    }
+    if (javaScript.contains("getEntriesByType('resource')")) {
+      return <Object?>[
+        <String, Object?>{
+          'name': 'https://example.test/resource',
+          'duration': 2.0,
+        },
+      ];
     }
     if (javaScript.contains('includes(')) return waitMatches;
     if (javaScript.contains('document.title')) return '"Fixture"';
