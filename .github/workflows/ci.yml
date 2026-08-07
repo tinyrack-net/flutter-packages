@@ -223,7 +223,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            ibus ibus-hangul xdotool xclip dbus-x11 xvfb scrot x11-utils \
+            ibus ibus-gtk3 ibus-hangul xdotool xclip dbus-x11 xvfb scrot x11-utils \
             clang cmake ninja-build pkg-config libgtk-3-dev
       - name: Run the Linux IBus Hangul E2E
         env:

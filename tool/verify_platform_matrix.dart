@@ -57,6 +57,7 @@ List<String> verifyPackages(String root) {
   ].join('\n');
   const ibusMarkers = <String>[
     'Linux IBus Hangul E2E',
+    'ibus-gtk3',
     'ibus-hangul',
     'xdotool',
     'xclip',
