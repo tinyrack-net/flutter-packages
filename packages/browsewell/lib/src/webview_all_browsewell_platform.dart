@@ -244,7 +244,10 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       ));
 
   Future<Object?> _run(_Browser browser, String source) async {
-    final value = await browser.controller.runJavaScriptReturningResult(source);
+    final value = await browser.controller.runJavaScriptReturningResult(
+      '(() => { const value = ($source); return JSON.stringify( '
+      'value === undefined ? null : value); })()',
+    );
     if (value is! String) return value;
     try {
       return jsonDecode(value);

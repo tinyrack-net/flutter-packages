@@ -1,7 +1,9 @@
 import 'dart:io';
+
 import 'package:browsewell/browsewell.dart';
 import 'package:browsewell_example/main.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
@@ -79,6 +81,13 @@ void main() {
     );
     expect(
       await controller.evaluate(
+        r"() => { alert('accepted'); return String(confirm('rejected')) + "
+        r"':' + prompt('rejected', 'default'); }",
+      ),
+      'false:',
+    );
+    expect(
+      await controller.evaluate(
         '() => document.querySelector("#result").textContent',
       ),
       startsWith('trusted:'),
@@ -111,6 +120,19 @@ void main() {
     addTearDown(first.dispose);
     addTearDown(second.dispose);
 
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          children: <Widget>[
+            Expanded(child: BrowsewellView(controller: first)),
+            Expanded(child: BrowsewellView(controller: second)),
+          ],
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
     expect(first.id, isNot(second.id));
     expect(first.capabilities.multipleInstances, isTrue);
     await first.waitFor(text: 'Browsewell fixture');
@@ -119,6 +141,17 @@ void main() {
       '() => { localStorage.shared = "persisted"; return true; }',
     );
     expect(await second.evaluate('() => localStorage.shared'), 'persisted');
+
+    await first.dispose();
+    await second.dispose();
+    final restored = await BrowsewellController.create(
+      profile: profile,
+      initialUrl: fixtureUrl,
+    );
+    addTearDown(restored.dispose);
+    await tester.pumpWidget(BrowsewellExample(controller: restored));
+    await restored.waitFor(text: 'Browsewell fixture');
+    expect(await restored.evaluate('() => localStorage.shared'), 'persisted');
   });
 }
 

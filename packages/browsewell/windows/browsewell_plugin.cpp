@@ -30,8 +30,10 @@ const EncodableValue* Find(const EncodableMap& map, const char* key) {
 double Number(const EncodableValue* value) {
   if (value == nullptr) return 0;
   if (const auto* number = std::get_if<double>(value)) return *number;
-  if (const auto* number = std::get_if<int32_t>(value)) return *number;
-  if (const auto* number = std::get_if<int64_t>(value)) return *number;
+  if (const auto* number = std::get_if<int32_t>(value))
+    return static_cast<double>(*number);
+  if (const auto* number = std::get_if<int64_t>(value))
+    return static_cast<double>(*number);
   return 0;
 }
 
