@@ -21,6 +21,8 @@ const Set<TargetPlatform> kDropCapablePlatforms = <TargetPlatform>{
 
 /// Platforms whose native clipboard implementation is complete.
 const Set<TargetPlatform> kClipboardCapablePlatforms = <TargetPlatform>{
+  TargetPlatform.android,
+  TargetPlatform.iOS,
   TargetPlatform.linux,
   TargetPlatform.macOS,
   TargetPlatform.windows,

@@ -1,27 +1,62 @@
 package net.tinyrack.dropwell
 
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import org.mockito.Mockito
 import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 /*
- * This demonstrates a simple unit test of the Kotlin portion of this plugin's implementation.
- *
- * Once you have built the plugin's example app, you can run these tests from the command
- * line by running `./gradlew testDebugUnitTest` in the `example/android/` directory, or
- * you can run them directly from IDEs that support JUnit such as Android Studio.
+ * The plugin's data handling is framework-free on purpose, so this JVM target
+ * reaches all of it without an emulator. Run it with `./gradlew
+ * :dropwell:testDebugUnitTest` from `example/android/`.
  */
-
-internal class DropwellPluginTest {
+internal class DropwellDataTest {
     @Test
-    fun onMethodCall_getPlatformVersion_returnsExpectedValue() {
-        val plugin = DropwellPlugin()
+    fun fileNameOf_takesTheLastComponent() {
+        assertEquals("file.txt", DropwellData.fileNameOf("content://media/1/file.txt"))
+        assertEquals("file.txt", DropwellData.fileNameOf("/data/user/0/file.txt"))
+        assertEquals("file.txt", DropwellData.fileNameOf("file.txt"))
+    }
 
-        val call = MethodCall("getPlatformVersion", null)
-        val mockResult: MethodChannel.Result = Mockito.mock(MethodChannel.Result::class.java)
-        plugin.onMethodCall(call, mockResult)
+    @Test
+    fun fileNameOf_dropsAQueryString() {
+        assertEquals("file.txt", DropwellData.fileNameOf("content://p/file.txt?id=3"))
+    }
 
-        Mockito.verify(mockResult).success("Android " + android.os.Build.VERSION.RELEASE)
+    @Test
+    fun fileNameOf_survivesATrailingSlash() {
+        assertEquals("dir", DropwellData.fileNameOf("content://p/dir/"))
+    }
+
+    @Test
+    fun mimeFromFileName_mapsKnownExtensionsCaseInsensitively() {
+        assertEquals("image/png", DropwellData.mimeFromFileName("a.PNG"))
+        assertEquals("image/jpeg", DropwellData.mimeFromFileName("a.jpeg"))
+        assertEquals("text/plain", DropwellData.mimeFromFileName("a.md"))
+    }
+
+    @Test
+    fun mimeFromFileName_returnsNothingRatherThanGuessing() {
+        assertNull(DropwellData.mimeFromFileName("archive.xyz"))
+        assertNull(DropwellData.mimeFromFileName("noextension"))
+        assertNull(DropwellData.mimeFromFileName("trailing."))
+    }
+
+    @Test
+    fun resolveMime_prefersTheProvidersAnswer() {
+        assertEquals("image/webp", DropwellData.resolveMime("image/webp", "a.png"))
+    }
+
+    @Test
+    fun resolveMime_treatsOctetStreamAsNoAnswer() {
+        assertEquals(
+            "image/png",
+            DropwellData.resolveMime("application/octet-stream", "a.png")
+        )
+    }
+
+    @Test
+    fun resolveMime_fallsBackToTheExtension() {
+        assertEquals("text/plain", DropwellData.resolveMime(null, "notes.txt"))
+        assertNull(DropwellData.resolveMime(null, "mystery"))
     }
 }

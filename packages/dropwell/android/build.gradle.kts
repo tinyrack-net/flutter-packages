@@ -48,6 +48,13 @@ android {
         minSdk = 24
     }
 
+    // AGP 8 stops generating BuildConfig for libraries by default, and the
+    // Debug-only testing channel is guarded by BuildConfig.DEBUG so a release
+    // build cannot be driven from outside.
+    buildFeatures {
+        buildConfig = true
+    }
+
     testOptions {
         unitTests {
             isIncludeAndroidResources = true
