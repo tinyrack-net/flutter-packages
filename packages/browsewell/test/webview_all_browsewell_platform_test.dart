@@ -222,6 +222,43 @@ void main() {
       throwsA(isA<BrowsewellException>()),
     );
   });
+
+  testWidgets('captures the Windows texture for viewport and full page', (
+    tester,
+  ) async {
+    platform = WebviewAllBrowsewellPlatform(captureFlutterTexture: true);
+    final created = await platform.create(
+      BrowsewellCreateRequest(
+        profile: const BrowsewellProfile(directory: '/profile'),
+        initialUrl: Uri.parse('about:blank'),
+        policy: const BrowsewellPolicy(),
+      ),
+    );
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: platform.buildView(created.id),
+        ),
+      ),
+    );
+    await tester.pump();
+    for (final fullPage in <bool>[false, true]) {
+      final png =
+          (await tester.runAsync(
+                () => platform.execute(
+                  created.id,
+                  BrowsewellCommand('screenshot', <String, Object?>{
+                    'fullPage': fullPage,
+                  }),
+                ),
+              ))!
+              as Uint8List;
+      expect(png.take(4), orderedEquals(<int>[137, 80, 78, 71]));
+    }
+  });
 }
 
 final class _FakeWebViewPlatform extends WebViewPlatform
@@ -319,6 +356,10 @@ final class _FakeController extends PlatformWebViewController {
         },
       ];
     }
+    if (javaScript.contains('document.documentElement.scrollHeight')) {
+      return <String, Object?>{'height': 30, 'x': 0.0, 'y': 0.0};
+    }
+    if (javaScript.contains('scrollY')) return 0.0;
     if (javaScript.contains('includes(')) return waitMatches;
     if (javaScript.contains('document.title')) return '"Fixture"';
     return true;

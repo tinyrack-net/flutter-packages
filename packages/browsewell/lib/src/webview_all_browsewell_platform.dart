@@ -1,19 +1,27 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:browsewell/browsewell_platform_interface.dart';
 import 'package:browsewell/src/browsewell_models.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:webview_all/webview_all.dart';
 
 /// Native-webview implementation shared by Browsewell's desktop targets.
 final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
+  /// Creates the desktop backend.
+  WebviewAllBrowsewellPlatform({bool? captureFlutterTexture})
+    : _captureFlutterTexture = captureFlutterTexture ?? Platform.isWindows;
+
   static const _automation = MethodChannel(
     'net.tinyrack.browsewell/automation',
   );
 
   final Map<String, _Browser> _browsers = <String, _Browser>{};
+  final bool _captureFlutterTexture;
   var _nextId = 1;
 
   @override
@@ -117,8 +125,10 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
   }
 
   @override
-  Widget buildView(String id) =>
-      WebViewWidget(controller: _browser(id).controller);
+  Widget buildView(String id) => RepaintBoundary(
+    key: _browser(id).captureKey,
+    child: WebViewWidget(controller: _browser(id).controller),
+  );
 
   @override
   Stream<BrowsewellEvent> events(String id) => _browser(id).events.stream;
@@ -163,6 +173,12 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       case 'snapshot':
         return _run(browser, _snapshotScript);
       case 'screenshot':
+        if (_captureFlutterTexture) {
+          return _captureFlutter(
+            browser,
+            fullPage: arguments['fullPage'] == true,
+          );
+        }
         return _automation.invokeMethod<Object?>(
           'screenshot',
           <String, Object?>{
@@ -342,6 +358,82 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       );
     }
   }
+
+  Future<Uint8List> _captureFlutter(
+    _Browser browser, {
+    required bool fullPage,
+  }) async {
+    final boundary = browser.captureKey.currentContext?.findRenderObject();
+    if (boundary is! RenderRepaintBoundary || !boundary.hasSize) {
+      throw const BrowsewellException(
+        BrowsewellErrorCode.internal,
+        'The browser view is not attached.',
+      );
+    }
+    if (!fullPage) {
+      return _png(await boundary.toImage());
+    }
+
+    final metrics = await _run(
+      browser,
+      '({height: document.documentElement.scrollHeight, '
+      'x: scrollX, y: scrollY})',
+    );
+    if (metrics is! Map<Object?, Object?>) {
+      throw const BrowsewellException(
+        BrowsewellErrorCode.internal,
+        'The document dimensions are unavailable.',
+      );
+    }
+    final rawHeight = metrics['height'];
+    final rawX = metrics['x'];
+    final rawY = metrics['y'];
+    if (rawHeight is! num || rawX is! num || rawY is! num) {
+      throw const BrowsewellException(
+        BrowsewellErrorCode.internal,
+        'The document dimensions are invalid.',
+      );
+    }
+    final height = rawHeight.ceil();
+    final originalX = rawX.toDouble();
+    final originalY = rawY.toDouble();
+    final viewportHeight = boundary.size.height.ceil();
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    for (var y = 0; y < height; y += viewportHeight) {
+      await _run(browser, 'scrollTo(0, $y)');
+      await Future<void>.delayed(const Duration(milliseconds: 32));
+      final actual = await _run(browser, 'scrollY');
+      if (actual is! num) {
+        throw const BrowsewellException(
+          BrowsewellErrorCode.internal,
+          'The document scroll position is invalid.',
+        );
+      }
+      final image = await boundary.toImage();
+      canvas.drawImage(image, Offset(0, actual.toDouble()), Paint());
+      image.dispose();
+    }
+    await _run(browser, 'scrollTo($originalX, $originalY)');
+    final image = await recorder.endRecording().toImage(
+      boundary.size.width.ceil(),
+      height,
+    );
+    final bytes = await _png(image);
+    image.dispose();
+    return bytes;
+  }
+
+  Future<Uint8List> _png(ui.Image image) async {
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (data == null) {
+      throw const BrowsewellException(
+        BrowsewellErrorCode.internal,
+        'PNG encoding failed.',
+      );
+    }
+    return data.buffer.asUint8List();
+  }
 }
 
 void _appendLog(
@@ -366,6 +458,7 @@ final class _Browser {
   final List<BrowsewellLogEntry> logs;
   final int maxLogEntries;
   final Set<String> networkEntries = <String>{};
+  final GlobalKey captureKey = GlobalKey();
 }
 
 const _snapshotScript = r'''
