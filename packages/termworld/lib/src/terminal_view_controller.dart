@@ -10,6 +10,7 @@ final class TerminalViewController extends ChangeNotifier {
   TerminalEmulator? _emulator;
   TerminalSelection? _selection;
   double _scrollOffset = 0;
+  VoidCallback? _requestKeyboard;
 
   /// Current selection, if any.
   TerminalSelection? get selection => _selection;
@@ -22,6 +23,18 @@ final class TerminalViewController extends ChangeNotifier {
 
   /// Scrollback offset in logical rows from the bottom.
   double get scrollOffset => _scrollOffset;
+
+  /// Gives this terminal input focus and opens its platform text connection.
+  void requestKeyboard() => _requestKeyboard?.call();
+
+  /// The viewport callback used by [requestKeyboard].
+  @internal
+  VoidCallback? get keyboardRequester => _requestKeyboard;
+
+  /// Connects the single viewport that owns this controller's input surface.
+  @internal
+  set keyboardRequester(VoidCallback? requester) =>
+      _requestKeyboard = requester;
 
   /// Replaces the selection.
   void setSelection(TerminalSelection? value) {

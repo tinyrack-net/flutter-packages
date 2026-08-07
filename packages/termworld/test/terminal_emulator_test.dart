@@ -301,7 +301,7 @@ void main() {
       expect(emulator.keySequence(LogicalKeyboardKey.numpadEnter), '\r');
       expect(emulator.keySequence(LogicalKeyboardKey.tab), '\t');
       expect(emulator.keySequence(LogicalKeyboardKey.escape), '\u001b');
-      expect(emulator.keySequence(LogicalKeyboardKey.f12), isNull);
+      expect(emulator.keySequence(LogicalKeyboardKey.f12), '\u001b[24~');
 
       expect(controller.selectedText, isNull);
       controller.emulator = emulator;
@@ -319,6 +319,113 @@ void main() {
       expect(controller.selectedText, 'hello');
       controller.selectLineAt(0);
       expect(controller.selectedText, 'hello');
+    });
+
+    test('encodes the standard VT keyboard matrix and modifiers', () {
+      final emulator = TerminalEmulator();
+      addTearDown(emulator.dispose);
+
+      final cases =
+          <
+            ({
+              LogicalKeyboardKey key,
+              String sequence,
+              bool shift,
+              bool alt,
+              bool control,
+            })
+          >[
+            (
+              key: LogicalKeyboardKey.backspace,
+              sequence: '\u001b\u007f',
+              shift: false,
+              alt: true,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.tab,
+              sequence: '\u001b[Z',
+              shift: true,
+              alt: false,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.arrowUp,
+              sequence: '\u001b[1;2A',
+              shift: true,
+              alt: false,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.arrowLeft,
+              sequence: '\u001b[1;3D',
+              shift: false,
+              alt: true,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.home,
+              sequence: '\u001b[1;5H',
+              shift: false,
+              alt: false,
+              control: true,
+            ),
+            (
+              key: LogicalKeyboardKey.delete,
+              sequence: '\u001b[3;6~',
+              shift: true,
+              alt: false,
+              control: true,
+            ),
+            (
+              key: LogicalKeyboardKey.pageDown,
+              sequence: '\u001b[6;4~',
+              shift: true,
+              alt: true,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.f1,
+              sequence: '\u001bOP',
+              shift: false,
+              alt: false,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.f4,
+              sequence: '\u001b[1;2S',
+              shift: true,
+              alt: false,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.f5,
+              sequence: '\u001b[15~',
+              shift: false,
+              alt: false,
+              control: false,
+            ),
+            (
+              key: LogicalKeyboardKey.f12,
+              sequence: '\u001b[24;7~',
+              shift: false,
+              alt: true,
+              control: true,
+            ),
+          ];
+
+      for (final item in cases) {
+        expect(
+          emulator.keySequence(
+            item.key,
+            shift: item.shift,
+            alt: item.alt,
+            control: item.control,
+          ),
+          item.sequence,
+          reason: item.key.debugName,
+        );
+      }
     });
 
     test('ignores invalid and unchanged resize requests', () {

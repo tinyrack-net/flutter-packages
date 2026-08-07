@@ -164,6 +164,112 @@ void main() {
     expect(output, <String>['x', '\u007f']);
   });
 
+  testWidgets('hardware Backspace owns deletion and Alt deletes one word', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final emulator = TerminalEmulator(onOutput: output.add);
+    addTearDown(emulator.dispose);
+    await _pumpTerminal(tester, emulator);
+    tester.testTextInput.enterText('hello world');
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    tester.testTextInput.enterText('hello worl');
+    await tester.pump();
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    tester.testTextInput.enterText('hello ');
+    await tester.pump();
+
+    expect(output, <String>['hello world', '\u007f', '\u001b\u007f']);
+  });
+
+  testWidgets('key repeats and modified navigation reach the terminal', (
+    tester,
+  ) async {
+    final output = <String>[];
+    final emulator = TerminalEmulator(onOutput: output.add);
+    addTearDown(emulator.dispose);
+    await _pumpTerminal(tester, emulator);
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyRepeatEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+
+    expect(output, <String>['\u001b[1;5D', '\u001b[1;5D']);
+  });
+
+  testWidgets('secondary tap focuses input and controller restores keyboard', (
+    tester,
+  ) async {
+    final emulator = TerminalEmulator();
+    final controller = TerminalViewController(emulator: emulator);
+    addTearDown(emulator.dispose);
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 400,
+          height: 200,
+          child: TerminalView(
+            emulator: emulator,
+            controller: controller,
+            onSecondaryTapDown: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.tapAt(
+      tester.getCenter(find.byType(TerminalView)),
+      buttons: kSecondaryButton,
+    );
+    await tester.pump(kDoubleTapTimeout);
+    expect(tester.testTextInput.hasAnyClients, isTrue);
+
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pump();
+    expect(tester.testTextInput.hasAnyClients, isFalse);
+    controller.requestKeyboard();
+    await tester.pump();
+    expect(tester.testTextInput.hasAnyClients, isTrue);
+  });
+
+  testWidgets('a focused terminal reopens a platform-closed connection', (
+    tester,
+  ) async {
+    final emulator = TerminalEmulator();
+    addTearDown(emulator.dispose);
+    await _pumpTerminal(tester, emulator);
+    final clientsBefore = tester.testTextInput.log
+        .where((call) => call.method == 'TextInput.setClient')
+        .length;
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'termworld-terminal-input',
+    );
+    tester.testTextInput.closeConnection();
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'termworld-terminal-input',
+    );
+    expect(tester.testTextInput.hasAnyClients, isTrue);
+    expect(
+      tester.testTextInput.log
+          .where((call) => call.method == 'TextInput.setClient')
+          .length,
+      clientsBefore + 1,
+    );
+  });
+
   testWidgets('renders styled text, preedit, selection, and resizes', (
     tester,
   ) async {

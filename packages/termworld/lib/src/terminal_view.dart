@@ -93,7 +93,9 @@ final class _TerminalViewState extends State<TerminalView> {
       _controller.emulator = widget.emulator;
     }
     if (oldWidget.controller != widget.controller) {
-      _controller.removeListener(_changed);
+      _controller
+        ..removeListener(_changed)
+        ..keyboardRequester = null;
       if (_ownsController) _controller.dispose();
       _adoptController();
       _controller.addListener(_changed);
@@ -103,7 +105,9 @@ final class _TerminalViewState extends State<TerminalView> {
   void _adoptController() {
     _ownsController = widget.controller == null;
     _controller = widget.controller ?? TerminalViewController();
-    _controller.emulator = widget.emulator;
+    _controller
+      ..emulator = widget.emulator
+      ..keyboardRequester = _requestKeyboard;
   }
 
   void _changed() {
@@ -113,7 +117,9 @@ final class _TerminalViewState extends State<TerminalView> {
   @override
   void dispose() {
     widget.emulator.removeListener(_changed);
-    _controller.removeListener(_changed);
+    _controller
+      ..removeListener(_changed)
+      ..keyboardRequester = null;
     if (_ownsController) _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -121,13 +127,18 @@ final class _TerminalViewState extends State<TerminalView> {
 
   void _requestInput() {
     _controller.clearSelection();
+    _requestKeyboard();
+  }
+
+  void _requestKeyboard() {
     _inputKey.currentState?.requestKeyboard();
   }
 
   KeyEventResult _handleKey(FocusNode node, KeyEvent event) {
     final override = widget.onKeyEvent?.call(node, event);
     if (override != null && override != KeyEventResult.ignored) return override;
-    if (widget.readOnly || event is! KeyDownEvent) {
+    if (widget.readOnly ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent)) {
       return KeyEventResult.ignored;
     }
     if (_inputKey.currentState?.isComposing ?? false) {
@@ -139,33 +150,29 @@ final class _TerminalViewState extends State<TerminalView> {
       // The text-input action owns Enter while a connection is active.
       return KeyEventResult.ignored;
     }
-    if (logicalKey == LogicalKeyboardKey.backspace &&
-        (_inputKey.currentState?.hasCommittedText ?? false)) {
-      // A deletion delta owns Backspace once the platform editing buffer has
-      // committed text. Handling both paths would delete twice.
-      return KeyEventResult.ignored;
-    }
     final hardware = HardwareKeyboard.instance;
     final character = event.character;
     if (hardware.isControlPressed &&
-        !hardware.isShiftPressed &&
+        hardware.isShiftPressed &&
         character != null &&
         character.isNotEmpty) {
-      final rune = character.toLowerCase().runes.first;
-      if (rune >= 0x61 && rune <= 0x7a) {
-        widget.emulator.input(String.fromCharCode(rune - 0x60));
-        return KeyEventResult.handled;
-      }
+      return KeyEventResult.ignored;
     }
-    final sequence = widget.emulator.keySequence(logicalKey);
+    final sequence = widget.emulator.keySequence(
+      logicalKey,
+      character: character,
+      shift: hardware.isShiftPressed,
+      alt: hardware.isAltPressed,
+      control: hardware.isControlPressed,
+      meta: hardware.isMetaPressed,
+    );
     if (sequence != null) {
       widget.emulator.input(sequence);
-      return KeyEventResult.handled;
-    }
-    if ((hardware.isAltPressed || hardware.isMetaPressed) &&
-        character != null &&
-        character.isNotEmpty) {
-      widget.emulator.input('\u001b$character');
+      if (logicalKey == LogicalKeyboardKey.backspace) {
+        _inputKey.currentState?.acceptHardwareDeletion(
+          word: hardware.isAltPressed || hardware.isMetaPressed,
+        );
+      }
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -223,7 +230,12 @@ final class _TerminalViewState extends State<TerminalView> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: _requestInput,
-            onSecondaryTapDown: widget.onSecondaryTapDown,
+            onSecondaryTapDown: widget.onSecondaryTapDown == null
+                ? null
+                : (details) {
+                    _requestKeyboard();
+                    widget.onSecondaryTapDown?.call(details);
+                  },
             onDoubleTapDown: (details) => _controller.selectWordAt(
               _positionAt(details.localPosition, cellWidth, cellHeight),
             ),
@@ -393,8 +405,6 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   bool get isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
 
-  bool get hasCommittedText => _committedPrefix.isNotEmpty;
-
   String? get composingText {
     if (!isComposing) return null;
     return _editingValue.composing.textInside(_editingValue.text);
@@ -439,6 +449,37 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   void requestKeyboard() {
     if (!widget.focusNode.hasFocus) widget.focusNode.requestFocus();
     _openConnection();
+  }
+
+  void acceptHardwareDeletion({required bool word}) {
+    if (isComposing || _editingValue.text.isEmpty) return;
+    final selection = _editingValue.selection;
+    final caret = selection.isValid
+        ? selection.extentOffset.clamp(0, _editingValue.text.length)
+        : _editingValue.text.length;
+    final before = _editingValue.text.substring(0, caret).characters.toList();
+    final after = _editingValue.text.substring(caret);
+    if (before.isEmpty) return;
+    var remove = 1;
+    if (word) {
+      remove = 0;
+      while (before.length > remove &&
+          RegExp(r'\s').hasMatch(before[before.length - remove - 1])) {
+        remove++;
+      }
+      while (before.length > remove &&
+          !RegExp(r'\s').hasMatch(before[before.length - remove - 1])) {
+        remove++;
+      }
+    }
+    final kept = before.take(before.length - remove).join();
+    final next = '$kept$after';
+    _editingValue = TextEditingValue(
+      text: next,
+      selection: TextSelection.collapsed(offset: kept.length),
+    );
+    _committedPrefix = next;
+    _connection?.setEditingState(_editingValue);
   }
 
   void _focusChanged() {
@@ -538,7 +579,17 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   @override
-  void connectionClosed() => _connection = null;
+  void connectionClosed() {
+    _connection?.connectionClosedReceived();
+    _connection = null;
+    if (!mounted || widget.readOnly || !widget.focusNode.hasFocus) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !widget.readOnly && widget.focusNode.hasFocus) {
+        _openConnection();
+      }
+    });
+    WidgetsBinding.instance.scheduleFrame();
+  }
 
   @override
   void showAutocorrectionPromptRect(int start, int end) {}
