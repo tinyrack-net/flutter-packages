@@ -11,6 +11,7 @@ environment:
 # member example cannot build on Windows. It resolves independently instead.
 workspace:
   - packages/dropwell
+  - packages/termworld
 
 dev_dependencies:
   coverage: ^1.15.1
