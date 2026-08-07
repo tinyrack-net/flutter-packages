@@ -143,7 +143,6 @@ final class _ImeHarness {
       'disable-latin-mode',
       'false',
     ]);
-    await _run('ibus', <String>['restart']);
     var engineAvailable = false;
     final deadline = DateTime.now().add(const Duration(seconds: 5));
     while (DateTime.now().isBefore(deadline)) {
