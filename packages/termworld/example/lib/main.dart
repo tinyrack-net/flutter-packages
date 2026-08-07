@@ -70,9 +70,13 @@ class _TermworldExampleAppState extends State<TermworldExampleApp> {
   late final TermworldExampleController _controller =
       widget.controller ?? TermworldExampleController();
   late final bool _ownsController = widget.controller == null;
+  final FocusNode _focusTargetNode = FocusNode(
+    debugLabel: 'termworld-example-focus-target',
+  );
 
   @override
   void dispose() {
+    _focusTargetNode.dispose();
     if (_ownsController) _controller.dispose();
     super.dispose();
   }
@@ -101,7 +105,8 @@ class _TermworldExampleAppState extends State<TermworldExampleApp> {
               ),
               TextButton(
                 key: const ValueKey<String>('focus-target'),
-                onPressed: () {},
+                focusNode: _focusTargetNode,
+                onPressed: _focusTargetNode.requestFocus,
                 child: const Text('Focus target'),
               ),
             ],
