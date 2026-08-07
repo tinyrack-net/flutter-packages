@@ -180,6 +180,16 @@ final class CoverageVerifier {
   /// point into a coverage liability. Anything with a real body still counts
   /// in full: an untested file must not be able to hide by being absent.
   int _estimatedExecutableLines(File file) {
+    final sourceWithoutDirectives = file
+        .readAsStringSync()
+        .replaceAll(RegExp(r'/\*[\s\S]*?\*/'), '')
+        .replaceAll(RegExp(r'//[^\n]*'), '')
+        .replaceAll(
+          RegExp(r'\b(?:library|import|export|part)\b[\s\S]*?;'),
+          '',
+        )
+        .trim();
+    if (sourceWithoutDirectives.isEmpty) return 0;
     final executable = file
         .readAsLinesSync()
         .where(_isExecutableLine)

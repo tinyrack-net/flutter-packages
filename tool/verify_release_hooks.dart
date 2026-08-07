@@ -9,7 +9,10 @@ import 'package:path/path.dart' as p;
 /// unacceptable in a binary shipped to a user, so the channel name must not
 /// survive a release compile. Searching the built artifact is the only check
 /// that cannot be fooled by a preprocessor guard someone wrote incorrectly.
-const String kTestingChannel = 'dropwell/testing';
+const Map<String, String> kTestingChannels = <String, String>{
+  'dropwell': 'dropwell/testing',
+  'termworld': 'termworld/testing',
+};
 
 /// Release output roots per platform, relative to the example app.
 const Map<String, List<String>> kReleaseArtifacts = <String, List<String>>{
@@ -33,23 +36,23 @@ Future<void> main(List<String> arguments) async {
     exitCode = 64;
     return;
   }
-  final example = p.join(
-    File.fromUri(Platform.script).parent.parent.absolute.path,
-    'packages',
-    'dropwell',
-    'example',
-  );
+  final root = File.fromUri(Platform.script).parent.parent.absolute.path;
 
   final searched = <String>[];
   final offenders = <String>[];
-  for (final relative in roots) {
-    final directory = Directory(p.join(example, relative));
-    if (!directory.existsSync()) continue;
-    for (final entity in directory.listSync(recursive: true)) {
-      if (entity is! File) continue;
-      searched.add(entity.path);
-      if (_containsChannel(entity)) {
-        offenders.add(p.relative(entity.path, from: example));
+  for (final package in kTestingChannels.entries) {
+    final example = p.join(root, 'packages', package.key, 'example');
+    for (final relative in roots) {
+      final directory = Directory(p.join(example, relative));
+      if (!directory.existsSync()) continue;
+      for (final entity in directory.listSync(recursive: true)) {
+        if (entity is! File) continue;
+        searched.add(entity.path);
+        if (_containsChannel(entity, package.value)) {
+          offenders.add(
+            '${package.key}/${p.relative(entity.path, from: example)}',
+          );
+        }
       }
     }
   }
@@ -68,13 +71,13 @@ Future<void> main(List<String> arguments) async {
     );
     return;
   }
-  stderr.writeln('Testing channel "$kTestingChannel" found in:');
+  stderr.writeln('Debug testing channel found in:');
   offenders.forEach(stderr.writeln);
   exitCode = 1;
 }
 
-bool _containsChannel(File file) {
-  final needle = kTestingChannel.codeUnits;
+bool _containsChannel(File file, String channel) {
+  final needle = channel.codeUnits;
   final bytes = file.readAsBytesSync();
   outer:
   for (var index = 0; index + needle.length <= bytes.length; index++) {
