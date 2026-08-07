@@ -706,12 +706,6 @@ final class _TerminalPainter extends CustomPainter {
         terminalStyle.padding.left + emulator.cursorColumn * cellWidth,
         terminalStyle.padding.top + cursorVisibleRow * cellHeight,
       );
-      canvas.drawRect(
-        cursorOffset & Size(cellWidth, cellHeight),
-        Paint()
-          ..color = terminalTheme.cursor
-          ..style = PaintingStyle.stroke,
-      );
       final composing = composingText;
       if (composing != null && composing.isNotEmpty) {
         TextPainter(
@@ -728,6 +722,13 @@ final class _TerminalPainter extends CustomPainter {
           )
           ..layout()
           ..paint(canvas, cursorOffset);
+      } else {
+        canvas.drawRect(
+          cursorOffset & Size(cellWidth, cellHeight),
+          Paint()
+            ..color = terminalTheme.cursor
+            ..style = PaintingStyle.stroke,
+        );
       }
     }
   }

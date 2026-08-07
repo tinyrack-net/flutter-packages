@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1
+
+- Lets terminal output move the cursor backward across automatically wrapped
+  rows while keeping explicit line boundaries intact, including double-width
+  graphemes and resized scrollback.
+- Hides the regular cursor while an input method is composing and renders only
+  the preedit underline until the text is committed.
+
 ## 0.2.0
 
 - Adds standard VT sequences for modified navigation, editing, function, and

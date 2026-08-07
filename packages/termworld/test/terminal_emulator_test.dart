@@ -235,6 +235,46 @@ void main() {
   });
 
   group('buffer and input', () {
+    test('backspace crosses soft wraps but not explicit line feeds', () {
+      final wrapped = TerminalEmulator(columns: 4, rows: 3)
+        ..write('abcde')
+        ..write('\b \b\b \b');
+      final explicit = TerminalEmulator(columns: 4, rows: 3)
+        ..write('abc\u001bEx')
+        ..write('\b \b\b');
+      addTearDown(wrapped.dispose);
+      addTearDown(explicit.dispose);
+
+      expect(_plain(wrapped).split('\n').first, 'abc ');
+      expect(wrapped.cursorRow, 0);
+      expect(wrapped.cursorColumn, 3);
+      expect(explicit.cursorRow, 1);
+      expect(explicit.cursorColumn, 0);
+    });
+
+    test('backspace crosses a soft wrap after a double-width grapheme', () {
+      final emulator = TerminalEmulator(columns: 4, rows: 3)
+        ..write('ab한x')
+        ..write('\b \b\b \b\b \b');
+      addTearDown(emulator.dispose);
+
+      expect(_plain(emulator).split('\n').first, 'ab  ');
+      expect(emulator.cursorRow, 0);
+      expect(emulator.cursorColumn, 2);
+    });
+
+    test('soft-wrap boundaries survive scrolling and resize', () {
+      final emulator = TerminalEmulator(columns: 4, rows: 2)
+        ..write('12345\u001bEnext\u001bEabcde')
+        ..resize(6, 3)
+        ..write('\b \b\b \b');
+      addTearDown(emulator.dispose);
+
+      expect(emulator.cursorRow, emulator.lines.length - 2);
+      expect(emulator.cursorColumn, 3);
+      expect(_plain(emulator), contains('abc '));
+    });
+
     test(
       'keeps wide graphemes and combining sequences in one leading cell',
       () {
