@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -41,8 +42,8 @@ final class TerminalEmulator extends ChangeNotifier {
   /// Receives viewport size changes.
   ValueChanged<TerminalSize>? onResize;
 
-  late List<List<TerminalCell>> _main;
-  late List<List<TerminalCell>> _alternate;
+  late List<_TerminalLine> _main;
+  late List<_TerminalLine> _alternate;
   bool _usingAlternate = false;
   int _columns;
   int _rows;
@@ -89,7 +90,7 @@ final class TerminalEmulator extends ChangeNotifier {
   /// Mouse events currently requested by the terminal application.
   TerminalMouseTrackingMode get mouseTrackingMode => _mouseTracking;
 
-  List<List<TerminalCell>> get _active => _usingAlternate ? _alternate : _main;
+  List<_TerminalLine> get _active => _usingAlternate ? _alternate : _main;
 
   /// Immutable view of active-buffer lines, including scrollback.
   List<List<TerminalCell>> get lines => List<List<TerminalCell>>.unmodifiable(
@@ -199,25 +200,22 @@ final class TerminalEmulator extends ChangeNotifier {
   }
 
   void _resetBuffers() {
-    _main = List<List<TerminalCell>>.generate(_rows, (_) => _blankLine());
-    _alternate = List<List<TerminalCell>>.generate(
+    _main = List<_TerminalLine>.generate(_rows, (_) => _blankLine());
+    _alternate = List<_TerminalLine>.generate(
       _rows,
       (_) => _blankLine(),
     );
   }
 
-  List<TerminalCell> _blankLine() => List<TerminalCell>.filled(
-    _columns,
-    const TerminalCell(''),
-    growable: true,
-  );
+  _TerminalLine _blankLine() => _TerminalLine.blank(_columns);
 
-  void _resizeBuffer(List<List<TerminalCell>> buffer) {
+  void _resizeBuffer(List<_TerminalLine> buffer) {
     for (var index = 0; index < buffer.length; index++) {
       final old = buffer[index];
-      buffer[index] = List<TerminalCell>.generate(
+      buffer[index] = _TerminalLine.generate(
         _columns,
         (column) => column < old.length ? old[column] : const TerminalCell(''),
+        wrappedFromPreviousColumn: old.wrappedFromPreviousColumn,
       );
     }
     while (buffer.length < _rows) {
@@ -286,7 +284,13 @@ final class TerminalEmulator extends ChangeNotifier {
       case '\u0007':
         return;
       case '\b':
-        _cursorColumn = math.max(0, _cursorColumn - 1);
+        final wrappedFromColumn = _active[_cursorRow].wrappedFromPreviousColumn;
+        if (_cursorColumn > 0) {
+          _cursorColumn--;
+        } else if (_cursorRow > 0 && wrappedFromColumn != null) {
+          _cursorRow--;
+          _cursorColumn = wrappedFromColumn.clamp(1, _columns) - 1;
+        }
         return;
       case '\t':
         _cursorColumn = math.min(_columns - 1, ((_cursorColumn ~/ 8) + 1) * 8);
@@ -310,8 +314,9 @@ final class TerminalEmulator extends ChangeNotifier {
       if (!_wraparound) {
         _cursorColumn = _columns - width;
       } else {
+        final wrappedFromColumn = _cursorColumn;
         _cursorColumn = 0;
-        _lineFeed();
+        _lineFeed(wrappedFromColumn: wrappedFromColumn);
       }
     }
     final line = _active[_cursorRow];
@@ -343,11 +348,12 @@ final class TerminalEmulator extends ChangeNotifier {
     return 1;
   }
 
-  void _lineFeed() {
+  void _lineFeed({int? wrappedFromColumn}) {
     final viewportTop = math.max(0, _active.length - _rows);
     final bottom = viewportTop + _scrollBottom;
     if (_cursorRow < bottom) {
       _cursorRow++;
+      _active[_cursorRow].wrappedFromPreviousColumn = wrappedFromColumn;
       return;
     }
     if (_usingAlternate || _scrollTop != 0) {
@@ -355,10 +361,17 @@ final class TerminalEmulator extends ChangeNotifier {
       _active
         ..removeAt(top)
         ..insert(bottom, _blankLine());
+      if (top < _active.length) {
+        _active[top].wrappedFromPreviousColumn = null;
+      }
+      _active[bottom].wrappedFromPreviousColumn = wrappedFromColumn;
     } else {
-      _main.add(_blankLine());
+      _main.add(
+        _blankLine()..wrappedFromPreviousColumn = wrappedFromColumn,
+      );
       if (_main.length > maxScrollbackLines + _rows) {
         _main.removeAt(0);
+        _main.first.wrappedFromPreviousColumn = null;
       }
       _cursorRow = _main.length - 1;
     }
@@ -433,12 +446,16 @@ final class TerminalEmulator extends ChangeNotifier {
             ..insert(_cursorRow, _blankLine())
             ..removeAt(viewportTop + _scrollBottom + 1);
         }
+        if (_cursorRow + value(0) < _active.length) {
+          _active[_cursorRow + value(0)].wrappedFromPreviousColumn = null;
+        }
       case 'M':
         for (var index = 0; index < value(0); index++) {
           _active
             ..removeAt(_cursorRow)
             ..insert(viewportTop + _scrollBottom, _blankLine());
         }
+        _active[_cursorRow].wrappedFromPreviousColumn = null;
       case '@':
         final line = _active[_cursorRow];
         for (var index = 0; index < value(0); index++) {
@@ -597,7 +614,7 @@ final class TerminalEmulator extends ChangeNotifier {
         case 1049:
           _usingAlternate = enabled;
           if (enabled) {
-            _alternate = List<List<TerminalCell>>.generate(
+            _alternate = List<_TerminalLine>.generate(
               _rows,
               (_) => _blankLine(),
             );
@@ -782,6 +799,59 @@ final class TerminalEmulator extends ChangeNotifier {
         '${String.fromCharCode((x + 32).clamp(0, 255))}'
         '${String.fromCharCode((y + 32).clamp(0, 255))}';
   }
+}
+
+final class _TerminalLine extends ListBase<TerminalCell> {
+  _TerminalLine.blank(int columns)
+    : _cells = List<TerminalCell>.filled(
+        columns,
+        const TerminalCell(''),
+        growable: true,
+      );
+
+  _TerminalLine.generate(
+    int columns,
+    TerminalCell Function(int index) generator, {
+    required this.wrappedFromPreviousColumn,
+  }) : _cells = List<TerminalCell>.generate(columns, generator);
+
+  final List<TerminalCell> _cells;
+  int? wrappedFromPreviousColumn;
+
+  @override
+  int get length => _cells.length;
+
+  @override
+  set length(int value) {
+    if (value <= _cells.length) {
+      _cells.length = value;
+      return;
+    }
+    _cells.addAll(
+      List<TerminalCell>.filled(
+        value - _cells.length,
+        const TerminalCell(''),
+      ),
+    );
+  }
+
+  @override
+  void add(TerminalCell value) => _cells.add(value);
+
+  @override
+  void insert(int index, TerminalCell element) => _cells.insert(index, element);
+
+  @override
+  TerminalCell removeAt(int index) => _cells.removeAt(index);
+
+  @override
+  TerminalCell removeLast() => _cells.removeLast();
+
+  @override
+  TerminalCell operator [](int index) => _cells[index];
+
+  @override
+  void operator []=(int index, TerminalCell value) => _cells[index] = value;
 }
 
 enum _ParserState { ground, escape, csi, osc, oscEscape }

@@ -38,7 +38,9 @@ The view opts into Flutter's `DeltaTextInputClient`. Text inside the composing
 range is painted as preedit text and is not emitted. When text leaves that
 range, the committed grapheme delta is emitted once. This covers Hangul, Kana,
 Chinese candidate replacement, dead keys, combining marks and emoji sequences
-without guessing from UTF-16 string lengths.
+without guessing from UTF-16 string lengths. While preedit is active, its
+underline replaces the regular terminal cursor; after commit the cursor
+returns at the emitted grapheme's terminal-cell boundary.
 
 ## Keyboard input
 
@@ -51,6 +53,10 @@ PTY remains responsible for character and word deletion.
 An externally owned `TerminalViewController` can call `requestKeyboard()` after
 a native menu or another platform interaction ends. The view restores focus and
 its platform text connection without changing terminal selection.
+
+The emulator also retains automatic-wrap boundaries separately from explicit
+line feeds. Backspace output can therefore move into the previous visual row
+of one editable shell line without crossing a command boundary.
 
 ## Platforms
 

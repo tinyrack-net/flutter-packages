@@ -313,6 +313,62 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('preedit replaces the cursor with an underline', (tester) async {
+    const cursor = Color(0xFFFF00FF);
+    final emulator = TerminalEmulator(columns: 8, rows: 2);
+    addTearDown(emulator.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 240,
+          height: 80,
+          child: TerminalView(
+            emulator: emulator,
+            autofocus: true,
+            theme: const TerminalTheme(
+              background: Colors.black,
+              foreground: Colors.white,
+              cursor: cursor,
+              selection: Colors.blue,
+            ),
+            style: const TerminalStyle(
+              textStyle: TextStyle(
+                fontFamily: 'monospace',
+                fontSize: 20,
+                height: 1,
+              ),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final paint = find.descendant(
+      of: find.byType(TerminalView),
+      matching: find.byType(CustomPaint),
+    );
+    expect(paint, paints..rect(color: cursor));
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '한',
+        selection: TextSelection.collapsed(offset: 1),
+        composing: TextRange(start: 0, end: 1),
+      ),
+    );
+    await tester.pump();
+    expect(paint, isNot(paints..rect(color: cursor)));
+    expect(paint, paints..paragraph());
+
+    tester.testTextInput.updateEditingValue(TextEditingValue.empty);
+    emulator.write('한');
+    await tester.pump();
+    expect(emulator.cursorColumn, 2);
+    expect(paint, paints..rect(color: cursor));
+  });
+
   testWidgets('selection drag and secondary tap invoke view hooks', (
     tester,
   ) async {
