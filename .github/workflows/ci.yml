@@ -322,8 +322,7 @@ jobs:
             -d web-server \
             --browser-name=chrome \
             --web-browser-flag=--headless=new \
-            --web-browser-flag=--enable-features=ClipboardAPI \
-            --web-browser-flag=--user-data-dir=${{ github.workspace }}/packages/termworld/example/tool/chrome-profile
+            --web-browser-flag=--enable-features=ClipboardAPI
         working-directory: packages/termworld/example
       - name: L5 web termworld release build
         run: flutter build web --release
