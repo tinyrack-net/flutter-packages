@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:termworld/src/core/buffer_line_string_cache.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
@@ -47,7 +46,6 @@ enum TerminalUnderlineStyle {
 }
 
 /// An immutable position in the backing buffer.
-@immutable
 final class TerminalBufferPosition {
   /// Creates a zero-based buffer position.
   const TerminalBufferPosition(this.x, this.y);
@@ -59,15 +57,18 @@ final class TerminalBufferPosition {
   final int y;
 
   @override
+  // Safe without Flutter's @immutable: this value type has only final fields.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) =>
       other is TerminalBufferPosition && other.x == x && other.y == y;
 
   @override
+  // Safe without Flutter's @immutable: this value type has only final fields.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => Object.hash(x, y);
 }
 
 /// An inclusive terminal buffer range.
-@immutable
 final class TerminalBufferRange {
   /// Creates an inclusive range from [start] through [end].
   const TerminalBufferRange({required this.start, required this.end});
@@ -79,10 +80,14 @@ final class TerminalBufferRange {
   final TerminalBufferPosition end;
 
   @override
+  // Safe without Flutter's @immutable: this value type has only final fields.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) =>
       other is TerminalBufferRange && other.start == start && other.end == end;
 
   @override
+  // Safe without Flutter's @immutable: this value type has only final fields.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => Object.hash(start, end);
 }
 
@@ -99,7 +104,6 @@ final class TerminalBufferLineChange {
 }
 
 /// A color encoded exactly as xterm's default, indexed or RGB color.
-@immutable
 final class TerminalCellColor {
   /// Creates the configured default color.
   const TerminalCellColor.defaultColor()
@@ -132,10 +136,14 @@ final class TerminalCellColor {
   int get blue => value & 0xff;
 
   @override
+  // Safe without Flutter's @immutable: this value type has only final fields.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) =>
       other is TerminalCellColor && other.mode == mode && other.value == value;
 
   @override
+  // Safe without Flutter's @immutable: this value type has only final fields.
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => Object.hash(mode, value);
 }
 
@@ -301,8 +309,45 @@ final class TerminalCell {
   /// Background color encoding.
   TerminalColorMode get backgroundMode => _cell.attributes.background.mode;
 
+  /// Whether the foreground is encoded as a 24-bit RGB value.
+  bool get isForegroundRgb => foregroundMode == TerminalColorMode.rgb;
+
+  /// Whether the background is encoded as a 24-bit RGB value.
+  bool get isBackgroundRgb => backgroundMode == TerminalColorMode.rgb;
+
+  /// Whether the foreground is encoded as an ANSI palette index.
+  bool get isForegroundPalette => foregroundMode == TerminalColorMode.palette;
+
+  /// Whether the background is encoded as an ANSI palette index.
+  bool get isBackgroundPalette => backgroundMode == TerminalColorMode.palette;
+
+  /// Whether the terminal's default foreground color is used.
+  bool get isForegroundDefault =>
+      foregroundMode == TerminalColorMode.defaultColor;
+
+  /// Whether the terminal's default background color is used.
+  bool get isBackgroundDefault =>
+      backgroundMode == TerminalColorMode.defaultColor;
+
   /// Color used to draw an underline.
   TerminalCellColor get underlineColor => _cell.attributes.underlineColor;
+
+  /// Packed underline palette index or RGB value.
+  int get underlineColorValue => underlineColor.value;
+
+  /// Underline color encoding.
+  TerminalColorMode get underlineColorMode => underlineColor.mode;
+
+  /// Whether the underline color is encoded as RGB.
+  bool get isUnderlineColorRgb => underlineColorMode == TerminalColorMode.rgb;
+
+  /// Whether the underline color is encoded as an ANSI palette index.
+  bool get isUnderlineColorPalette =>
+      underlineColorMode == TerminalColorMode.palette;
+
+  /// Whether the terminal's default underline color is used.
+  bool get isUnderlineColorDefault =>
+      underlineColorMode == TerminalColorMode.defaultColor;
 
   /// Style used to draw an underline.
   TerminalUnderlineStyle get underlineStyle => _cell.attributes.underline;
