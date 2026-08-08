@@ -9,7 +9,7 @@ import 'package:termworld/addon_unicode_graphemes.dart';
 import 'package:termworld/termworld_headless.dart';
 
 void main() {
-  group('addon-progress/test/ProgressAddon.test.ts ProgressAddon', () {
+  group('ProgressAddon', () {
     late Terminal terminal;
     late ProgressAddon addon;
     late List<TerminalProgress> changes;

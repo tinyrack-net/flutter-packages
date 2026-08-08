@@ -16,6 +16,26 @@
     "addons/addon-attach/typings/addon-attach.d.ts:17": {
       "implementation": "lib/addon_attach.dart",
       "symbol": "AttachAddon(this.socket"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:13": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "ProgressAddon"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:18": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "ProgressAddon extends"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:47": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "TerminalProgress"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:60": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "TerminalProgressState state"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:66": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "final int value"
     }
   },
   "sources": {
@@ -34,6 +54,22 @@
     "addons/addon-attach/test/playwright.config.ts": {
       "implementation": ["lib/addon_attach.dart"],
       "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-progress/src/ProgressAddon.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-progress/test/playwright.config.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
     }
   },
   "tests": {
@@ -50,6 +86,61 @@
     "addons/addon-attach/test/AttachAddon.test.ts:33:test": {
       "dartTestFile": "test/public_api_contract_test.dart",
       "dartTestName": "utf8",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:13:describe": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "ProgressAddon",
+      "dartTestKind": "group"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:35:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "initial values should be 0;0",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:38:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 0: remove",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:46:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 1: set",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:57:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 1: set - special sequence handling",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:68:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 2: error - preserve previous value on empty/0",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:80:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 2: error - with new value",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:91:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 3: indeterminate - keeps value untouched",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:102:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 4: pause - preserve previous value on empty/0",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:114:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 4: pause - with new value",
+      "dartTestKind": "test"
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts:125:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "invalid sequences should not emit anything",
       "dartTestKind": "test"
     }
   }
