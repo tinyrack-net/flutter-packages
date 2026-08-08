@@ -137,6 +137,7 @@
     }
   },
   "sources": {
+    "src/browser/renderer/shared/SelectionRenderModel.ts": {"implementation":["lib/src/core/selection_render_model.dart"],"tests":["test/upstream_selection_render_model_parity_test.dart"]},
     "src/browser/RenderDebouncer.ts": {"implementation":["lib/src/core/render_debouncer.dart"],"tests":["test/upstream_render_debouncer_parity_test.dart"]},
     "src/browser/TimeBasedDebouncer.ts": {"implementation":["lib/src/core/render_debouncer.dart"],"tests":["test/upstream_render_debouncer_parity_test.dart"]},
     "src/browser/renderer/dom/WidthCache.ts": {"implementation":["lib/src/core/width_cache.dart"],"tests":["test/upstream_width_cache_parity_test.dart"]},
