@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:termworld/src/core/addon.dart';
@@ -10,8 +11,8 @@ import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/unicode.dart';
-import 'package:termworld/src/core/xterm_parity_terminal.dart';
-import 'package:xterm/core.dart' as xterm;
+
+part 'engine.dart';
 
 /// Terminal viewport size.
 final class TerminalResizeEvent {
@@ -174,81 +175,70 @@ final class TerminalModes {
   final Terminal _terminal;
 
   /// xterm-compatible `applicationCursorKeysMode` API.
-  bool get applicationCursorKeysMode => _terminal._delegate.cursorKeysMode;
+  bool get applicationCursorKeysMode => _terminal._engine.cursorKeysMode;
 
   /// xterm-compatible `applicationKeypadMode` API.
-  bool get applicationKeypadMode => _terminal._delegate.appKeypadMode;
+  bool get applicationKeypadMode => _terminal._engine.appKeypadMode;
 
   /// xterm-compatible `bracketedPasteMode` API.
-  bool get bracketedPasteMode => _terminal._delegate.bracketedPasteMode;
+  bool get bracketedPasteMode => _terminal._engine.bracketedPasteMode;
 
   /// xterm-compatible `insertMode` API.
-  bool get insertMode => _terminal._delegate.insertMode;
+  bool get insertMode => _terminal._engine.insertMode;
 
   /// xterm-compatible `originMode` API.
-  bool get originMode => _terminal._delegate.originMode;
+  bool get originMode => _terminal._engine.originMode;
 
   /// xterm-compatible `sendFocusMode` API.
-  bool get sendFocusMode => _terminal._delegate.reportFocusMode;
+  bool get sendFocusMode => _terminal._engine.reportFocusMode;
 
   /// xterm-compatible `showCursor` API.
-  bool get showCursor => _terminal._delegate.cursorVisibleMode;
+  bool get showCursor => _terminal._engine.cursorVisibleMode;
 
   /// xterm-compatible `wraparoundMode` API.
-  bool get wraparoundMode => _terminal._delegate.autoWrapMode;
+  bool get wraparoundMode => _terminal._engine.autoWrapMode;
 
   /// xterm-compatible `reverseWraparoundMode` API.
-  bool get reverseWraparoundMode => _terminal._reverseWraparoundMode;
+  bool get reverseWraparoundMode => _terminal._engine.reverseWraparoundMode;
 
   /// xterm-compatible `synchronizedOutputMode` API.
-  bool get synchronizedOutputMode => _terminal._synchronizedOutputMode;
+  bool get synchronizedOutputMode => _terminal._engine.synchronizedOutputMode;
 
   /// xterm-compatible `win32InputMode` API.
-  bool get win32InputMode => _terminal._win32InputMode;
+  bool get win32InputMode => _terminal._engine.win32InputMode;
 
   /// xterm-compatible `switch` API.
-  String get mouseTrackingMode => switch (_terminal._delegate.mouseMode) {
-    xterm.MouseMode.none => 'none',
-    xterm.MouseMode.clickOnly => 'x10',
-    xterm.MouseMode.upDownScroll => 'vt200',
-    xterm.MouseMode.upDownScrollDrag => 'drag',
-    xterm.MouseMode.upDownScrollMove => 'any',
+  String get mouseTrackingMode => switch (_terminal._engine.mouseMode) {
+    TerminalMouseTrackingMode.none => 'none',
+    TerminalMouseTrackingMode.x10 => 'x10',
+    TerminalMouseTrackingMode.vt200 => 'vt200',
+    TerminalMouseTrackingMode.drag => 'drag',
+    TerminalMouseTrackingMode.any => 'any',
   };
 }
 
-/// xterm-compatible terminal core backed by the mature xterm.dart VT engine.
+/// Standalone terminal core ported from the pinned xterm.js behavior.
 final class Terminal extends DisposableStore {
   /// Creates a terminal with xterm.js defaults.
   Terminal({TerminalOptions? options})
     : options = options ?? TerminalOptions() {
-    _delegate = XtermParityTerminal(
-      maxLines: this.options.scrollback + this.options.rows,
-      reflowEnabled: true,
-      wordSeparators: this.options.wordSeparator.runes.toSet(),
-    );
-    _delegate
-      ..resize(this.options.cols, this.options.rows)
-      ..onBell = () {
+    _engine = _TerminalCoreEngine(
+      columns: this.options.cols,
+      rows: this.options.rows,
+      scrollback: this.options.scrollback,
+      onBell: () {
         _onBell.fire(TerminalVoid.value);
-      }
-      ..onTitleChange = _onTitleChange.fire
-      ..onOutput = _triggerData
-      ..onResize = (cols, rows, pixelWidth, pixelHeight) {
-        _onResize.fire(TerminalResizeEvent(cols: cols, rows: rows));
-      };
-    buffer = TerminalBufferNamespace(
-      terminal: _delegate,
-      viewportY: () => _viewportY,
+      },
+      onTitle: _onTitleChange.fire,
+      onData: _triggerData,
     );
+    buffer = _engine.buffer;
     parser = own(TerminalParser());
     unicode = TerminalUnicodeHandling();
     modes = TerminalModes._(this);
   }
 
-  late xterm.Terminal _delegate;
-
-  /// Internal renderer delegate exposed only to termworld's Flutter adapter.
-  xterm.Terminal get rendererDelegate => _delegate;
+  late _TerminalCoreEngine _engine;
 
   /// xterm-compatible `options` API.
   final TerminalOptions options;
@@ -330,10 +320,10 @@ final class Terminal extends DisposableStore {
       _onDimensionsChange.event;
 
   /// xterm-compatible `rows` API.
-  int get rows => _delegate.viewHeight;
+  int get rows => _engine.rows;
 
   /// xterm-compatible `cols` API.
-  int get cols => _delegate.viewWidth;
+  int get cols => _engine.columns;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalMarker> get markers => List<TerminalMarker>.unmodifiable(
@@ -350,9 +340,6 @@ final class Terminal extends DisposableStore {
   int _viewportY = 0;
   TerminalBufferRange? _selection;
   TerminalRenderDimensions? _dimensions;
-  bool _reverseWraparoundMode = false;
-  bool _synchronizedOutputMode = false;
-  bool _win32InputMode = false;
   final List<TerminalMarker> _markers = <TerminalMarker>[];
   final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
   final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
@@ -440,42 +427,21 @@ final class Terminal extends DisposableStore {
   }
 
   Future<void> _parse(String text) async {
-    final cursorX = _delegate.buffer.cursorX;
-    final cursorY = _delegate.buffer.cursorY;
-    final height = _delegate.buffer.height;
-    _trackModes(text);
+    final cursorX = buffer.active.cursorX;
+    final cursorY = buffer.active.cursorY;
+    final height = buffer.active.length;
     await parser.process(text, (filtered) {
-      if (filtered.isNotEmpty) {
-        (_delegate as XtermParityTerminal).writeWithParity(filtered);
-      }
+      if (filtered.isNotEmpty) _engine.write(filtered);
     });
-    buffer.detectChange();
     _viewportY = _viewportY.clamp(0, buffer.active.baseY);
-    if (_delegate.buffer.cursorX != cursorX ||
-        _delegate.buffer.cursorY != cursorY) {
+    if (buffer.active.cursorX != cursorX || buffer.active.cursorY != cursorY) {
       _onCursorMove.fire(TerminalVoid.value);
     }
-    if (_delegate.buffer.height > height || text.contains('\n')) {
+    if (buffer.active.length > height || text.contains('\n')) {
       _onLineFeed.fire(TerminalVoid.value);
     }
-    if (!_synchronizedOutputMode) {
+    if (!_engine.synchronizedOutputMode) {
       _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
-    }
-  }
-
-  void _trackModes(String text) {
-    for (final match in RegExp(r'\x1b\[\?([0-9;]+)([hl])').allMatches(text)) {
-      final enabled = match.group(2) == 'h';
-      for (final mode in match.group(1)!.split(';')) {
-        switch (mode) {
-          case '45':
-            _reverseWraparoundMode = enabled;
-          case '2026':
-            _synchronizedOutputMode = enabled;
-          case '9001':
-            _win32InputMode = enabled;
-        }
-      }
     }
   }
 
@@ -489,7 +455,7 @@ final class Terminal extends DisposableStore {
   /// Normalizes, sanitizes, and optionally brackets pasted text.
   void paste(String data) {
     var prepared = data.replaceAll(RegExp(r'\r?\n'), '\r');
-    if (_delegate.bracketedPasteMode && !options.ignoreBracketedPasteMode) {
+    if (_engine.bracketedPasteMode && !options.ignoreBracketedPasteMode) {
       prepared = prepared.replaceAll('\u001b', '\u241b');
       prepared = '\u001b[200~$prepared\u001b[201~';
     }
@@ -510,7 +476,8 @@ final class Terminal extends DisposableStore {
       throw ArgumentError.value(rowCount, 'rows', 'must be at least 1');
     }
     if (columns == cols && rowCount == rows) return;
-    _delegate.resize(columns, rowCount);
+    _engine.resize(columns, rowCount);
+    _onResize.fire(TerminalResizeEvent(cols: columns, rows: rowCount));
     _viewportY = _viewportY.clamp(0, buffer.active.baseY);
   }
 
@@ -606,12 +573,10 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `registerMarker` API.
   TerminalMarker? registerMarker({int cursorYOffset = 0}) {
-    if (_delegate.isUsingAltBuffer) return null;
-    final y = _delegate.mainBuffer.absoluteCursorY + cursorYOffset;
-    if (y < 0 || y >= _delegate.mainBuffer.height) return null;
-    final marker = _markerFactory.create(
-      _delegate.mainBuffer.lines[y].createAnchor(0),
-    );
+    if (identical(buffer.active, buffer.alternate)) return null;
+    final y = buffer.normal.absoluteCursorY + cursorYOffset;
+    if (y < 0 || y >= buffer.normal.length) return null;
+    final marker = _markerFactory.create(y);
     _markers.add(marker);
     marker.onDispose.listen((_) => _markers.remove(marker));
     return marker;
@@ -743,9 +708,11 @@ final class Terminal extends DisposableStore {
 
   /// Clears scrollback while preserving the current prompt line.
   void clear() {
-    final current = _delegate.buffer.currentLine.getText(0, cols).trimRight();
-    _delegate.buffer.clear();
-    if (current.isNotEmpty) _delegate.buffer.write(current);
+    final current = buffer.active.currentLine.translateToString(
+      trimRight: true,
+    );
+    buffer.active.clear();
+    if (current.isNotEmpty) _engine.write(current);
     _viewportY = 0;
     _onScroll.fire(0);
     refresh(0, rows - 1);
@@ -764,26 +731,9 @@ final class Terminal extends DisposableStore {
 
   /// Performs a full RIS reset.
   void reset() {
-    _delegate
-      ..useMainBuffer()
-      ..mainBuffer.clear()
-      ..altBuffer.clear()
-      ..setInsertMode(false)
-      ..setOriginMode(false)
-      ..setAutoWrapMode(true)
-      ..setCursorVisibleMode(true)
-      ..setCursorKeysMode(false)
-      ..setAppKeypadMode(false)
-      ..setReportFocusMode(false)
-      ..setBracketedPasteMode(false)
-      ..setMouseMode(xterm.MouseMode.none)
-      ..resetCursorStyle();
-    _reverseWraparoundMode = false;
-    _synchronizedOutputMode = false;
-    _win32InputMode = false;
+    _engine.reset();
     _viewportY = 0;
     clearSelection();
-    buffer.detectChange();
     refresh(0, rows - 1);
   }
 
@@ -839,7 +789,6 @@ final class Terminal extends DisposableStore {
       emitter.dispose();
     }
     _writeQueue.clear();
-    _delegate.listeners.clear();
     super.dispose();
   }
 }

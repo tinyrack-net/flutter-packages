@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:termworld/src/core/buffer.dart';
+import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/terminal.dart';
+import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
-import 'package:xterm/core.dart' as xterm_core;
-import 'package:xterm/ui.dart' as xterm_ui;
 
 /// Flutter renderer and input surface for a headless [Terminal].
 class TerminalView extends StatefulWidget {
@@ -13,8 +14,8 @@ class TerminalView extends StatefulWidget {
     required this.terminal,
     super.key,
     this.controller,
-    this.theme = xterm_ui.TerminalThemes.defaultTheme,
-    this.style = const xterm_ui.TerminalStyle(),
+    this.theme,
+    this.style = const TerminalStyle(),
     this.padding,
     this.focusNode,
     this.autofocus = false,
@@ -34,10 +35,10 @@ class TerminalView extends StatefulWidget {
   final TerminalViewController? controller;
 
   /// Renderer color theme.
-  final xterm_ui.TerminalTheme theme;
+  final TerminalTheme? theme;
 
   /// Renderer font style.
-  final xterm_ui.TerminalStyle style;
+  final TerminalStyle style;
 
   /// Space around the terminal viewport.
   final EdgeInsets? padding;
@@ -61,14 +62,13 @@ class TerminalView extends StatefulWidget {
   final String semanticLabel;
 
   /// Tap callback in terminal cell coordinates.
-  final void Function(TapUpDetails, xterm_core.CellOffset)? onTapUp;
+  final void Function(TapUpDetails, TerminalCellOffset)? onTapUp;
 
   /// Secondary pointer-down callback in terminal cell coordinates.
-  final void Function(TapDownDetails, xterm_core.CellOffset)?
-  onSecondaryTapDown;
+  final void Function(TapDownDetails, TerminalCellOffset)? onSecondaryTapDown;
 
   /// Secondary pointer-up callback in terminal cell coordinates.
-  final void Function(TapUpDetails, xterm_core.CellOffset)? onSecondaryTapUp;
+  final void Function(TapUpDetails, TerminalCellOffset)? onSecondaryTapUp;
 
   @override
   State<TerminalView> createState() => _TerminalViewState();
@@ -82,6 +82,8 @@ final class _TerminalViewState extends State<TerminalView> {
   late TerminalViewController _controller =
       widget.controller ?? TerminalViewController();
   MethodChannel? _testingChannel;
+  Disposable? _renderListener;
+  Disposable? _scrollListener;
 
   @override
   void initState() {
@@ -103,6 +105,8 @@ final class _TerminalViewState extends State<TerminalView> {
     }
     if (oldWidget.controller != widget.controller ||
         oldWidget.terminal != widget.terminal) {
+      _renderListener?.dispose();
+      _scrollListener?.dispose();
       _controller.detach();
       if (oldWidget.controller == null) _controller.dispose();
       _controller = widget.controller ?? TerminalViewController();
@@ -112,6 +116,12 @@ final class _TerminalViewState extends State<TerminalView> {
 
   void _attach() {
     _controller.attach(widget.terminal, _requestKeyboard);
+    _renderListener = widget.terminal.onRender.listen((_) {
+      if (mounted) setState(() {});
+    });
+    _scrollListener = widget.terminal.onScroll.listen((_) {
+      if (mounted) setState(() {});
+    });
     widget.terminal.attachFocusHandlers(
       focus: _requestKeyboard,
       blur: _focusNode.unfocus,
@@ -136,6 +146,8 @@ final class _TerminalViewState extends State<TerminalView> {
 
   @override
   void dispose() {
+    _renderListener?.dispose();
+    _scrollListener?.dispose();
     _testingChannel?.setMethodCallHandler(null);
     _testingChannel = null;
     _controller.detach();
@@ -149,21 +161,17 @@ final class _TerminalViewState extends State<TerminalView> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       _reportDimensions(context, constraints.biggest);
-      final renderer = xterm_ui.TerminalView(
-        widget.terminal.rendererDelegate,
-        controller: _controller.rendererController,
-        theme: widget.theme,
-        textStyle: widget.style,
-        padding: widget.padding,
-        autoResize: false,
-        focusNode: _focusNode,
-        autofocus: widget.autofocus,
-        readOnly: true,
-        backgroundOpacity: widget.backgroundOpacity,
-        onTapUp: widget.onTapUp,
-        onSecondaryTapDown: widget.onSecondaryTapDown,
-        onSecondaryTapUp: widget.onSecondaryTapUp,
-        onKeyEvent: _onKeyEvent,
+      final theme = widget.theme ?? TerminalThemes.defaultTheme;
+      final renderer = CustomPaint(
+        painter: _TerminalPainter(
+          terminal: widget.terminal,
+          theme: theme,
+          style: widget.style,
+          padding: widget.padding ?? EdgeInsets.zero,
+          backgroundOpacity: widget.backgroundOpacity,
+          focused: _focusNode.hasFocus,
+        ),
+        size: constraints.biggest,
       );
       final composingText = _inputKey.currentState?.composingText ?? '';
       final padding = widget.padding ?? EdgeInsets.zero;
@@ -171,6 +179,21 @@ final class _TerminalViewState extends State<TerminalView> {
       final view = GestureDetector(
         behavior: HitTestBehavior.translucent,
         onTap: _requestKeyboard,
+        onTapUp: (details) {
+          widget.onTapUp?.call(details, _cellAt(details.localPosition));
+        },
+        onSecondaryTapDown: (details) {
+          widget.onSecondaryTapDown?.call(
+            details,
+            _cellAt(details.localPosition),
+          );
+        },
+        onSecondaryTapUp: (details) {
+          widget.onSecondaryTapUp?.call(
+            details,
+            _cellAt(details.localPosition),
+          );
+        },
         child: _TerminalTextInput(
           key: _inputKey,
           focusNode: _focusNode,
@@ -198,16 +221,16 @@ final class _TerminalViewState extends State<TerminalView> {
                   child: IgnorePointer(
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: widget.theme.background,
+                        color: theme.background,
                         border: Border(
-                          bottom: BorderSide(color: widget.theme.foreground),
+                          bottom: BorderSide(color: theme.foreground),
                         ),
                       ),
                       child: Text(
                         composingText,
                         key: const ValueKey<String>('termworld-preedit'),
                         style: widget.style.toTextStyle(
-                          color: widget.theme.foreground,
+                          color: theme.foreground,
                         ),
                       ),
                     ),
@@ -224,6 +247,22 @@ final class _TerminalViewState extends State<TerminalView> {
       );
     },
   );
+
+  TerminalCellOffset _cellAt(Offset localPosition) {
+    final dimensions = widget.terminal.dimensions;
+    final padding = widget.padding ?? EdgeInsets.zero;
+    if (dimensions == null) return const TerminalCellOffset(0, 0);
+    return TerminalCellOffset(
+      ((localPosition.dx - padding.left) / dimensions.cellWidth).floor().clamp(
+        0,
+        widget.terminal.cols - 1,
+      ),
+      ((localPosition.dy - padding.top) / dimensions.cellHeight).floor().clamp(
+        0,
+        widget.terminal.rows - 1,
+      ),
+    );
+  }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyUpEvent) return KeyEventResult.ignored;
@@ -308,6 +347,160 @@ final class _TerminalViewState extends State<TerminalView> {
       }
     });
   }
+}
+
+final class _TerminalPainter extends CustomPainter {
+  const _TerminalPainter({
+    required this.terminal,
+    required this.theme,
+    required this.style,
+    required this.padding,
+    required this.backgroundOpacity,
+    required this.focused,
+  });
+
+  final Terminal terminal;
+  final TerminalTheme theme;
+  final TerminalStyle style;
+  final EdgeInsets padding;
+  final double backgroundOpacity;
+  final bool focused;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final dimensions = terminal.dimensions;
+    if (dimensions == null) return;
+    canvas.drawRect(
+      Offset.zero & size,
+      Paint()..color = theme.background.withValues(alpha: backgroundOpacity),
+    );
+    final buffer = terminal.buffer.active;
+    final selection = terminal.getSelectionPosition();
+    for (var row = 0; row < terminal.rows; row++) {
+      final bufferRow = terminal.viewportY + row;
+      final line = buffer.getLine(bufferRow);
+      if (line == null) continue;
+      for (var column = 0; column < terminal.cols; column++) {
+        final cell = line.getCell(column);
+        if (cell == null || cell.width == 0) continue;
+        final rect = Rect.fromLTWH(
+          padding.left + column * dimensions.cellWidth,
+          padding.top + row * dimensions.cellHeight,
+          dimensions.cellWidth * cell.width,
+          dimensions.cellHeight,
+        );
+        var foreground = _color(
+          cell.foregroundMode,
+          cell.foreground,
+          theme.foreground,
+        );
+        var background = _color(
+          cell.backgroundMode,
+          cell.background,
+          theme.background,
+        );
+        if (cell.isInverse) {
+          final swapped = foreground;
+          foreground = background;
+          background = swapped;
+        }
+        if (cell.backgroundMode != TerminalColorMode.defaultColor ||
+            cell.isInverse) {
+          canvas.drawRect(rect, Paint()..color = background);
+        }
+        if (_selected(selection, column, bufferRow)) {
+          canvas.drawRect(rect, Paint()..color = theme.selection);
+        }
+        if (!cell.isInvisible && cell.chars.isNotEmpty) {
+          TextPainter(
+              text: TextSpan(
+                text: cell.chars,
+                style: style
+                    .toTextStyle(
+                      color: cell.isDim
+                          ? foreground.withValues(alpha: 0.5)
+                          : foreground,
+                    )
+                    .copyWith(
+                      fontWeight: cell.isBold
+                          ? FontWeight.bold
+                          : style.fontWeight,
+                      fontStyle: cell.isItalic
+                          ? FontStyle.italic
+                          : FontStyle.normal,
+                      decoration: TextDecoration.combine(<TextDecoration>[
+                        if (cell.isUnderline) TextDecoration.underline,
+                        if (cell.isStrikethrough) TextDecoration.lineThrough,
+                        if (cell.isOverline) TextDecoration.overline,
+                      ]),
+                    ),
+              ),
+              textDirection: TextDirection.ltr,
+              textWidthBasis: TextWidthBasis.longestLine,
+            )
+            ..layout(maxWidth: rect.width)
+            ..paint(canvas, rect.topLeft);
+        }
+      }
+    }
+    if (terminal.modes.showCursor && focused) {
+      _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
+    }
+  }
+
+  Color _color(TerminalColorMode mode, int value, Color fallback) =>
+      switch (mode) {
+        TerminalColorMode.defaultColor => fallback,
+        TerminalColorMode.palette =>
+          value >= 0 && value < theme.palette.length
+              ? theme.palette[value]
+              : fallback,
+        TerminalColorMode.rgb => Color(0xff000000 | value),
+      };
+
+  bool _selected(TerminalBufferRange? range, int column, int row) {
+    if (range == null || row < range.start.y || row > range.end.y) return false;
+    if (range.start.y == range.end.y) {
+      return column >= range.start.x && column < range.end.x;
+    }
+    if (row == range.start.y) return column >= range.start.x;
+    if (row == range.end.y) return column < range.end.x;
+    return true;
+  }
+
+  void _paintCursor(
+    Canvas canvas,
+    TerminalRenderDimensions dimensions,
+    int column,
+    int row,
+  ) {
+    final left = padding.left + column * dimensions.cellWidth;
+    final top = padding.top + row * dimensions.cellHeight;
+    final rect = switch (style.cursorType) {
+      TerminalCursorType.block => Rect.fromLTWH(
+        left,
+        top,
+        dimensions.cellWidth,
+        dimensions.cellHeight,
+      ),
+      TerminalCursorType.underline => Rect.fromLTWH(
+        left,
+        top + dimensions.cellHeight - 2,
+        dimensions.cellWidth,
+        2,
+      ),
+      TerminalCursorType.bar => Rect.fromLTWH(
+        left,
+        top,
+        2,
+        dimensions.cellHeight,
+      ),
+    };
+    canvas.drawRect(rect, Paint()..color = theme.cursor.withValues(alpha: 0.7));
+  }
+
+  @override
+  bool shouldRepaint(_TerminalPainter oldDelegate) => true;
 }
 
 final class _TerminalTextInput extends StatefulWidget {

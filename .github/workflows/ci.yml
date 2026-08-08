@@ -47,6 +47,8 @@ jobs:
         run: dart run tool/verify_platform_matrix.dart
       - name: Verify the pinned xterm parity manifest
         run: dart run tool/verify_xterm_parity.dart
+      - name: Verify termworld has no xterm dependency or delegation
+        run: dart run tool/verify_termworld_dependencies.dart
 
   dart:
     name: Dart (${{ matrix.os }})
