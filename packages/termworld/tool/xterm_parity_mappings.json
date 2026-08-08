@@ -1486,6 +1486,8 @@
     "addons/addon-ligatures/src/fontLigatures/processors/classDef.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/substitution.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/helper.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
+    "addons/addon-ligatures/src/fontLigatures/processors/6-1.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
+    "addons/addon-ligatures/src/fontLigatures/processors/6-2.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/6-3.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/8-1.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/flatten.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},

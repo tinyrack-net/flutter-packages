@@ -767,6 +767,94 @@ final class TerminalChainingCoverageTable {
   final List<TerminalSubstitutionLookupRecord> lookupRecords;
 }
 
+/// One glyph-based GSUB format 6.1 chaining rule.
+final class TerminalChainingGlyphRule {
+  /// Creates a glyph-context rule.
+  const TerminalChainingGlyphRule({
+    required this.backtrack,
+    required this.input,
+    required this.lookahead,
+    required this.lookupRecords,
+  });
+
+  /// Preceding glyphs, nearest first.
+  final List<int> backtrack;
+
+  /// Consumed glyphs after the coverage glyph.
+  final List<int> input;
+
+  /// Required following glyphs.
+  final List<int> lookahead;
+
+  /// Substitutions applied to input positions.
+  final List<TerminalSubstitutionLookupRecord> lookupRecords;
+}
+
+/// A GSUB format 6.1 simple-glyph chaining-context table.
+final class TerminalChainingGlyphTable {
+  /// Creates a glyph-context table.
+  const TerminalChainingGlyphTable({
+    required this.coverage,
+    required this.chainRuleSets,
+  });
+
+  /// First input glyphs.
+  final TerminalCoverageTable coverage;
+
+  /// Rules indexed by coverage position; null represents an absent rule set.
+  final List<List<TerminalChainingGlyphRule>?> chainRuleSets;
+}
+
+/// One class-based GSUB format 6.2 chaining rule.
+final class TerminalChainingClassRule {
+  /// Creates a class-context rule.
+  const TerminalChainingClassRule({
+    required this.backtrack,
+    required this.input,
+    required this.lookahead,
+    required this.lookupRecords,
+  });
+
+  /// Preceding class identifiers, nearest first.
+  final List<int> backtrack;
+
+  /// Consumed class identifiers after the first input glyph.
+  final List<int> input;
+
+  /// Required following class identifiers.
+  final List<int> lookahead;
+
+  /// Substitutions applied to input positions.
+  final List<TerminalSubstitutionLookupRecord> lookupRecords;
+}
+
+/// A GSUB format 6.2 class-based chaining-context table.
+final class TerminalChainingClassTable {
+  /// Creates a class-context table.
+  const TerminalChainingClassTable({
+    required this.coverage,
+    required this.inputClassDefinition,
+    required this.lookaheadClassDefinition,
+    required this.backtrackClassDefinition,
+    required this.chainClassSets,
+  });
+
+  /// First input glyph coverage.
+  final TerminalCoverageTable coverage;
+
+  /// Class assignment for consumed inputs.
+  final TerminalGlyphClassTable inputClassDefinition;
+
+  /// Class assignment for following context.
+  final TerminalGlyphClassTable lookaheadClassDefinition;
+
+  /// Class assignment for preceding context.
+  final TerminalGlyphClassTable backtrackClassDefinition;
+
+  /// Rules indexed by the first input's class.
+  final List<List<TerminalChainingClassRule>?> chainClassSets;
+}
+
 /// A GSUB format 8.1 reverse-chaining single-substitution table.
 final class TerminalReverseChainingTable {
   /// Creates a reverse chaining table.
@@ -973,6 +1061,160 @@ TerminalLigatureLookupTree buildTerminalChainingCoverageTree(
     }
   }
   return result;
+}
+
+/// Builds xterm's GSUB type 6 format 1 lookup tree.
+TerminalLigatureLookupTree buildTerminalChainingGlyphTree(
+  TerminalChainingGlyphTable table,
+  List<List<TerminalSubstitutionTable>> lookups,
+  int tableIndex,
+) {
+  final result = TerminalLigatureLookupTree();
+  for (final first in terminalCoverageGlyphs(table.coverage)) {
+    final rules = table.chainRuleSets[first.index];
+    if (rules == null) continue;
+    for (var subIndex = 0; subIndex < rules.length; subIndex++) {
+      final rule = rules[subIndex];
+      var current =
+          terminalLigatureInputTree(
+                result,
+                rule.lookupRecords,
+                lookups,
+                0,
+                first.glyph,
+              )
+              .map(
+                (item) => TerminalLigatureEntryMetadata(
+                  item.entry,
+                  <int?>[item.substitution],
+                ),
+              )
+              .toList();
+      for (var index = 0; index < rule.input.length; index++) {
+        current = terminalProcessInputPosition(
+          <TerminalGlyphSelector>[rule.input[index]],
+          index + 1,
+          current,
+          rule.lookupRecords,
+          lookups,
+        );
+      }
+      for (final glyph in rule.lookahead) {
+        current = terminalProcessLookaheadPosition(
+          <TerminalGlyphSelector>[glyph],
+          current,
+        );
+      }
+      for (final glyph in rule.backtrack) {
+        current = terminalProcessBacktrackPosition(
+          <TerminalGlyphSelector>[glyph],
+          current,
+        );
+      }
+      _terminalFinishChainingEntries(
+        current,
+        inputLength: rule.input.length + 1,
+        lookaheadLength: rule.lookahead.length,
+        backtrackLength: rule.backtrack.length,
+        tableIndex: tableIndex,
+        subIndex: subIndex,
+      );
+    }
+  }
+  return result;
+}
+
+/// Builds xterm's GSUB type 6 format 2 lookup tree.
+TerminalLigatureLookupTree buildTerminalChainingClassTree(
+  TerminalChainingClassTable table,
+  List<List<TerminalSubstitutionTable>> lookups,
+  int tableIndex,
+) {
+  final results = <TerminalLigatureLookupTree>[];
+  for (final first in terminalCoverageGlyphs(table.coverage)) {
+    final classes = terminalGlyphClasses(
+      table.inputClassDefinition,
+      first.glyph,
+    );
+    for (final classEntry in classes.entries) {
+      final inputClass = classEntry.value;
+      if (inputClass == null) continue;
+      final rules = table.chainClassSets[inputClass];
+      if (rules == null) continue;
+      for (var subIndex = 0; subIndex < rules.length; subIndex++) {
+        final rule = rules[subIndex];
+        final result = TerminalLigatureLookupTree();
+        var current =
+            terminalLigatureInputTree(
+                  result,
+                  rule.lookupRecords,
+                  lookups,
+                  0,
+                  classEntry.key,
+                )
+                .map(
+                  (item) => TerminalLigatureEntryMetadata(
+                    item.entry,
+                    <int?>[item.substitution],
+                  ),
+                )
+                .toList();
+        for (var index = 0; index < rule.input.length; index++) {
+          current = terminalProcessInputPosition(
+            terminalClassGlyphs(
+              table.inputClassDefinition,
+              rule.input[index],
+            ),
+            index + 1,
+            current,
+            rule.lookupRecords,
+            lookups,
+          );
+        }
+        for (final classId in rule.lookahead) {
+          current = terminalProcessLookaheadPosition(
+            terminalClassGlyphs(table.lookaheadClassDefinition, classId),
+            current,
+          );
+        }
+        for (final classId in rule.backtrack) {
+          current = terminalProcessBacktrackPosition(
+            terminalClassGlyphs(table.backtrackClassDefinition, classId),
+            current,
+          );
+        }
+        _terminalFinishChainingEntries(
+          current,
+          inputLength: rule.input.length + 1,
+          lookaheadLength: rule.lookahead.length,
+          backtrackLength: rule.backtrack.length,
+          tableIndex: tableIndex,
+          subIndex: subIndex,
+        );
+        results.add(result);
+      }
+    }
+  }
+  return mergeTerminalLigatureTrees(results);
+}
+
+void _terminalFinishChainingEntries(
+  List<TerminalLigatureEntryMetadata> entries, {
+  required int inputLength,
+  required int lookaheadLength,
+  required int backtrackLength,
+  required int tableIndex,
+  required int subIndex,
+}) {
+  for (final metadata in entries) {
+    metadata.entry.lookup = TerminalLigatureLookupResult(
+      substitutions: metadata.substitutions,
+      length: inputLength,
+      index: tableIndex,
+      subIndex: subIndex,
+      contextRange: (-backtrackLength, inputLength + lookaheadLength),
+    );
+  }
 }
 
 /// Builds xterm's GSUB type 8 format 1 lookup tree.

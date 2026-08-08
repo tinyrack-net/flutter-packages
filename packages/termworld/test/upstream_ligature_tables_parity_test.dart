@@ -301,4 +301,72 @@ void main() {
     expect(reverseMatch?.contextRange, (-1, 2));
     expect(reverseMatch?.index, 8);
   });
+
+  test('GSUB format 6.1 and 6.2 build glyph and class lookup trees', () {
+    const one = TerminalCoverageGlyphs(<int>[1]);
+    const two = TerminalCoverageGlyphs(<int>[2]);
+    const records = <TerminalSubstitutionLookupRecord>[
+      TerminalSubstitutionLookupRecord(
+        sequenceIndex: 0,
+        lookupListIndex: 0,
+      ),
+      TerminalSubstitutionLookupRecord(
+        sequenceIndex: 1,
+        lookupListIndex: 1,
+      ),
+    ];
+    const lookups = <List<TerminalSubstitutionTable>>[
+      <TerminalSubstitutionTable>[TerminalDeltaSubstitution(one, 10)],
+      <TerminalSubstitutionTable>[TerminalDeltaSubstitution(two, 20)],
+    ];
+    const glyphTable = TerminalChainingGlyphTable(
+      coverage: one,
+      chainRuleSets: <List<TerminalChainingGlyphRule>?>[
+        <TerminalChainingGlyphRule>[
+          TerminalChainingGlyphRule(
+            backtrack: <int>[],
+            input: <int>[2],
+            lookahead: <int>[],
+            lookupRecords: records,
+          ),
+        ],
+      ],
+    );
+    final glyphTree = flattenTerminalLigatureTree(
+      buildTerminalChainingGlyphTree(glyphTable, lookups, 6),
+    );
+    expect(
+      walkTerminalLigatureTree(glyphTree, <int>[1, 2], 0, 0)?.substitutions,
+      <int?>[11, 22],
+    );
+
+    const inputClasses = TerminalGlyphClassTable(<TerminalGlyphClassRange>[
+      TerminalGlyphClassRange(start: 1, end: 1, classId: 1),
+      TerminalGlyphClassRange(start: 2, end: 2, classId: 2),
+    ]);
+    const classTable = TerminalChainingClassTable(
+      coverage: one,
+      inputClassDefinition: inputClasses,
+      lookaheadClassDefinition: inputClasses,
+      backtrackClassDefinition: inputClasses,
+      chainClassSets: <List<TerminalChainingClassRule>?>[
+        null,
+        <TerminalChainingClassRule>[
+          TerminalChainingClassRule(
+            backtrack: <int>[],
+            input: <int>[2],
+            lookahead: <int>[],
+            lookupRecords: records,
+          ),
+        ],
+      ],
+    );
+    final classTree = flattenTerminalLigatureTree(
+      buildTerminalChainingClassTree(classTable, lookups, 7),
+    );
+    expect(
+      walkTerminalLigatureTree(classTree, <int>[1, 2], 0, 0)?.substitutions,
+      <int?>[11, 22],
+    );
+  });
 }
