@@ -397,6 +397,10 @@ jobs:
   ios:
     name: iOS
     runs-on: macos-26
+    # Simulator test processes occasionally stop producing output. Bound the
+    # required job so a stuck host is reported and retried instead of holding
+    # every newer parity run indefinitely.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
