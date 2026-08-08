@@ -5,6 +5,7 @@ import 'package:flutter/material.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_web_fonts.dart';
 import 'package:termworld/addon_webgl.dart';
+import 'package:termworld/src/addons/ligature_font_loader.dart';
 import 'package:termworld/termworld.dart';
 
 void main() {
@@ -47,6 +48,10 @@ void main() {
     await addon.relayout();
     addon.dispose();
     await addon.relayout();
+  });
+
+  test('generic font family stops local ligature font resolution', () async {
+    expect(await loadTerminalLigatureFont('monospace', 100), isNull);
   });
 
   test('webgl publishes atlas and context lifecycle in order', () {
