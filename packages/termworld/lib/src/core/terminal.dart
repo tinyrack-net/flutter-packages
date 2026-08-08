@@ -234,6 +234,9 @@ final class Terminal extends DisposableStore {
       onTitle: _onTitleChange.fire,
       onData: _triggerData,
       onRequestSendFocus: _reportCurrentFocus,
+      onBufferTrim: _handleBufferTrim,
+      onBufferInsert: _handleBufferInsert,
+      onBufferDelete: _handleBufferDelete,
     );
     buffer = _engine.buffer;
     parser = own(TerminalParser());
@@ -358,6 +361,29 @@ final class Terminal extends DisposableStore {
   void Function()? _focus;
   void Function()? _blur;
   bool _hasFocus = false;
+
+  void _handleBufferTrim(int amount) {
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      marker.move(-amount);
+    }
+  }
+
+  void _handleBufferInsert(int index, int amount) {
+    for (final marker in _markers) {
+      if (marker.line >= index) marker.move(amount);
+    }
+  }
+
+  void _handleBufferDelete(int index, int amount) {
+    final end = index + amount;
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      if (marker.line >= index && marker.line < end) {
+        marker.dispose();
+      } else if (marker.line >= end) {
+        marker.move(-amount);
+      }
+    }
+  }
 
   void _handleOptionChange(String name) {
     _engine.handleOptionChange(name);

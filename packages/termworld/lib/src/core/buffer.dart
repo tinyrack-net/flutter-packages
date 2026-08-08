@@ -487,9 +487,15 @@ final class TerminalBuffer {
     required int columns,
     required int rows,
     required int scrollback,
+    void Function(int amount)? onTrim,
+    void Function(int index, int amount)? onInsert,
+    void Function(int index, int amount)? onDelete,
   }) : _columns = columns,
        _rows = rows,
        _scrollback = _initialScrollback(scrollback),
+       _onTrim = _initialCallback(onTrim),
+       _onInsert = _initialCallback(onInsert),
+       _onDelete = _initialCallback(onDelete),
        _lines = List<TerminalBufferLine>.generate(
          rows,
          (_) => TerminalBufferLine(columns),
@@ -504,6 +510,9 @@ final class TerminalBuffer {
   final List<TerminalBufferLine> _lines;
   int _columns;
   int _rows;
+  final void Function(int amount)? _onTrim;
+  final void Function(int index, int amount)? _onInsert;
+  final void Function(int index, int amount)? _onDelete;
 
   /// Zero-based cursor column.
   int cursorX = 0;
@@ -591,6 +600,7 @@ final class TerminalBuffer {
       final minimumLength = rows + oldBase;
       while (_lines.length > minimumLength &&
           _lines.length > absoluteCursor + 1) {
+        _onDelete?.call(_lines.length - 1, 1);
         _lines.removeLast();
       }
     }
@@ -607,6 +617,7 @@ final class TerminalBuffer {
 
   /// Replaces all content with an empty viewport.
   void clear([TerminalCellAttributes? eraseAttributes]) {
+    _onDelete?.call(0, _lines.length);
     _lines
       ..clear()
       ..addAll(
@@ -622,7 +633,10 @@ final class TerminalBuffer {
   /// Removes retained scrollback without changing the visible viewport.
   void clearScrollback() {
     final retained = baseY;
-    if (retained > 0) _lines.removeRange(0, retained);
+    if (retained > 0) {
+      _lines.removeRange(0, retained);
+      _onTrim?.call(retained);
+    }
   }
 
   /// Updates the retained history limit and immediately removes excess lines.
@@ -646,6 +660,8 @@ final class TerminalBuffer {
     }
     final start = baseY + top;
     final end = baseY + last;
+    _onDelete?.call(start, 1);
+    _onInsert?.call(end, 1);
     _lines
       ..removeAt(start)
       ..insert(end, TerminalBufferLine(_columns, attributes: eraseAttributes));
@@ -660,6 +676,8 @@ final class TerminalBuffer {
     final last = bottom ?? _rows - 1;
     final start = baseY + top;
     final end = baseY + last;
+    _onDelete?.call(end, 1);
+    _onInsert?.call(start, 1);
     _lines
       ..removeAt(end)
       ..insert(
@@ -679,6 +697,8 @@ final class TerminalBuffer {
     final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
     final end = baseY + last + 1;
+    _onInsert?.call(start, amount);
+    _onDelete?.call(end, amount);
     _lines
       ..insertAll(
         start,
@@ -701,6 +721,8 @@ final class TerminalBuffer {
     final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
     final insertion = baseY + last - amount + 1;
+    _onDelete?.call(start, amount);
+    _onInsert?.call(insertion, amount);
     _lines
       ..removeRange(start, start + amount)
       ..insertAll(
@@ -776,6 +798,11 @@ final class TerminalBuffer {
       final oldCount = groupEnd - groupStart + 1;
       _lines.replaceRange(groupStart, groupEnd + 1, layout.lines);
       final delta = layout.lines.length - oldCount;
+      if (delta > 0) {
+        _onInsert?.call(groupEnd + 1, delta);
+      } else if (delta < 0) {
+        _onDelete?.call(groupStart + layout.lines.length, -delta);
+      }
       if (containsCursor) {
         cursorAbsolute = groupStart + layout.cursorRow;
         cursorX = layout.cursorColumn;
@@ -850,11 +877,14 @@ final class TerminalBuffer {
     final maximum =
         _rows + (type == TerminalBufferType.normal ? scrollback : 0);
     if (_lines.length > maximum) {
-      _lines.removeRange(0, _lines.length - maximum);
+      final amount = _lines.length - maximum;
+      _lines.removeRange(0, amount);
+      _onTrim?.call(amount);
     }
   }
 
   static int _initialScrollback(int value) => value;
+  static T _initialCallback<T>(T value) => value;
 }
 
 final class _ReflowLayout {
@@ -872,11 +902,17 @@ final class TerminalBufferNamespace {
     required int columns,
     required int rows,
     required int scrollback,
+    void Function(int amount)? onTrim,
+    void Function(int index, int amount)? onInsert,
+    void Function(int index, int amount)? onDelete,
   }) : normal = TerminalBuffer._(
          type: TerminalBufferType.normal,
          columns: columns,
          rows: rows,
          scrollback: scrollback,
+         onTrim: onTrim,
+         onInsert: onInsert,
+         onDelete: onDelete,
        ),
        alternate = TerminalBuffer._(
          type: TerminalBufferType.alternate,

@@ -263,4 +263,34 @@ void main() {
     preserved.dispose();
     reflowed.dispose();
   });
+
+  test(
+    'markers follow reflow insertions, removals, and scrollback trims',
+    () async {
+      final terminal = Terminal(
+        options: TerminalOptions(
+          cols: 10,
+          rows: 16,
+          scrollback: 1,
+          reflowCursorLine: true,
+        ),
+      );
+      addTearDown(terminal.dispose);
+      await terminal.writeAndWait(
+        'abcdefghij\r\n0123456789\r\nklmnopqrst',
+      );
+      final first = terminal.registerMarker(cursorYOffset: -2)!;
+      final second = terminal.registerMarker(cursorYOffset: -1)!;
+      final third = terminal.registerMarker()!;
+
+      terminal.resize(2, 16);
+      expect((first.line, second.line, third.line), (0, 5, 10));
+      terminal.resize(10, 16);
+      expect((first.line, second.line, third.line), (0, 1, 2));
+
+      terminal.resize(10, 2);
+      await terminal.writeAndWait('\r\nnext\r\nlast');
+      expect(first.isDisposed, isTrue);
+    },
+  );
 }

@@ -30,10 +30,16 @@ final class _TerminalCoreEngine {
     this.onData,
     this.onTitle,
     this.onRequestSendFocus,
+    this.onBufferTrim,
+    this.onBufferInsert,
+    this.onBufferDelete,
   }) : buffer = TerminalBufferNamespace(
          columns: columns,
          rows: rows,
          scrollback: scrollback,
+         onTrim: onBufferTrim,
+         onInsert: onBufferInsert,
+         onDelete: onBufferDelete,
        ),
        _columns = columns,
        _rows = rows {
@@ -47,6 +53,9 @@ final class _TerminalCoreEngine {
   void Function(String data)? onData;
   void Function(String title)? onTitle;
   void Function()? onRequestSendFocus;
+  final void Function(int amount)? onBufferTrim;
+  final void Function(int index, int amount)? onBufferInsert;
+  final void Function(int index, int amount)? onBufferDelete;
 
   int _columns;
   int _rows;
