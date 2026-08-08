@@ -74,8 +74,8 @@ final class TerminalDecoration implements Disposable {
     this.layer = TerminalDecorationLayer.bottom,
   }) {
     if (x < 0) throw ArgumentError.value(x, 'x', 'cannot be negative');
-    if (width < 1 || height < 1) {
-      throw ArgumentError('width and height must be at least 1');
+    if (width < 0 || height < 0) {
+      throw ArgumentError('width and height cannot be negative');
     }
   }
 

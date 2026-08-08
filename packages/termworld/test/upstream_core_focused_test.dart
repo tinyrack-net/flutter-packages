@@ -201,4 +201,27 @@ void main() {
     terminal.clear();
     expect(terminal.buffer.active.getLine(0), same(promptLine));
   });
+
+  test('zero-sized decorations retain xterm registration semantics', () {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    final marker = terminal.registerMarker()!;
+
+    final decoration = terminal.registerDecoration(
+      marker: marker,
+      width: 0,
+      height: 0,
+    );
+
+    expect(decoration, isNotNull);
+    expect((decoration!.width, decoration.height), (0, 0));
+    expect(
+      () => terminal.registerDecoration(marker: marker, width: -1),
+      throwsArgumentError,
+    );
+    expect(
+      () => terminal.registerDecoration(marker: marker, height: -1),
+      throwsArgumentError,
+    );
+  });
 }
