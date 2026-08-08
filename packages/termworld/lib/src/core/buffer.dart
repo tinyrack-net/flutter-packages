@@ -760,6 +760,9 @@ final class TerminalBuffer {
     bool reflowCursorLine,
   ) {
     final oldColumns = _columns;
+    final oldLength = _lines.length;
+    final oldBaseY = baseY;
+    final oldCursorY = cursorY;
     var cursorAbsolute = absoluteCursorY;
     var groupStart = 0;
     while (groupStart < _lines.length) {
@@ -830,6 +833,20 @@ final class TerminalBuffer {
         cursorAbsolute += delta;
       }
       groupStart += layout.lines.length;
+    }
+    if (newColumns < oldColumns && oldBaseY == 0) {
+      // xterm consumes unused viewport rows from the bottom before newly
+      // reflowed rows are allowed to create scrollback. CircularList.pop does
+      // not emit a deletion event, so markers shifted by the insertions above
+      // remain attached to their reflowed logical lines.
+      final addedLines = (_lines.length - oldLength).clamp(0, _lines.length);
+      final unusedViewportRows = (_rows - oldCursorY - 1).clamp(0, _rows);
+      final rowsToPop = addedLines < unusedViewportRows
+          ? addedLines
+          : unusedViewportRows;
+      if (rowsToPop > 0) {
+        _lines.removeRange(_lines.length - rowsToPop, _lines.length);
+      }
     }
     cursorY = (cursorAbsolute - baseY).clamp(0, _rows - 1);
   }
