@@ -97,8 +97,9 @@ final class SerializeAddon extends ManagedTerminalAddon {
     final range = _lineRange(normal, options.range, options.scrollback);
     final normalEnd = _contentEnd(normal, range.$1, range.$2);
     final result = StringBuffer();
+    var cursorStyle = normal.getNullCell();
     for (var row = range.$1; row <= normalEnd; row++) {
-      _serializeLine(normal.getLine(row)!, result);
+      cursorStyle = _serializeLine(normal.getLine(row)!, result, cursorStyle);
       if (row != normalEnd) result.write('\r\n');
     }
     if (!options.excludeAltBuffer &&
@@ -106,8 +107,13 @@ final class SerializeAddon extends ManagedTerminalAddon {
       result.write('\u001b[?1049h\u001b[H');
       final alternate = terminal.buffer.alternate;
       final alternateEnd = _contentEnd(alternate, 0, alternate.length - 1);
+      cursorStyle = alternate.getNullCell();
       for (var row = 0; row <= alternateEnd; row++) {
-        _serializeLine(alternate.getLine(row)!, result);
+        cursorStyle = _serializeLine(
+          alternate.getLine(row)!,
+          result,
+          cursorStyle,
+        );
         if (row != alternateEnd) result.write('\r\n');
       }
     }
@@ -359,20 +365,24 @@ final class SerializeAddon extends ManagedTerminalAddon {
     return start;
   }
 
-  void _serializeLine(TerminalBufferLine line, StringBuffer result) {
-    var attributes = '';
+  TerminalCell _serializeLine(
+    TerminalBufferLine line,
+    StringBuffer result,
+    TerminalCell cursorStyle,
+  ) {
+    var currentStyle = cursorStyle;
     final end = _serializedLength(line);
     for (var column = 0; column < end; column++) {
       final cell = line.getCell(column)!;
       if (cell.width == 0) continue;
-      final nextAttributes = _sgr(cell);
-      if (nextAttributes != attributes) {
-        result.write('\u001b[0m$nextAttributes');
-        attributes = nextAttributes;
+      final sequence = _sgrDiff(cell, currentStyle);
+      if (sequence.isNotEmpty) {
+        result.write('\u001b[${sequence.join(';')}m');
       }
       result.write(cell.chars.isEmpty ? ' ' : cell.chars);
+      currentStyle = cell;
     }
-    if (attributes.isNotEmpty) result.write('\u001b[0m');
+    return currentStyle;
   }
 
   int _serializedLength(TerminalBufferLine line) {
@@ -383,33 +393,111 @@ final class SerializeAddon extends ManagedTerminalAddon {
     return 0;
   }
 
-  String _sgr(TerminalCell cell) {
+  List<String> _sgrDiff(TerminalCell cell, TerminalCell previous) {
+    if (cell.attributesEqual(previous)) return const <String>[];
+    if (cell.isAttributeDefault && !previous.isAttributeDefault) {
+      return const <String>['0'];
+    }
     final codes = <String>[];
-    if (cell.isBold) codes.add('1');
-    if (cell.isDim) codes.add('2');
-    if (cell.isItalic) codes.add('3');
-    if (cell.isUnderline) codes.add('4');
-    if (cell.isBlink) codes.add('5');
-    if (cell.isInverse) codes.add('7');
-    if (cell.isInvisible) codes.add('8');
-    if (cell.isStrikethrough) codes.add('9');
-    if (cell.foregroundMode == TerminalColorMode.rgb) {
-      codes.add(
-        '38;2;${cell.foreground >> 16};'
-        '${cell.foreground >> 8 & 255};${cell.foreground & 255}',
+    if (cell.foregroundMode != previous.foregroundMode ||
+        cell.foreground != previous.foreground) {
+      _appendAnsiColor(
+        codes,
+        cell.foregroundMode,
+        cell.foreground,
+        foreground: true,
       );
-    } else if (cell.foregroundMode == TerminalColorMode.palette) {
-      codes.add('38;5;${cell.foreground}');
     }
-    if (cell.backgroundMode == TerminalColorMode.rgb) {
-      codes.add(
-        '48;2;${cell.background >> 16};'
-        '${cell.background >> 8 & 255};${cell.background & 255}',
+    if (cell.backgroundMode != previous.backgroundMode ||
+        cell.background != previous.background) {
+      _appendAnsiColor(
+        codes,
+        cell.backgroundMode,
+        cell.background,
+        foreground: false,
       );
-    } else if (cell.backgroundMode == TerminalColorMode.palette) {
-      codes.add('48;5;${cell.background}');
     }
-    return codes.isEmpty ? '' : '\u001b[${codes.join(';')}m';
+    if (cell.isInverse != previous.isInverse) {
+      codes.add(cell.isInverse ? '7' : '27');
+    }
+    if (cell.isBold != previous.isBold) {
+      codes.add(cell.isBold ? '1' : '22');
+    }
+    final underlineChanged =
+        cell.underlineStyle != previous.underlineStyle ||
+        cell.underlineColor != previous.underlineColor;
+    if (underlineChanged) {
+      if (!cell.isUnderline) {
+        codes.add('24');
+      } else if (cell.underlineStyle == TerminalUnderlineStyle.single &&
+          cell.underlineColor.mode == TerminalColorMode.defaultColor) {
+        codes.add('4');
+      } else {
+        codes.add('4:${cell.underlineStyle.index}');
+        final underline = cell.underlineColor;
+        if (underline.mode == TerminalColorMode.rgb) {
+          codes.add(
+            '58:2::${underline.red}:${underline.green}:${underline.blue}',
+          );
+        } else if (underline.mode == TerminalColorMode.palette) {
+          codes.add('58:5:${underline.value}');
+        }
+      }
+    }
+    if (cell.isOverline != previous.isOverline) {
+      codes.add(cell.isOverline ? '53' : '55');
+    }
+    if (cell.isBlink != previous.isBlink) {
+      codes.add(cell.isBlink ? '5' : '25');
+    }
+    if (cell.isInvisible != previous.isInvisible) {
+      codes.add(cell.isInvisible ? '8' : '28');
+    }
+    if (cell.isItalic != previous.isItalic) {
+      codes.add(cell.isItalic ? '3' : '23');
+    }
+    if (cell.isDim != previous.isDim) {
+      codes.add(cell.isDim ? '2' : '22');
+    }
+    if (cell.isStrikethrough != previous.isStrikethrough) {
+      codes.add(cell.isStrikethrough ? '9' : '29');
+    }
+    return codes;
+  }
+
+  void _appendAnsiColor(
+    List<String> output,
+    TerminalColorMode mode,
+    int color, {
+    required bool foreground,
+  }) {
+    switch (mode) {
+      case TerminalColorMode.defaultColor:
+        output.add(foreground ? '39' : '49');
+      case TerminalColorMode.palette:
+        if (color >= 16) {
+          final selector = foreground ? '38' : '48';
+          output.addAll(<String>[selector, '5', '$color']);
+        } else {
+          final base = foreground
+              ? (color & 8) != 0
+                    ? 90
+                    : 30
+              : (color & 8) != 0
+              ? 100
+              : 40;
+          output.add('${base + (color & 7)}');
+        }
+      case TerminalColorMode.rgb:
+        final selector = foreground ? '38' : '48';
+        output.addAll(<String>[
+          selector,
+          '2',
+          '${color >> 16 & 255}',
+          '${color >> 8 & 255}',
+          '${color & 255}',
+        ]);
+    }
   }
 
   void _serializeModes(StringBuffer result) {

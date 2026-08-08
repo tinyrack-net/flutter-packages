@@ -133,7 +133,7 @@ void main() {
     terminal.loadAddon(addon);
     await terminal.writeAndWait('\u001b[1;31mred<text>');
 
-    expect(addon.serialize(), contains('\u001b[1;38;5;1mred'));
+    expect(addon.serialize(), contains('\u001b[31;1mred'));
     expect(addon.serializeAsHtml(), contains('red&lt;text&gt;'));
   });
 
