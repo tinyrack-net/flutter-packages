@@ -94,6 +94,10 @@ final class _TerminalViewState extends State<TerminalView> {
   Disposable? _cursorMoveListener;
   Disposable? _scrollListener;
   Disposable? _selectionListener;
+  Disposable? _a11yCharListener;
+  Disposable? _a11yTabListener;
+  Disposable? _a11yLineFeedListener;
+  Disposable? _a11yKeyListener;
   TerminalLink? _hoveredLink;
   Disposable? _linkDecorationListener;
   TerminalLink? _pointerDownLink;
@@ -115,6 +119,11 @@ final class _TerminalViewState extends State<TerminalView> {
   Timer? _dragScrollTimer;
   int _dragScrollAmount = 0;
   int _dragSelectionColumn = 0;
+  final List<String> _a11yCharsToConsume = <String>[];
+  final StringBuffer _a11yCharsToAnnounce = StringBuffer();
+  String _a11yAnnouncement = '';
+  int _a11yLineCount = 0;
+  bool _a11yFlushScheduled = false;
 
   @override
   void initState() {
@@ -146,6 +155,7 @@ final class _TerminalViewState extends State<TerminalView> {
       _cursorMoveListener?.dispose();
       _scrollListener?.dispose();
       _selectionListener?.dispose();
+      _disposeAccessibilityListeners();
       _controller.detach();
       if (oldWidget.controller == null) _controller.dispose();
       _controller = widget.controller ?? TerminalViewController();
@@ -170,6 +180,21 @@ final class _TerminalViewState extends State<TerminalView> {
     _selectionListener = widget.terminal.onSelectionChange.listen((_) {
       if (mounted) setState(() {});
     });
+    _a11yCharListener = widget.terminal.onA11yChar.listen(_handleA11yChar);
+    _a11yTabListener = widget.terminal.onA11yTab.listen((spaceCount) {
+      for (var index = 0; index < spaceCount; index++) {
+        _handleA11yChar(' ');
+      }
+    });
+    _a11yLineFeedListener = widget.terminal.onLineFeed.listen((_) {
+      _handleA11yChar('\n');
+    });
+    _a11yKeyListener = widget.terminal.onKey.listen((event) {
+      _clearA11yAnnouncement();
+      if (!_containsControlCharacter(event.key)) {
+        _a11yCharsToConsume.add(event.key);
+      }
+    });
     widget.terminal.attachFocusHandlers(
       focus: _requestKeyboard,
       blur: _focusNode.unfocus,
@@ -186,8 +211,72 @@ final class _TerminalViewState extends State<TerminalView> {
       _restartCursorBlinkAnimation();
     } else {
       _syncCursorBlink();
+      _clearA11yAnnouncement();
     }
     if (mounted) setState(() {});
+  }
+
+  static bool _containsControlCharacter(String value) => value.runes.any(
+    (codePoint) =>
+        codePoint < 0x20 ||
+        codePoint == 0x7f ||
+        codePoint >= 0x80 && codePoint <= 0x9f,
+  );
+
+  void _handleA11yChar(String character) {
+    if (!widget.terminal.options.screenReaderMode || _a11yLineCount > 20) {
+      return;
+    }
+    if (_a11yCharsToConsume.isNotEmpty) {
+      final consumed = _a11yCharsToConsume.removeAt(0);
+      if (consumed != character) _a11yCharsToAnnounce.write(character);
+    } else {
+      _a11yCharsToAnnounce.write(character);
+    }
+    if (character == '\n') {
+      _a11yLineCount++;
+      if (_a11yLineCount == 21) {
+        _a11yAnnouncement = Terminal.strings.tooMuchOutput;
+      }
+    }
+    _scheduleA11yFlush();
+  }
+
+  void _scheduleA11yFlush() {
+    if (_a11yFlushScheduled) return;
+    _a11yFlushScheduled = true;
+    scheduleMicrotask(() {
+      _a11yFlushScheduled = false;
+      if (!mounted || _a11yCharsToAnnounce.isEmpty) return;
+      if (_a11yAnnouncement == Terminal.strings.tooMuchOutput) {
+        _a11yAnnouncement = '';
+        _a11yLineCount = 0;
+      }
+      _a11yAnnouncement += _a11yCharsToAnnounce.toString();
+      _a11yCharsToAnnounce.clear();
+      setState(() {});
+    });
+  }
+
+  void _clearA11yAnnouncement() {
+    _a11yAnnouncement = '';
+    _a11yLineCount = 0;
+    if (mounted) setState(() {});
+  }
+
+  void _disposeAccessibilityListeners() {
+    _a11yCharListener?.dispose();
+    _a11yTabListener?.dispose();
+    _a11yLineFeedListener?.dispose();
+    _a11yKeyListener?.dispose();
+    _a11yCharListener = null;
+    _a11yTabListener = null;
+    _a11yLineFeedListener = null;
+    _a11yKeyListener = null;
+    _a11yCharsToConsume.clear();
+    _a11yCharsToAnnounce.clear();
+    _a11yAnnouncement = '';
+    _a11yLineCount = 0;
   }
 
   void _syncCursorBlink() {
@@ -261,6 +350,7 @@ final class _TerminalViewState extends State<TerminalView> {
     _cursorMoveListener?.dispose();
     _scrollListener?.dispose();
     _selectionListener?.dispose();
+    _disposeAccessibilityListeners();
     _testingChannel?.setMethodCallHandler(null);
     _testingChannel = null;
     _controller.detach();
@@ -402,9 +492,20 @@ final class _TerminalViewState extends State<TerminalView> {
         value: widget.terminal.options.screenReaderMode
             ? _semanticValue()
             : null,
-        liveRegion: widget.terminal.options.screenReaderMode,
         textField: !widget.readOnly,
-        child: view,
+        child: widget.terminal.options.screenReaderMode
+            ? Stack(
+                children: <Widget>[
+                  view,
+                  Semantics(
+                    container: true,
+                    liveRegion: true,
+                    label: _a11yAnnouncement,
+                    child: const SizedBox.shrink(),
+                  ),
+                ],
+              )
+            : view,
       );
     },
   );

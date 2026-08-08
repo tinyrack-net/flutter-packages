@@ -150,6 +150,10 @@ void main() {
     final node = tester.getSemantics(semanticSurface);
     expect(node.label, 'Localized terminal input');
     expect(node.value, 'first\nsecond');
+
+    await terminal.writeAndWait(' third');
+    await tester.pump();
+    expect(find.bySemanticsLabel(' third'), findsOneWidget);
     semantics.dispose();
   });
 

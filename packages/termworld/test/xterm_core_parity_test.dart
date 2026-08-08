@@ -1074,6 +1074,32 @@ void main() {
         '',
       );
     });
+
+    test(
+      'accessibility events follow print, tab, and line feed order',
+      () async {
+        final terminal = Terminal(
+          options: TerminalOptions(
+            cols: 20,
+            rows: 3,
+            screenReaderMode: true,
+          ),
+        );
+        addTearDown(terminal.dispose);
+        final characters = <String>[];
+        final tabs = <int>[];
+        var lineFeeds = 0;
+        terminal.onA11yChar.listen(characters.add);
+        terminal.onA11yTab.listen(tabs.add);
+        terminal.onLineFeed.listen((_) => lineFeeds++);
+
+        await terminal.writeAndWait('a\tb\n\n');
+
+        expect(characters, <String>['a', 'b']);
+        expect(tabs, <int>[7]);
+        expect(lineFeeds, 2);
+      },
+    );
   });
 
   final fixtureRoot = Directory(

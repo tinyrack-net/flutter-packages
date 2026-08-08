@@ -496,6 +496,9 @@ final class Terminal extends DisposableStore {
       onTitle: _onTitleChange.fire,
       onData: _triggerData,
       onRequestSendFocus: _reportCurrentFocus,
+      onA11yChar: _onA11yChar.fire,
+      onA11yTab: _onA11yTab.fire,
+      onLineFeed: () => _onLineFeed.fire(TerminalVoid.value),
       onBufferTrim: _handleBufferTrim,
       onBufferInsert: _handleBufferInsert,
       onBufferDelete: _handleBufferDelete,
@@ -548,6 +551,9 @@ final class Terminal extends DisposableStore {
       TerminalEventEmitter<TerminalKeyEvent>();
   final TerminalEventEmitter<TerminalVoid> _onLineFeed =
       TerminalEventEmitter<TerminalVoid>();
+  final TerminalEventEmitter<String> _onA11yChar =
+      TerminalEventEmitter<String>();
+  final TerminalEventEmitter<int> _onA11yTab = TerminalEventEmitter<int>();
   final TerminalEventEmitter<TerminalRenderEvent> _onRender =
       TerminalEventEmitter<TerminalRenderEvent>();
   final TerminalEventEmitter<TerminalVoid> _onWriteParsed =
@@ -579,6 +585,12 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `onLineFeed` API.
   TerminalEvent<TerminalVoid> get onLineFeed => _onLineFeed.event;
+
+  /// Characters emitted by the input handler for assistive technology.
+  TerminalEvent<String> get onA11yChar => _onA11yChar.event;
+
+  /// Spaces traversed by HT for assistive technology.
+  TerminalEvent<int> get onA11yTab => _onA11yTab.event;
 
   /// xterm-compatible `onRender` API.
   TerminalEvent<TerminalRenderEvent> get onRender => _onRender.event;
@@ -749,7 +761,6 @@ final class Terminal extends DisposableStore {
   Future<void> _parse(String text) async {
     final cursorX = buffer.active.cursorX;
     final cursorY = buffer.active.cursorY;
-    final height = buffer.active.length;
     final wasAtBottom = _viewportY == buffer.active.baseY;
     await parser.process(text, (filtered) {
       if (filtered.isNotEmpty) _engine.write(filtered);
@@ -761,9 +772,6 @@ final class Terminal extends DisposableStore {
     if (_viewportY != oldViewport) _onScroll.fire(_viewportY);
     if (buffer.active.cursorX != cursorX || buffer.active.cursorY != cursorY) {
       _onCursorMove.fire(TerminalVoid.value);
-    }
-    if (buffer.active.length > height || text.contains('\n')) {
-      _onLineFeed.fire(TerminalVoid.value);
     }
     if (!_engine.synchronizedOutputMode) {
       _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
@@ -1310,6 +1318,8 @@ final class Terminal extends DisposableStore {
       _onData,
       _onKey,
       _onLineFeed,
+      _onA11yChar,
+      _onA11yTab,
       _onRender,
       _onWriteParsed,
       _onResize,

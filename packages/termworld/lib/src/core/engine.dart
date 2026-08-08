@@ -30,6 +30,9 @@ final class _TerminalCoreEngine {
     this.onData,
     this.onTitle,
     this.onRequestSendFocus,
+    this.onA11yChar,
+    this.onA11yTab,
+    this.onLineFeed,
     this.onBufferTrim,
     this.onBufferInsert,
     this.onBufferDelete,
@@ -53,6 +56,9 @@ final class _TerminalCoreEngine {
   void Function(String data)? onData;
   void Function(String title)? onTitle;
   void Function()? onRequestSendFocus;
+  void Function(String character)? onA11yChar;
+  void Function(int spaceCount)? onA11yTab;
+  void Function()? onLineFeed;
   final void Function(int amount)? onBufferTrim;
   final void Function(int index, int amount)? onBufferInsert;
   final void Function(int index, int amount)? onBufferDelete;
@@ -1056,6 +1062,7 @@ final class _TerminalCoreEngine {
   void _print(String value, int codePoint) {
     if (codePoint == 0x00ad) return;
     final mapped = _mapCharset(value);
+    if (options.screenReaderMode) onA11yChar?.call(mapped);
     final properties = unicode.active.charProperties(
       codePoint,
       _precedingJoinState,
@@ -1347,13 +1354,20 @@ final class _TerminalCoreEngine {
 
   void _tab() {
     if (buffer.active.cursorX >= _columns) return;
+    final originalColumn = buffer.active.cursorX;
     for (var column = buffer.active.cursorX + 1; column < _columns; column++) {
       if (_tabStops.contains(column)) {
         buffer.active.cursorX = column;
+        if (options.screenReaderMode) {
+          onA11yTab?.call(buffer.active.cursorX - originalColumn);
+        }
         return;
       }
     }
     buffer.active.cursorX = _columns - 1;
+    if (options.screenReaderMode) {
+      onA11yTab?.call(buffer.active.cursorX - originalColumn);
+    }
   }
 
   void _backTab() {
@@ -1371,6 +1385,7 @@ final class _TerminalCoreEngine {
     if (lineFeedMode) buffer.active.cursorX = 0;
     if (buffer.active.cursorX >= _columns) buffer.active.cursorX--;
     buffer.active.currentLine.isWrapped = false;
+    onLineFeed?.call();
   }
 
   void _index() {
