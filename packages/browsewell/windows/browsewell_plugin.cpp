@@ -71,21 +71,10 @@ POINT Center(const EncodableMap& arguments,
   return point;
 }
 
-void Mouse(HWND window, DWORD flags, POINT point, DWORD data = 0) {
-  ClientToScreen(window, &point);
-  const int left = GetSystemMetrics(SM_XVIRTUALSCREEN);
-  const int top = GetSystemMetrics(SM_YVIRTUALSCREEN);
-  const int width = GetSystemMetrics(SM_CXVIRTUALSCREEN);
-  const int height = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-  INPUT input{};
-  input.type = INPUT_MOUSE;
-  input.mi.dx = static_cast<LONG>(
-      (point.x - left) * 65535LL / (width > 1 ? width - 1 : 1));
-  input.mi.dy = static_cast<LONG>(
-      (point.y - top) * 65535LL / (height > 1 ? height - 1 : 1));
-  input.mi.mouseData = data;
-  input.mi.dwFlags = flags | MOUSEEVENTF_ABSOLUTE | MOUSEEVENTF_VIRTUALDESK;
-  SendInput(1, &input, sizeof(INPUT));
+void Mouse(HWND window, UINT message, POINT point, WPARAM buttons = 0) {
+  SendMessage(window, WM_MOUSEMOVE, buttons, MAKELPARAM(point.x, point.y));
+  if (message != WM_MOUSEMOVE)
+    SendMessage(window, message, buttons, MAKELPARAM(point.x, point.y));
 }
 
 UINT KeyCode(const std::string& key) {
@@ -103,36 +92,19 @@ UINT KeyCode(const std::string& key) {
   return key.empty() ? 0 : VkKeyScanA(key.front()) & 0xff;
 }
 
-void KeyEvent(UINT code, DWORD flags = 0) {
-  INPUT input{};
-  input.type = INPUT_KEYBOARD;
-  input.ki.wVk = static_cast<WORD>(code);
-  input.ki.dwFlags = flags;
-  SendInput(1, &input, sizeof(INPUT));
+void Key(HWND window, UINT code) {
+  SendMessage(window, WM_KEYDOWN, code, 0);
+  SendMessage(window, WM_KEYUP, code, 0);
 }
 
-void Key(HWND, UINT code) {
-  KeyEvent(code);
-  KeyEvent(code, KEYEVENTF_KEYUP);
-}
-
-void Text(HWND, const std::string& utf8) {
+void Text(HWND window, const std::string& utf8) {
   if (utf8.empty()) return;
   const int length = MultiByteToWideChar(CP_UTF8, 0, utf8.data(),
                                          static_cast<int>(utf8.size()), nullptr, 0);
   std::wstring wide(length, L'\0');
   MultiByteToWideChar(CP_UTF8, 0, utf8.data(), static_cast<int>(utf8.size()),
                       wide.data(), length);
-  for (const wchar_t character : wide) {
-    INPUT inputs[2]{};
-    for (auto& input : inputs) {
-      input.type = INPUT_KEYBOARD;
-      input.ki.wScan = character;
-      input.ki.dwFlags = KEYEVENTF_UNICODE;
-    }
-    inputs[1].ki.dwFlags |= KEYEVENTF_KEYUP;
-    SendInput(2, inputs, sizeof(INPUT));
-  }
+  for (const wchar_t character : wide) SendMessage(window, WM_CHAR, character, 0);
 }
 
 BOOL CALLBACK FindFileDialog(HWND window, LPARAM data) {
@@ -213,20 +185,19 @@ void BrowsewellPlugin::HandleMethodCall(
   } else if (window_ == nullptr) {
     result->Error("no_host", "No Flutter window is available.");
   } else if (method == "click" || method == "hover") {
-    SetForegroundWindow(window_);
     SetFocus(window_);
     const POINT point = Center(args, viewports_);
-    Mouse(window_, MOUSEEVENTF_MOVE, point);
+    Mouse(window_, WM_MOUSEMOVE, point);
     if (method == "click") {
-      Mouse(window_, MOUSEEVENTF_LEFTDOWN, point);
-      Mouse(window_, MOUSEEVENTF_LEFTUP, point);
+      Mouse(window_, WM_LBUTTONDOWN, point, MK_LBUTTON);
+      Mouse(window_, WM_LBUTTONUP, point);
     }
     result->Success();
   } else if (method == "type") {
     if (Boolean(Find(args, "replace"))) {
-      KeyEvent(VK_CONTROL);
+      SendMessage(window_, WM_KEYDOWN, VK_CONTROL, 0);
       Key(window_, 'A');
-      KeyEvent(VK_CONTROL, KEYEVENTF_KEYUP);
+      SendMessage(window_, WM_KEYUP, VK_CONTROL, 0);
     }
     Text(window_, String(Find(args, "text")));
     result->Success();
@@ -241,21 +212,13 @@ void BrowsewellPlugin::HandleMethodCall(
   } else if (method == "drag") {
     const POINT source = Center(args, viewports_, "source");
     const POINT target = Center(args, viewports_, "target");
-    Mouse(window_, MOUSEEVENTF_MOVE, source);
-    Mouse(window_, MOUSEEVENTF_LEFTDOWN, source);
-    for (int step = 1; step <= 8; ++step) {
-      POINT point{
-          source.x + (target.x - source.x) * step / 8,
-          source.y + (target.y - source.y) * step / 8,
-      };
-      Mouse(window_, MOUSEEVENTF_MOVE, point);
-      Sleep(8);
-    }
-    Mouse(window_, MOUSEEVENTF_LEFTUP, target);
+    Mouse(window_, WM_LBUTTONDOWN, source, MK_LBUTTON);
+    Mouse(window_, WM_MOUSEMOVE, target, MK_LBUTTON);
+    Mouse(window_, WM_LBUTTONUP, target);
     result->Success();
   } else if (method == "scroll") {
     const auto delta = static_cast<short>(-Number(Find(args, "deltaY")));
-    Mouse(window_, MOUSEEVENTF_WHEEL, POINT{}, static_cast<DWORD>(delta));
+    SendMessage(window_, WM_MOUSEWHEEL, MAKEWPARAM(0, delta), 0);
     result->Success();
   } else if (method == "screenshot") {
     result->Success(EncodableValue(kTransparentPng));
