@@ -98,7 +98,7 @@ final class LigaturesAddon extends ManagedTerminalAddon {
     '<>',
     '===',
     '!==',
-    '!==',
+    '!===',
     '<:',
     ':=',
     '*=',

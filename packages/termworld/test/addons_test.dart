@@ -118,6 +118,10 @@ void main() {
     expect(terminal.characterJoins('a===b').single.end, 4);
   });
 
+  test('ligature defaults include xterm four-character not-equal', () {
+    expect(LigaturesAddon().fallbackLigatures, contains('!==='));
+  });
+
   test('progress parses OSC 9;4 and clamps state values', () async {
     final terminal = Terminal();
     final addon = ProgressAddon();
