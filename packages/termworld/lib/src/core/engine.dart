@@ -247,16 +247,30 @@ final class _TerminalCoreEngine {
         <int>[0],
       ];
     }
-    return value
-        .split(';')
-        .map(
-          (group) => group
-              .split(':')
-              .map((part) => int.tryParse(part) ?? 0)
-              .toList(growable: false),
-        )
-        .toList(growable: false);
+    const maximumParameters = 32;
+    const maximumSubParameters = 32;
+    final result = <List<int>>[];
+    var subParameterCount = 0;
+    for (final group in value.split(';').take(maximumParameters)) {
+      final parts = group.split(':');
+      final parsed = <int>[_boundedParameter(parts.first, 0)];
+      final remaining = maximumSubParameters - subParameterCount;
+      if (remaining > 0) {
+        parsed.addAll(
+          parts
+              .skip(1)
+              .take(remaining)
+              .map((part) => _boundedParameter(part, -1)),
+        );
+        subParameterCount += parsed.length - 1;
+      }
+      result.add(parsed);
+    }
+    return result;
   }
+
+  int _boundedParameter(String source, int fallback) =>
+      (int.tryParse(source) ?? fallback).clamp(-1, 0x7fffffff);
 
   int _param(List<List<int>> params, int index, [int fallback = 1]) {
     if (index >= params.length || params[index].isEmpty) return fallback;

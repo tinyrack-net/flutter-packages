@@ -379,19 +379,30 @@ final class TerminalParser implements Disposable {
 
   List<TerminalParameter> _parameters(String source) {
     if (source.isEmpty) return <TerminalParameter>[0];
-    return source
-        .split(';')
-        .map<TerminalParameter>((parameter) {
-          if (parameter.contains(':')) {
-            return parameter
-                .split(':')
-                .map((value) => int.tryParse(value) ?? 0)
-                .toList(growable: false);
-          }
-          return int.tryParse(parameter) ?? 0;
-        })
-        .toList(growable: false);
+    const maximumParameters = 32;
+    const maximumSubParameters = 32;
+    final result = <TerminalParameter>[];
+    var subParameterCount = 0;
+    for (final parameter in source.split(';').take(maximumParameters)) {
+      final values = parameter.split(':');
+      result.add(_parameterValue(values.first, 0));
+      if (values.length == 1 || subParameterCount >= maximumSubParameters) {
+        continue;
+      }
+      final remaining = maximumSubParameters - subParameterCount;
+      final subParameters = values
+          .skip(1)
+          .take(remaining)
+          .map((value) => _parameterValue(value, -1))
+          .toList(growable: false);
+      subParameterCount += subParameters.length;
+      if (subParameters.isNotEmpty) result.add(subParameters);
+    }
+    return result;
   }
+
+  int _parameterValue(String source, int fallback) =>
+      (int.tryParse(source) ?? fallback).clamp(-1, 0x7fffffff);
 
   Future<bool> _callNewest<H>(
     List<H>? handlers,

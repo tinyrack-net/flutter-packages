@@ -173,12 +173,47 @@ void main() {
       );
 
       expect(calls, <String>[
-        'csi:[1, [2, 3]]',
+        'csi:[1, 2, [3]]',
         'dcs:DATA',
         'esc',
         'apc:kitty',
       ]);
     });
+
+    test(
+      'uses xterm ZDM, subparameter defaults, limits, and clamping',
+      () async {
+        final terminal = Terminal();
+        addTearDown(terminal.dispose);
+        final calls = <List<TerminalParameter>>[];
+        terminal.parser.registerCsiHandler(
+          const TerminalFunctionIdentifier(finalByte: 'z'),
+          (params) {
+            calls.add(params);
+            return true;
+          },
+        );
+
+        await terminal.writeAndWait(
+          '\u001b[4::123:5;6;7z'
+          '\u001b[2147483648;:2147483648z',
+        );
+
+        expect(calls, <List<TerminalParameter>>[
+          <TerminalParameter>[
+            4,
+            <int>[-1, 123, 5],
+            6,
+            7,
+          ],
+          <TerminalParameter>[
+            0x7fffffff,
+            0,
+            <int>[0x7fffffff],
+          ],
+        ]);
+      },
+    );
 
     test('dispatches 8-bit C1 CSI, OSC, DCS, and APC forms', () async {
       final terminal = Terminal();
