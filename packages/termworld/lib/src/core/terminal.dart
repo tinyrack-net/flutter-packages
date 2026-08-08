@@ -769,7 +769,7 @@ final class Terminal extends DisposableStore {
   void scrollLines(int amount) => scrollToLine(_viewportY + amount);
 
   /// xterm-compatible `scrollPages` API.
-  void scrollPages(int pageCount) => scrollLines(pageCount * rows);
+  void scrollPages(int pageCount) => scrollLines(pageCount * (rows - 1));
 
   /// xterm-compatible `scrollToTop` API.
   void scrollToTop() => scrollToLine(0);

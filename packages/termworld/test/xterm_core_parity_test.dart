@@ -529,6 +529,22 @@ void main() {
       expect(output.single, '\u001b[200~a\rb\u241b[201~\u001b[201~');
     });
 
+    test('scrollPages moves by rows minus one and clamps boundaries', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 5, rows: 5));
+      addTearDown(terminal.dispose);
+      await terminal.writeAndWait('test\r\n' * 15);
+      final bottom = terminal.viewportY;
+
+      terminal.scrollPages(-1);
+      expect(terminal.viewportY, bottom - 4);
+      terminal.scrollPages(1);
+      expect(terminal.viewportY, bottom);
+      terminal.scrollToLine(-1);
+      expect(terminal.viewportY, 0);
+      terminal.scrollToLine(bottom + 1);
+      expect(terminal.viewportY, bottom);
+    });
+
     test(
       'implements cursor backward tab without exceeding the viewport',
       () async {
