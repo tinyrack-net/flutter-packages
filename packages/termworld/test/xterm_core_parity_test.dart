@@ -273,6 +273,31 @@ void main() {
     );
 
     test(
+      'OSC accepts arbitrary registration IDs and APC ignores prefix',
+      () async {
+        final terminal = Terminal();
+        addTearDown(terminal.dispose);
+        var apcPayload = '';
+        terminal.parser
+          ..registerOscHandler(-1, (_) => true)
+          ..registerApcHandler(
+            const TerminalFunctionIdentifier(
+              prefix: '?',
+              intermediates: '+',
+              finalByte: 'p',
+            ),
+            (data) {
+              apcPayload = data;
+              return true;
+            },
+          );
+
+        await terminal.writeAndWait('\u001b_+pvalue\u001b\\');
+        expect(apcPayload, 'value');
+      },
+    );
+
+    test(
       'accepts the exact parser payload limit and rejects limit + 1',
       () async {
         final terminal = Terminal(options: TerminalOptions(cols: 1, rows: 1));

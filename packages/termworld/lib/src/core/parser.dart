@@ -85,22 +85,23 @@ final class TerminalParser implements Disposable {
   ) => _register(_esc, _validate(identifier).key, handler);
 
   /// xterm-compatible `registerOscHandler` API.
-  Disposable registerOscHandler(int identifier, TerminalOscHandler handler) {
-    if (identifier < 0) {
-      throw ArgumentError.value(
-        identifier,
-        'identifier',
-        'must be non-negative',
-      );
-    }
-    return _register(_osc, identifier, handler);
-  }
+  Disposable registerOscHandler(int identifier, TerminalOscHandler handler) =>
+      _register(_osc, identifier, handler);
 
   /// xterm-compatible `registerApcHandler` API.
   Disposable registerApcHandler(
     TerminalFunctionIdentifier identifier,
     TerminalApcHandler handler,
-  ) => _register(_apc, _validate(identifier).key, handler);
+  ) {
+    final validated = _validate(identifier);
+    // APC has no prefix byte. xterm intentionally clears it before deriving
+    // the handler identifier, while preserving intermediates and final byte.
+    final apcIdentifier = TerminalFunctionIdentifier(
+      intermediates: validated.intermediates,
+      finalByte: validated.finalByte,
+    );
+    return _register(_apc, apcIdentifier.key, handler);
+  }
 
   TerminalFunctionIdentifier _validate(
     TerminalFunctionIdentifier identifier, {
