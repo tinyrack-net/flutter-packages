@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/marker.dart';
+import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/terminal.dart';
 
 /// Inclusive line range used for ANSI serialization.
@@ -50,9 +51,7 @@ final class TerminalHtmlSerializeOptions {
     this.scrollback,
     this.onlySelection = false,
     this.includeGlobalBackground = false,
-    this.startLine,
-    this.endLine,
-    this.startColumn = 0,
+    this.range,
   });
 
   /// xterm-compatible `scrollback` API.
@@ -64,13 +63,26 @@ final class TerminalHtmlSerializeOptions {
   /// xterm-compatible `includeGlobalBackground` API.
   final bool includeGlobalBackground;
 
-  /// xterm-compatible `startLine` API.
-  final int? startLine;
+  /// Explicit active-buffer range. It takes priority over [onlySelection].
+  final TerminalHtmlSerializeRange? range;
+}
 
-  /// xterm-compatible `endLine` API.
-  final int? endLine;
+/// Active-buffer range used by HTML serialization.
+final class TerminalHtmlSerializeRange {
+  /// Creates an inclusive row range starting at [startColumn].
+  const TerminalHtmlSerializeRange({
+    required this.startLine,
+    required this.endLine,
+    this.startColumn = 0,
+  });
 
-  /// xterm-compatible `startColumn` API.
+  /// First row to serialize.
+  final int startLine;
+
+  /// Last row to serialize.
+  final int endLine;
+
+  /// First column on [startLine].
   final int startColumn;
 }
 
@@ -109,21 +121,208 @@ final class SerializeAddon extends ManagedTerminalAddon {
   String serializeAsHtml({
     TerminalHtmlSerializeOptions options = const TerminalHtmlSerializeOptions(),
   }) {
-    final selected = options.onlySelection ? terminal.getSelection() : '';
-    final content = selected.isNotEmpty
-        ? selected
-        : _plainRange(
-            options.startLine,
-            options.endLine,
-            options.scrollback,
-            options.startColumn,
-          );
-    final escaped = const HtmlEscape(HtmlEscapeMode.element).convert(content);
+    final buffer = terminal.buffer.active;
+    late final TerminalBufferPosition start;
+    late final TerminalBufferPosition end;
+    final requested = options.range;
+    if (requested != null) {
+      start = TerminalBufferPosition(
+        requested.startColumn,
+        requested.startLine,
+      );
+      end = TerminalBufferPosition(terminal.cols, requested.endLine);
+    } else if (options.onlySelection) {
+      final selection = terminal.getSelectionPosition();
+      if (selection == null) return '';
+      start = selection.start;
+      end = selection.end;
+    } else {
+      final rows = options.scrollback == null
+          ? buffer.length
+          : (options.scrollback! + terminal.rows).clamp(0, buffer.length);
+      start = TerminalBufferPosition(0, buffer.length - rows);
+      end = TerminalBufferPosition(terminal.cols, buffer.length - 1);
+    }
+    if (start.y < 0 || end.y < start.y || end.y >= buffer.length) {
+      throw RangeError('HTML serialization range is outside the active buffer');
+    }
+
+    final theme = terminal.options.theme;
+    final foreground = options.includeGlobalBackground
+        ? theme.foreground ?? '#ffffff'
+        : '#000000';
     final background = options.includeGlobalBackground
-        ? ' style="background:#000;color:#fff"'
-        : '';
-    return '<pre$background>$escaped</pre>';
+        ? theme.background ?? '#000000'
+        : '#ffffff';
+    final output = StringBuffer()
+      ..write('<html><body><!--StartFragment--><pre>')
+      ..write("<div style='color: $foreground; ")
+      ..write('background-color: $background; ')
+      ..write('font-family: ${terminal.options.fontFamily}; ')
+      ..write("font-size: ${_cssNumber(terminal.options.fontSize)}px;'>");
+    final palette = _ansiPalette(theme);
+    final empty = buffer.getNullCell();
+    for (var row = start.y; row <= end.y; row++) {
+      final line = buffer.getLine(row)!;
+      final firstColumn = row == start.y ? start.x.clamp(0, line.length) : 0;
+      final lastColumn = row == end.y
+          ? end.x.clamp(0, line.length)
+          : line.length;
+      var previous = empty;
+      output.write('<div><span>');
+      for (var column = firstColumn; column < lastColumn; column++) {
+        final cell = line.getCell(column)!;
+        if (cell.width == 0) continue;
+        if (!cell.attributesEqual(previous)) {
+          final styles = _htmlStyles(cell, palette);
+          output
+            ..write('</span><span')
+            ..write(styles.isEmpty ? '>' : " style='${styles.join(' ')}'>");
+        }
+        output.write(
+          cell.chars.isEmpty
+              ? ' '
+              : const HtmlEscape(HtmlEscapeMode.element).convert(cell.chars),
+        );
+        previous = cell;
+      }
+      output.write('</span></div>');
+    }
+    return '$output</div></pre><!--EndFragment--></body></html>';
   }
+
+  String _cssNumber(double value) => value == value.roundToDouble()
+      ? value.toInt().toString()
+      : value.toString();
+
+  List<String> _htmlStyles(TerminalCell cell, List<String> palette) {
+    final styles = <String>[];
+    final foreground = _htmlColor(
+      cell.foregroundMode,
+      cell.foreground,
+      palette,
+    );
+    if (foreground != null) styles.add('color: $foreground;');
+    final background = _htmlColor(
+      cell.backgroundMode,
+      cell.background,
+      palette,
+    );
+    if (background != null) styles.add('background-color: $background;');
+    if (cell.isInverse) {
+      styles.add('color: #000000; background-color: #BFBFBF;');
+    }
+    if (cell.isBold) styles.add('font-weight: bold;');
+    final decorations = <String>[];
+    if (cell.isUnderline) {
+      decorations.add(
+        switch (cell.underlineStyle) {
+          TerminalUnderlineStyle.double => 'underline double',
+          TerminalUnderlineStyle.curly => 'underline wavy',
+          TerminalUnderlineStyle.dotted => 'underline dotted',
+          TerminalUnderlineStyle.dashed => 'underline dashed',
+          _ => 'underline',
+        },
+      );
+    }
+    if (cell.isOverline) decorations.add('overline');
+    if (cell.isStrikethrough) decorations.add('line-through');
+    if (cell.isBlink) decorations.add('blink');
+    if (decorations.isNotEmpty) {
+      styles.add('text-decoration: ${decorations.join(' ')};');
+    }
+    if (cell.isUnderline) {
+      final underline = _htmlColor(
+        cell.underlineColor.mode,
+        cell.underlineColor.value,
+        palette,
+      );
+      if (underline != null) styles.add('text-decoration-color: $underline;');
+    }
+    if (cell.isInvisible) styles.add('visibility: hidden;');
+    if (cell.isItalic) styles.add('font-style: italic;');
+    if (cell.isDim) styles.add('opacity: 0.5;');
+    return styles;
+  }
+
+  String? _htmlColor(
+    TerminalColorMode mode,
+    int value,
+    List<String> palette,
+  ) => switch (mode) {
+    TerminalColorMode.defaultColor => null,
+    TerminalColorMode.palette => palette[value.clamp(0, 255)],
+    TerminalColorMode.rgb =>
+      '#${value.toRadixString(16).padLeft(6, '0').substring(0, 6)}',
+  };
+
+  List<String> _ansiPalette(TerminalColorTheme theme) {
+    final colors = <String>[
+      '#2e3436',
+      '#cc0000',
+      '#4e9a06',
+      '#c4a000',
+      '#3465a4',
+      '#75507b',
+      '#06989a',
+      '#d3d7cf',
+      '#555753',
+      '#ef2929',
+      '#8ae234',
+      '#fce94f',
+      '#729fcf',
+      '#ad7fa8',
+      '#34e2e2',
+      '#eeeeec',
+    ];
+    const levels = <int>[0x00, 0x5f, 0x87, 0xaf, 0xd7, 0xff];
+    for (var index = 0; index < 216; index++) {
+      colors.add(
+        _rgb(
+          levels[index ~/ 36 % 6],
+          levels[index ~/ 6 % 6],
+          levels[index % 6],
+        ),
+      );
+    }
+    for (var index = 0; index < 24; index++) {
+      final value = 8 + index * 10;
+      colors.add(_rgb(value, value, value));
+    }
+    final overrides = <String?>[
+      theme.black,
+      theme.red,
+      theme.green,
+      theme.yellow,
+      theme.blue,
+      theme.magenta,
+      theme.cyan,
+      theme.white,
+      theme.brightBlack,
+      theme.brightRed,
+      theme.brightGreen,
+      theme.brightYellow,
+      theme.brightBlue,
+      theme.brightMagenta,
+      theme.brightCyan,
+      theme.brightWhite,
+    ];
+    for (var index = 0; index < overrides.length; index++) {
+      if (overrides[index] case final value?) colors[index] = value;
+    }
+    final extended = theme.extendedAnsi;
+    if (extended != null) {
+      for (var index = 0; index < extended.length && index < 240; index++) {
+        colors[index + 16] = extended[index];
+      }
+    }
+    return colors;
+  }
+
+  String _rgb(int red, int green, int blue) =>
+      '#${red.toRadixString(16).padLeft(2, '0')}'
+      '${green.toRadixString(16).padLeft(2, '0')}'
+      '${blue.toRadixString(16).padLeft(2, '0')}';
 
   (int, int) _lineRange(
     TerminalBuffer buffer,
@@ -237,33 +436,5 @@ final class SerializeAddon extends ManagedTerminalAddon {
       case 'none':
         break;
     }
-  }
-
-  String _plainRange(
-    int? startLine,
-    int? endLine,
-    int? scrollback,
-    int startColumn,
-  ) {
-    final buffer = terminal.buffer.active;
-    final start =
-        startLine ??
-        (scrollback == null
-            ? 0
-            : (buffer.baseY - scrollback).clamp(0, buffer.length));
-    final end = endLine ?? buffer.length - 1;
-    final output = StringBuffer();
-    for (var row = start; row <= end; row++) {
-      output.write(
-        buffer
-            .getLine(row)!
-            .translateToString(
-              trimRight: true,
-              startColumn: row == start ? startColumn : 0,
-            ),
-      );
-      if (row != end) output.write('\n');
-    }
-    return output.toString();
   }
 }

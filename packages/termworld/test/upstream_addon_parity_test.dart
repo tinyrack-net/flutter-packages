@@ -488,24 +488,26 @@ void main() {
             includeGlobalBackground: true,
           ),
         ),
-        '<pre style="background:#000;color:#fff">plain</pre>',
+        contains('<div><span>plain</span></div>'),
       );
       terminal.clearSelection();
       expect(
         addon.serializeAsHtml(
           options: const TerminalHtmlSerializeOptions(
-            startLine: 1,
-            endLine: 2,
-            startColumn: 1,
+            range: TerminalHtmlSerializeRange(
+              startLine: 1,
+              endLine: 2,
+              startColumn: 1,
+            ),
           ),
         ),
-        contains('lain\nlast'),
+        contains('<div><span>lain'),
       );
       expect(
         addon.serializeAsHtml(
           options: const TerminalHtmlSerializeOptions(scrollback: 0),
         ),
-        startsWith('<pre>'),
+        startsWith('<html><body><!--StartFragment--><pre>'),
       );
     },
   );
