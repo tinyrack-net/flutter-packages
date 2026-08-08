@@ -383,6 +383,8 @@ final class _TerminalViewState extends State<TerminalView> {
         ),
       );
       return Semantics(
+        container: true,
+        explicitChildNodes: true,
         label: widget.semanticLabel,
         value: widget.terminal.options.screenReaderMode
             ? _semanticValue()
