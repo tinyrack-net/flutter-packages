@@ -349,6 +349,11 @@ void main() {
         ..updateDimensions(dimensions)
         ..updateDimensions(dimensions);
       expect(terminal.dimensions?.devicePixelRatio, 2);
+      expect(terminal.dimensions?.css.canvas.width, 60);
+      expect(terminal.dimensions?.css.cell.height, 10);
+      expect(terminal.dimensions?.device.canvas.width, 120);
+      expect(terminal.dimensions?.device.cell.height, 20);
+      expect(terminal.dimensions?.device.char.left, 0);
 
       final addon = _Addon();
       terminal.loadAddon(addon);

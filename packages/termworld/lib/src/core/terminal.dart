@@ -37,6 +37,72 @@ final class TerminalRenderEvent {
   final int end;
 }
 
+/// Width and height in logical or device pixels.
+final class TerminalPixelDimensions {
+  /// Creates immutable dimensions.
+  const TerminalPixelDimensions({required this.width, required this.height});
+
+  /// Horizontal extent.
+  final double width;
+
+  /// Vertical extent.
+  final double height;
+}
+
+/// Character dimensions and its offset within a cell.
+final class TerminalCharacterDimensions {
+  /// Creates immutable character geometry.
+  const TerminalCharacterDimensions({
+    required this.width,
+    required this.height,
+    required this.top,
+    required this.left,
+  });
+
+  /// Character width.
+  final double width;
+
+  /// Character height.
+  final double height;
+
+  /// Offset from the top of the cell.
+  final double top;
+
+  /// Offset from the left of the cell.
+  final double left;
+}
+
+/// Canvas and cell dimensions in one coordinate space.
+final class TerminalRenderDimensionSet {
+  /// Creates a CSS-pixel dimension set.
+  const TerminalRenderDimensionSet({required this.canvas, required this.cell});
+
+  /// Full terminal canvas.
+  final TerminalPixelDimensions canvas;
+
+  /// One terminal cell.
+  final TerminalPixelDimensions cell;
+}
+
+/// Canvas, cell and character dimensions in device pixels.
+final class TerminalDeviceRenderDimensionSet {
+  /// Creates a device-pixel dimension set.
+  const TerminalDeviceRenderDimensionSet({
+    required this.canvas,
+    required this.cell,
+    required this.char,
+  });
+
+  /// Full terminal canvas.
+  final TerminalPixelDimensions canvas;
+
+  /// One terminal cell.
+  final TerminalPixelDimensions cell;
+
+  /// Character box and offset inside a cell.
+  final TerminalCharacterDimensions char;
+}
+
 /// Physical and logical renderer dimensions.
 final class TerminalRenderDimensions {
   /// xterm-compatible `TerminalRenderDimensions` API.
@@ -62,6 +128,34 @@ final class TerminalRenderDimensions {
 
   /// xterm-compatible `devicePixelRatio` API.
   final double devicePixelRatio;
+
+  /// xterm-compatible CSS-pixel canvas and cell dimensions.
+  TerminalRenderDimensionSet get css => TerminalRenderDimensionSet(
+    canvas: TerminalPixelDimensions(width: width, height: height),
+    cell: TerminalPixelDimensions(width: cellWidth, height: cellHeight),
+  );
+
+  /// xterm-compatible device-pixel canvas, cell and character dimensions.
+  TerminalDeviceRenderDimensionSet get device {
+    final ratio = devicePixelRatio;
+    final deviceCell = TerminalPixelDimensions(
+      width: cellWidth * ratio,
+      height: cellHeight * ratio,
+    );
+    return TerminalDeviceRenderDimensionSet(
+      canvas: TerminalPixelDimensions(
+        width: width * ratio,
+        height: height * ratio,
+      ),
+      cell: deviceCell,
+      char: TerminalCharacterDimensions(
+        width: deviceCell.width,
+        height: deviceCell.height,
+        top: 0,
+        left: 0,
+      ),
+    );
+  }
 }
 
 /// A renderer-independent keyboard event.
@@ -865,7 +959,15 @@ final class Terminal extends DisposableStore {
 
   /// Called by the Flutter view after measuring its render surface.
   void updateDimensions(TerminalRenderDimensions value) {
-    if (_dimensions == value) return;
+    final previous = _dimensions;
+    if (previous != null &&
+        previous.width == value.width &&
+        previous.height == value.height &&
+        previous.cellWidth == value.cellWidth &&
+        previous.cellHeight == value.cellHeight &&
+        previous.devicePixelRatio == value.devicePixelRatio) {
+      return;
+    }
     _dimensions = value;
     _engine.renderDimensions = value;
     _onDimensionsChange.fire(value);
