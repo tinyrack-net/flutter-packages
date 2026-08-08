@@ -341,6 +341,14 @@
       "implementation": ["lib/src/core/mouse_state_service.dart"],
       "tests": ["test/upstream_mouse_state_service_parity_test.dart"]
     },
+    "src/common/services/OptionsService.ts": {
+      "implementation": ["lib/src/core/options.dart"],
+      "tests": ["test/upstream_options_service_parity_test.dart"]
+    },
+    "src/common/services/OptionsService.test.ts": {
+      "implementation": ["lib/src/core/options.dart"],
+      "tests": ["test/upstream_options_service_parity_test.dart"]
+    },
     "src/common/services/OscLinkService.ts": {
       "implementation": ["lib/src/core/osc_link_service.dart"],
       "tests": ["test/upstream_osc_link_service_parity_test.dart"]
@@ -1737,6 +1745,16 @@
       "dartTestKind": "test",
       "dartTestPath": "MouseStateService/restrictMouseEvent/encodeMouseEvent"
     },
+    "unit:src/common/services/OptionsService.test.ts:OptionsService constructor uses default value if invalid constructor option values passed for cols/rows": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"uses default value if invalid constructor option values passed for cols/rows","dartTestKind":"test","dartTestPath":"OptionsService/constructor/uses default value if invalid constructor option values passed for cols/rows"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService constructor uses values from constructor option values if correctly passed": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"uses values from constructor option values if correctly passed","dartTestKind":"test","dartTestPath":"OptionsService/constructor/uses values from constructor option values if correctly passed"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService constructor uses default value if invalid constructor option value passed": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"uses default value if invalid constructor option value passed","dartTestKind":"test","dartTestPath":"OptionsService/constructor/uses default value if invalid constructor option value passed"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService constructor object.keys return the correct number of options": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"object.keys return the correct number of options","dartTestKind":"test","dartTestPath":"OptionsService/constructor/object.keys return the correct number of options"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService setOption applies valid fontWeight option values": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"applies valid fontWeight option values","dartTestKind":"test","dartTestPath":"OptionsService/setOption/applies valid fontWeight option values"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService setOption normalizes invalid fontWeight option values": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"normalizes invalid fontWeight option values","dartTestKind":"test","dartTestPath":"OptionsService/setOption/normalizes invalid fontWeight option values"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService onOptionChange should fire on any option change": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"should fire on any option change","dartTestKind":"test","dartTestPath":"OptionsService/onOptionChange/should fire on any option change"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService onSpecificOptionChange should fire only on a specific option change": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"should fire only on a specific option change","dartTestKind":"test","dartTestPath":"OptionsService/onSpecificOptionChange/should fire only on a specific option change"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService onSpecificOptionChange should fire only on a specific option change#2": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"should fire only on a specific option change","dartTestKind":"test","dartTestPath":"OptionsService/onSpecificOptionChange duplicate/should fire only on a specific option change"},
+    "unit:src/common/services/OptionsService.test.ts:OptionsService onMultipleOptionChange should fire only for specific options": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"should fire only for specific options","dartTestKind":"test","dartTestPath":"OptionsService/onMultipleOptionChange/should fire only for specific options"},
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
       "dartTestFile": "test/upstream_params_parity_test.dart",
       "dartTestName": "Params.fromArray --> toArray",

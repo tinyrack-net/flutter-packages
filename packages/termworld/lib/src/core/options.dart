@@ -1,4 +1,5 @@
 import 'package:termworld/src/core/buffer.dart';
+import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/platform_defaults.dart';
 
@@ -509,6 +510,78 @@ final class TerminalOptions {
   /// Fires with the Dart option name after a value changes.
   TerminalEvent<String> get onChange => _onChange.event;
 
+  /// All runtime option names exposed by this Dart options object.
+  List<String> get optionNames => List<String>.unmodifiable(_optionNames);
+
+  /// Listens only for changes to [name] and supplies its new value.
+  Disposable onSpecificOptionChange(
+    String name,
+    void Function(Object? value) listener,
+  ) {
+    _optionValue(name);
+    return _onChange.event.listen((changed) {
+      if (changed == name) listener(_optionValue(name));
+    });
+  }
+
+  /// Runs [listener] when any option in [names] changes.
+  Disposable onMultipleOptionChange(
+    Iterable<String> names,
+    void Function() listener,
+  ) {
+    final selected = names.toSet()..forEach(_optionValue);
+    return _onChange.event.listen((changed) {
+      if (selected.contains(changed)) listener();
+    });
+  }
+
+  static const List<String> _optionNames = <String>[
+    'allowProposedApi',
+    'allowTransparency',
+    'altClickMovesCursor',
+    'convertEol',
+    'cursorBlink',
+    'cursorStyle',
+    'cursorInactiveStyle',
+    'disableStdin',
+    'drawBoldTextInBrightColors',
+    'fontSize',
+    'fontFamily',
+    'fontWeight',
+    'fontWeightBold',
+    'ignoreBracketedPasteMode',
+    'letterSpacing',
+    'linkHandler',
+    'logLevel',
+    'logger',
+    'macOptionIsMeta',
+    'macOptionClickForcesSelection',
+    'mouseEventsRequireAlt',
+    'quirks',
+    'reflowCursorLine',
+    'rescaleOverlappingGlyphs',
+    'rightClickSelectsWord',
+    'screenReaderMode',
+    'scrollOnEraseInDisplay',
+    'scrollOnUserInput',
+    'scrollbar',
+    'smoothScrollDuration',
+    'theme',
+    'vtExtensions',
+    'windowsPty',
+    'windowOptions',
+    'blinkIntervalDuration',
+    'cursorWidth',
+    'fastScrollSensitivity',
+    'lineHeight',
+    'minimumContrastRatio',
+    'wordSeparator',
+    'scrollback',
+    'scrollSensitivity',
+    'tabStopWidth',
+    'termName',
+  ];
+
   bool _allowProposedApi;
   bool _allowTransparency;
   bool _altClickMovesCursor;
@@ -987,6 +1060,54 @@ final class TerminalOptions {
   void _set<T>(String name, T oldValue, T newValue, void Function(T) assign) {
     _setOption(name, oldValue, newValue, assign);
   }
+
+  Object? _optionValue(String name) => switch (name) {
+    'allowProposedApi' => allowProposedApi,
+    'allowTransparency' => allowTransparency,
+    'altClickMovesCursor' => altClickMovesCursor,
+    'convertEol' => convertEol,
+    'cursorBlink' => cursorBlink,
+    'cursorStyle' => cursorStyle,
+    'cursorInactiveStyle' => cursorInactiveStyle,
+    'disableStdin' => disableStdin,
+    'drawBoldTextInBrightColors' => drawBoldTextInBrightColors,
+    'fontSize' => fontSize,
+    'fontFamily' => fontFamily,
+    'fontWeight' => fontWeight,
+    'fontWeightBold' => fontWeightBold,
+    'ignoreBracketedPasteMode' => ignoreBracketedPasteMode,
+    'letterSpacing' => letterSpacing,
+    'linkHandler' => linkHandler,
+    'logLevel' => logLevel,
+    'logger' => logger,
+    'macOptionIsMeta' => macOptionIsMeta,
+    'macOptionClickForcesSelection' => macOptionClickForcesSelection,
+    'mouseEventsRequireAlt' => mouseEventsRequireAlt,
+    'quirks' => quirks,
+    'reflowCursorLine' => reflowCursorLine,
+    'rescaleOverlappingGlyphs' => rescaleOverlappingGlyphs,
+    'rightClickSelectsWord' => rightClickSelectsWord,
+    'screenReaderMode' => screenReaderMode,
+    'scrollOnEraseInDisplay' => scrollOnEraseInDisplay,
+    'scrollOnUserInput' => scrollOnUserInput,
+    'scrollbar' => scrollbar,
+    'smoothScrollDuration' => smoothScrollDuration,
+    'theme' => theme,
+    'vtExtensions' => vtExtensions,
+    'windowsPty' => windowsPty,
+    'windowOptions' => windowOptions,
+    'blinkIntervalDuration' => blinkIntervalDuration,
+    'cursorWidth' => cursorWidth,
+    'fastScrollSensitivity' => fastScrollSensitivity,
+    'lineHeight' => lineHeight,
+    'minimumContrastRatio' => minimumContrastRatio,
+    'wordSeparator' => wordSeparator,
+    'scrollback' => scrollback,
+    'scrollSensitivity' => scrollSensitivity,
+    'tabStopWidth' => tabStopWidth,
+    'termName' => termName,
+    _ => throw ArgumentError.value(name, 'name', 'unknown option'),
+  };
 
   void _setOption<T>(
     String name,
