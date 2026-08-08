@@ -18,7 +18,7 @@ final class WebFontsAddon extends ManagedTerminalAddon {
   }
 
   /// Waits for requested font families and then refreshes the renderer.
-  Future<List<String>> loadFonts([Iterable<String>? fontFamilies]) {
+  Future<List<Object>> loadFonts([Iterable<Object>? fonts]) {
     throw UnsupportedError('WebFontsAddon is only supported on Flutter web');
   }
 

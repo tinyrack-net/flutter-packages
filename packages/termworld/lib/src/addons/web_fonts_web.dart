@@ -5,6 +5,9 @@ import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/terminal.dart';
 import 'package:web/web.dart' as web;
 
+@JS('Array.from')
+external JSArray<JSAny?> _arrayFrom(JSAny iterable);
+
 /// Coordinates browser font readiness with terminal relayout.
 final class WebFontsAddon extends ManagedTerminalAddon {
   /// Creates a web fonts addon.
@@ -22,20 +25,48 @@ final class WebFontsAddon extends ManagedTerminalAddon {
   }
 
   /// Waits for requested font families and then refreshes the renderer.
-  Future<List<String>> loadFonts([Iterable<String>? fontFamilies]) async {
+  Future<List<Object>> loadFonts([Iterable<Object>? fonts]) async {
     await web.document.fonts.ready.toDart;
-    final families = List<String>.of(fontFamilies ?? const <String>[]);
-    for (final family in families) {
-      final loaded =
-          (await web.document.fonts.load('16px ${_quote(family)}').toDart)
-              .toDart;
-      if (loaded.isEmpty) {
-        throw StateError(
-          'font family "$family" not registered in document.fonts',
-        );
+    final registered = _registeredFonts();
+    final requested = List<Object>.of(fonts ?? const <Object>[]);
+    final toLoad = <web.FontFace>[];
+    if (requested.isEmpty) {
+      toLoad.addAll(registered);
+    } else {
+      for (final font in requested) {
+        if (font is String) {
+          final matches = registered
+              .where((face) => _unquote(face.family) == font)
+              .toList(growable: false);
+          if (matches.isEmpty) {
+            throw StateError(
+              'font family "$font" not registered in document.fonts',
+            );
+          }
+          toLoad.addAll(matches);
+          continue;
+        }
+        final jsFont = font.jsify();
+        if (jsFont == null || !jsFont.isA<web.FontFace>()) {
+          throw ArgumentError.value(
+            font,
+            'fonts',
+            'must be a font family or FontFace',
+          );
+        }
+        final face = jsFont as web.FontFace;
+        final existing = registered.where((item) => _sameFace(item, face));
+        if (existing.isEmpty) {
+          web.document.fonts.add(face);
+          registered.add(face);
+          toLoad.add(face);
+        } else {
+          toLoad.add(existing.first);
+        }
       }
     }
-    return List<String>.unmodifiable(families);
+    final loaded = await Future.wait(toLoad.map((face) => face.load().toDart));
+    return List<Object>.unmodifiable(loaded);
   }
 
   /// Recalculates terminal layout after browser fonts settle.
@@ -47,18 +78,18 @@ final class WebFontsAddon extends ManagedTerminalAddon {
     final family = terminal.options.fontFamily;
     final families = _splitFamily(family);
     if (families.isEmpty) return;
-    var foundWebFont = false;
-    for (final candidate in families) {
-      final loaded =
-          (await web.document.fonts.load('16px ${_quote(candidate)}').toDart)
-              .toDart;
-      foundWebFont = foundWebFont || loaded.isNotEmpty;
-    }
-    if (!foundWebFont) return;
+    final webFamilies = _registeredFonts()
+        .map((face) => _unquote(face.family))
+        .toSet();
+    final dirty = families.where(webFamilies.contains).toList(growable: false);
+    if (dirty.isEmpty) return;
+    await loadFonts(dirty);
     if (!isActive) return;
-    terminal.options.fontFamily = 'monospace';
+    final clean = families.where((family) => !webFamilies.contains(family));
+    terminal.options.fontFamily = clean.isEmpty
+        ? 'monospace'
+        : clean.map(_quote).join(', ');
     terminal.options.fontFamily = family;
-    terminal.refresh(0, terminal.rows - 1);
   }
 
   void _scheduleRelayout() {
@@ -70,6 +101,17 @@ final class WebFontsAddon extends ManagedTerminalAddon {
       .map((value) => _unquote(value.trim()))
       .where((value) => value.isNotEmpty)
       .toList(growable: false);
+
+  static List<web.FontFace> _registeredFonts() => _arrayFrom(
+    web.document.fonts,
+  ).toDart.map((item) => item! as web.FontFace).toList();
+
+  static bool _sameFace(web.FontFace left, web.FontFace right) =>
+      _unquote(left.family) == _unquote(right.family) &&
+      left.stretch == right.stretch &&
+      left.style == right.style &&
+      left.unicodeRange == right.unicodeRange &&
+      left.weight == right.weight;
 
   static String _unquote(String value) {
     if (value.length >= 2 &&

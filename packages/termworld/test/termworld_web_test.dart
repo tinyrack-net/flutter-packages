@@ -15,10 +15,11 @@ void main() {
     expect(addon.relayout, throwsStateError);
 
     terminal.loadAddon(addon);
-    expect(await addon.loadFonts(<String>['Mono', 'CJK']), <String>[
-      'Mono',
-      'CJK',
-    ]);
+    await expectLater(
+      addon.loadFonts(<String>['Termworld Missing Font']),
+      throwsStateError,
+    );
+    expect(await addon.loadFonts(), isA<List<Object>>());
     await addon.relayout();
   });
 
@@ -44,6 +45,9 @@ void main() {
 
     terminal.loadAddon(addon);
     expect(addon.textureAtlas?.generation, 1);
+    expect(addon.textureAtlas?.canvas, isNotNull);
+    expect(addon.onAddTextureAtlasCanvas, isNotNull);
+    expect(addon.onRemoveTextureAtlasCanvas, isNotNull);
     addon
       ..clearTextureAtlas()
       ..reportContextLoss()
