@@ -312,11 +312,275 @@ void main() {
       ),
     );
   });
+
+  test('xterm HeadlessTerminal 24', () {
+    final modes = _terminal().modes;
+    expect(modes.applicationCursorKeysMode, isFalse);
+    expect(modes.applicationKeypadMode, isFalse);
+    expect(modes.bracketedPasteMode, isFalse);
+    expect(modes.insertMode, isFalse);
+    expect(modes.mouseTrackingMode, 'none');
+    expect(modes.originMode, isFalse);
+    expect(modes.reverseWraparoundMode, isFalse);
+    expect(modes.sendFocusMode, isFalse);
+    expect(modes.showCursor, isTrue);
+    expect(modes.synchronizedOutputMode, isFalse);
+    expect(modes.win32InputMode, isFalse);
+    expect(modes.wraparoundMode, isTrue);
+  });
+
+  test('xterm HeadlessTerminal 25', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[?1h',
+      resetSequence: '\u001b[?1l',
+      value: () => terminal.modes.applicationCursorKeysMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 26', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[?66h',
+      resetSequence: '\u001b[?66l',
+      value: () => terminal.modes.applicationKeypadMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 27', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[?2004h',
+      resetSequence: '\u001b[?2004l',
+      value: () => terminal.modes.bracketedPasteMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 28', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[4h',
+      resetSequence: '\u001b[4l',
+      value: () => terminal.modes.insertMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 29', () async {
+    final terminal = _terminal();
+    for (final entry in <(int, String)>[
+      (9, 'x10'),
+      (1000, 'vt200'),
+      (1002, 'drag'),
+      (1003, 'any'),
+    ]) {
+      await terminal.writeAndWait('\u001b[?${entry.$1}h');
+      expect(terminal.modes.mouseTrackingMode, entry.$2);
+      await terminal.writeAndWait('\u001b[?${entry.$1}l');
+      expect(terminal.modes.mouseTrackingMode, 'none');
+    }
+  });
+
+  test('xterm HeadlessTerminal 30', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[?6h',
+      resetSequence: '\u001b[?6l',
+      value: () => terminal.modes.originMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 31', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[?45h',
+      resetSequence: '\u001b[?45l',
+      value: () => terminal.modes.reverseWraparoundMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 32', () async {
+    final terminal = _terminal();
+    await _expectModeToggle(
+      terminal,
+      setSequence: '\u001b[?1004h',
+      resetSequence: '\u001b[?1004l',
+      value: () => terminal.modes.sendFocusMode,
+    );
+  });
+
+  test('xterm HeadlessTerminal 33', () async {
+    final terminal = _terminal();
+    await terminal.writeAndWait('\u001b[?7h');
+    expect(terminal.modes.wraparoundMode, isTrue);
+    await terminal.writeAndWait('\u001b[?7l');
+    expect(terminal.modes.wraparoundMode, isFalse);
+  });
+
+  test('xterm HeadlessTerminal 34', () {
+    final terminal = _terminal()..dispose();
+    expect(terminal.isDisposed, isTrue);
+  });
+
+  test('xterm HeadlessTerminal 35', () async {
+    final terminal = _terminal(rows: 5, cols: 5);
+    expect(terminal.buffer.active.cursorX, 0);
+    expect(terminal.buffer.active.cursorY, 0);
+    await terminal.writeAndWait('foo');
+    expect(terminal.buffer.active.cursorX, 3);
+    expect(terminal.buffer.active.cursorY, 0);
+    await terminal.writeAndWait('\n');
+    expect(terminal.buffer.active.cursorX, 3);
+    expect(terminal.buffer.active.cursorY, 1);
+    await terminal.writeAndWait('\r');
+    expect(terminal.buffer.active.cursorX, 0);
+    expect(terminal.buffer.active.cursorY, 1);
+    await terminal.writeAndWait('abcde');
+    expect(terminal.buffer.active.cursorX, 5);
+    expect(terminal.buffer.active.cursorY, 1);
+    await terminal.writeAndWait('\n\r\n\n\n\n\n');
+    expect(terminal.buffer.active.cursorX, 0);
+    expect(terminal.buffer.active.cursorY, 4);
+  });
+
+  test('xterm HeadlessTerminal 36', () async {
+    final terminal = _terminal(rows: 5);
+    expect(terminal.buffer.active.viewportY, 0);
+    await terminal.writeAndWait('\n\n\n\n');
+    expect(terminal.buffer.active.viewportY, 0);
+    await terminal.writeAndWait('\n');
+    expect(terminal.buffer.active.viewportY, 1);
+    await terminal.writeAndWait('\n\n\n\n');
+    expect(terminal.buffer.active.viewportY, 5);
+    terminal.scrollLines(-1);
+    expect(terminal.buffer.active.viewportY, 4);
+    terminal.scrollToTop();
+    expect(terminal.buffer.active.viewportY, 0);
+  });
+
+  test('xterm HeadlessTerminal 37', () async {
+    final terminal = _terminal(rows: 5);
+    expect(terminal.buffer.active.baseY, 0);
+    await terminal.writeAndWait('\n\n\n\n');
+    expect(terminal.buffer.active.baseY, 0);
+    await terminal.writeAndWait('\n');
+    expect(terminal.buffer.active.baseY, 1);
+    await terminal.writeAndWait('\n\n\n\n');
+    expect(terminal.buffer.active.baseY, 5);
+    terminal.scrollLines(-1);
+    expect(terminal.buffer.active.baseY, 5);
+    terminal.scrollToTop();
+    expect(terminal.buffer.active.baseY, 5);
+  });
+
+  test('xterm HeadlessTerminal 38', () async {
+    final terminal = _terminal(rows: 5);
+    expect(terminal.buffer.active.length, 5);
+    await terminal.writeAndWait('\n\n\n\n');
+    expect(terminal.buffer.active.length, 5);
+    await terminal.writeAndWait('\n');
+    expect(terminal.buffer.active.length, 6);
+    await terminal.writeAndWait('\n\n\n\n');
+    expect(terminal.buffer.active.length, 10);
+  });
+
+  test('xterm HeadlessTerminal 39', () {
+    final terminal = _terminal(rows: 5);
+    expect(terminal.buffer.active.getLine(-1), isNull);
+    expect(terminal.buffer.active.getLine(5), isNull);
+  });
+
+  test('xterm HeadlessTerminal 40', () async {
+    final terminal = _terminal(cols: 5);
+    expect(terminal.buffer.active.getLine(0)!.isWrapped, isFalse);
+    expect(terminal.buffer.active.getLine(1)!.isWrapped, isFalse);
+    await terminal.writeAndWait('abcde');
+    expect(terminal.buffer.active.getLine(0)!.isWrapped, isFalse);
+    expect(terminal.buffer.active.getLine(1)!.isWrapped, isFalse);
+    await terminal.writeAndWait('f');
+    expect(terminal.buffer.active.getLine(0)!.isWrapped, isFalse);
+    expect(terminal.buffer.active.getLine(1)!.isWrapped, isTrue);
+  });
+
+  test('xterm HeadlessTerminal 41', () async {
+    final terminal = _terminal(cols: 5);
+    final line = terminal.buffer.active.getLine(0)!;
+    expect(line.translateToString(), '     ');
+    expect(line.translateToString(trimRight: true), '');
+    await terminal.writeAndWait('foo');
+    expect(line.translateToString(), 'foo  ');
+    expect(line.translateToString(trimRight: true), 'foo');
+    await terminal.writeAndWait('bar');
+    expect(line.translateToString(), 'fooba');
+    expect(line.translateToString(trimRight: true), 'fooba');
+    expect(
+      terminal.buffer.active.getLine(1)!.translateToString(trimRight: true),
+      'r',
+    );
+    expect(line.translateToString(startColumn: 1), 'ooba');
+    expect(line.translateToString(startColumn: 1, endColumn: 3), 'oo');
+  });
+
+  test('xterm HeadlessTerminal 42', () async {
+    final terminal = _terminal(cols: 5);
+    final line = terminal.buffer.active.getLine(0)!;
+    expect(line.getCell(-1), isNull);
+    expect(line.getCell(5), isNull);
+    expect(line.getCell(0)!.chars, '');
+    expect(line.getCell(0)!.width, 1);
+    await terminal.writeAndWait('a文');
+    expect(line.getCell(0)!.chars, 'a');
+    expect(line.getCell(0)!.width, 1);
+    expect(line.getCell(1)!.chars, '文');
+    expect(line.getCell(1)!.width, 2);
+    expect(line.getCell(2)!.chars, '');
+    expect(line.getCell(2)!.width, 0);
+  });
+
+  test('xterm HeadlessTerminal 43', () async {
+    final terminal = _terminal(cols: 5);
+    expect(terminal.buffer.active.type, TerminalBufferType.normal);
+    expect(terminal.buffer.normal.type, TerminalBufferType.normal);
+    expect(terminal.buffer.alternate.type, TerminalBufferType.alternate);
+    await terminal.writeAndWait('norm ');
+    _bufferLineEquals(terminal.buffer.active, 0, 'norm ');
+    _bufferLineEquals(terminal.buffer.normal, 0, 'norm ');
+    expect(terminal.buffer.alternate.getLine(0), isNull);
+    await terminal.writeAndWait('\u001b[?47h\r');
+    expect(terminal.buffer.active.type, TerminalBufferType.alternate);
+    _bufferLineEquals(terminal.buffer.active, 0, '     ');
+    await terminal.writeAndWait('alt  ');
+    _bufferLineEquals(terminal.buffer.active, 0, 'alt  ');
+    _bufferLineEquals(terminal.buffer.normal, 0, 'norm ');
+    _bufferLineEquals(terminal.buffer.alternate, 0, 'alt  ');
+    await terminal.writeAndWait('\u001b[?47l\r');
+    expect(terminal.buffer.active.type, TerminalBufferType.normal);
+    _bufferLineEquals(terminal.buffer.active, 0, 'norm ');
+    _bufferLineEquals(terminal.buffer.normal, 0, 'norm ');
+    expect(terminal.buffer.alternate.getLine(0), isNull);
+  });
+
+  test('xterm HeadlessTerminal 44', () async {
+    final terminal = _terminal(cols: 5);
+    await terminal.writeAndWait('\u001b[?47h');
+    final marker = terminal.registerMarker();
+    expect(terminal.buffer.active.type, TerminalBufferType.alternate);
+    expect(terminal.markers, <TerminalMarker?>[marker]);
+  });
 }
 
-Terminal _terminal({int rows = 24}) {
+Terminal _terminal({int rows = 24, int cols = 80}) {
   final terminal = Terminal(
-    options: TerminalOptions(allowProposedApi: true, rows: rows),
+    options: TerminalOptions(
+      allowProposedApi: true,
+      rows: rows,
+      cols: cols,
+    ),
   );
   addTearDown(terminal.dispose);
   return terminal;
@@ -333,6 +597,22 @@ void _lineEquals(Terminal terminal, int line, String expected) {
     terminal.buffer.active.getLine(line)!.translateToString(trimRight: true),
     expected,
   );
+}
+
+void _bufferLineEquals(TerminalBuffer buffer, int line, String expected) {
+  expect(buffer.getLine(line)!.translateToString(), expected);
+}
+
+Future<void> _expectModeToggle(
+  Terminal terminal, {
+  required String setSequence,
+  required String resetSequence,
+  required bool Function() value,
+}) async {
+  await terminal.writeAndWait(setSequence);
+  expect(value(), isTrue);
+  await terminal.writeAndWait(resetSequence);
+  expect(value(), isFalse);
 }
 
 final class _TrackingAddon extends TerminalAddon {
