@@ -4,6 +4,7 @@ library;
 import 'dart:async';
 
 import 'package:termworld/src/addons/managed_addon.dart';
+import 'package:termworld/src/addons/search_line_cache.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
@@ -110,6 +111,7 @@ final class SearchAddon extends ManagedTerminalAddon {
   String? _cachedTerm;
   TerminalSearchOptions? _lastOptions;
   Timer? _refreshTimer;
+  late SearchLineCache _lineCache;
 
   /// Fired synchronously immediately before each search.
   TerminalEvent<TerminalVoid> get onBeforeSearch => _onBeforeSearch.event;
@@ -123,6 +125,7 @@ final class SearchAddon extends ManagedTerminalAddon {
 
   @override
   void onActivate(Terminal terminal) {
+    _lineCache = add(SearchLineCache(terminal));
     add(terminal.onWriteParsed.listen((_) => _scheduleRefresh()));
     add(terminal.onResize.listen((_) => _scheduleRefresh()));
   }
@@ -289,13 +292,21 @@ final class SearchAddon extends ManagedTerminalAddon {
 
   Iterable<_LogicalLine> _logicalLines() sync* {
     final buffer = terminal.buffer.active;
+    final lineCache = _lineCache..initLinesCache();
     var row = 0;
     while (row < buffer.length) {
       if (buffer.getLine(row)!.isWrapped) {
         row++;
         continue;
       }
-      final text = StringBuffer();
+      var entry = lineCache.getLineFromCache(row);
+      if (entry == null) {
+        entry = lineCache.translateBufferLineToStringWithWrap(
+          row,
+          trimRight: true,
+        );
+        lineCache.setLineInCache(row, entry);
+      }
       final boundaries = <int>[row * terminal.cols];
       var currentRow = row;
       while (currentRow < buffer.length) {
@@ -319,7 +330,6 @@ final class SearchAddon extends ManagedTerminalAddon {
           final cell = line.getCell(column)!;
           if (cell.width == 0) continue;
           final value = cell.chars.isEmpty ? ' ' : cell.chars;
-          text.write(value);
           for (var unit = 0; unit < value.length; unit++) {
             boundaries.add(
               unit == value.length - 1
@@ -331,7 +341,7 @@ final class SearchAddon extends ManagedTerminalAddon {
         if (!wraps) break;
         currentRow++;
       }
-      yield _LogicalLine(text.toString(), boundaries);
+      yield _LogicalLine(entry.line, boundaries);
       row = currentRow + 1;
     }
   }
