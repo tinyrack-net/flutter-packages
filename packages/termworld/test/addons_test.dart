@@ -34,6 +34,8 @@ void main() {
     final terminal = Terminal();
     final addon = FitAddon();
     addTearDown(terminal.dispose);
+    expect(addon.proposeDimensions(), isNull);
+    addon.fit();
     terminal
       ..loadAddon(addon)
       ..updateDimensions(
@@ -46,10 +48,17 @@ void main() {
         ),
       );
 
-    expect(addon.proposeDimensions()?.cols, 8);
-    expect(addon.proposeDimensions()?.rows, 5);
+    expect(
+      addon.proposeDimensions(),
+      const TerminalDimensions(rows: 5, cols: 8),
+    );
     addon.fit();
     expect((terminal.cols, terminal.rows), (8, 5));
+    addon.dispose();
+    expect(
+      addon.proposeDimensions(),
+      const TerminalDimensions(rows: 5, cols: 8),
+    );
   });
 
   test('image consumes iTerm2, sixel, and Kitty payloads', () async {
