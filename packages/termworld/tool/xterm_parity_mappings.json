@@ -279,6 +279,14 @@
       "implementation": ["lib/src/core/core_service.dart"],
       "tests": ["test/upstream_core_service_parity_test.dart"]
     },
+    "src/common/services/CharsetService.ts": {
+      "implementation": ["lib/src/core/charset_service.dart"],
+      "tests": ["test/upstream_charset_service_parity_test.dart"]
+    },
+    "src/common/services/CharsetService.test.ts": {
+      "implementation": ["lib/src/core/charset_service.dart"],
+      "tests": ["test/upstream_charset_service_parity_test.dart"]
+    },
     "src/common/input/UnicodeV6.ts": {
       "implementation": [
         "lib/src/core/unicode.dart",
@@ -918,6 +926,26 @@
     "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range for end line right after start line": {
       "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
       "dartTestName": "should get range for end line right after start line",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CharsetService.test.ts:CharsetService should not update active charset when designating an inactive glevel": {
+      "dartTestFile": "test/upstream_charset_service_parity_test.dart",
+      "dartTestName": "should not update active charset when designating an inactive glevel",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CharsetService.test.ts:CharsetService should expose the designated charset after setgLevel": {
+      "dartTestFile": "test/upstream_charset_service_parity_test.dart",
+      "dartTestName": "should expose the designated charset after setgLevel",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CharsetService.test.ts:CharsetService should update active charset when designating the current glevel": {
+      "dartTestFile": "test/upstream_charset_service_parity_test.dart",
+      "dartTestName": "should update active charset when designating the current glevel",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CharsetService.test.ts:CharsetService should reset glevel, charsets, and active charset": {
+      "dartTestFile": "test/upstream_charset_service_parity_test.dart",
+      "dartTestName": "should reset glevel, charsets, and active charset",
       "dartTestKind": "test"
     },
     "unit:src/common/services/CoreService.test.ts:CoreService isCursorInitialized should be false by default": {
