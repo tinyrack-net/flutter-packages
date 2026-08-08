@@ -569,9 +569,17 @@ final class TerminalBuffer {
       line.resize(columns, eraseAttributes);
     }
     if (rows > oldRows) {
+      final growth = rows - oldRows;
+      final canRevealHistory =
+          oldBase > 0 && _lines.length <= absoluteCursor + 1;
+      final linesToAdd = canRevealHistory
+          ? growth > oldBase
+                ? growth - oldBase
+                : 0
+          : growth;
       _lines.addAll(
         List<TerminalBufferLine>.generate(
-          rows - oldRows,
+          linesToAdd,
           (_) => TerminalBufferLine(columns, attributes: eraseAttributes),
         ),
       );

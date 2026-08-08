@@ -144,4 +144,40 @@ void main() {
     expect(buffers.alternate.length, 5);
     buffers.dispose();
   });
+
+  test('growing rows reveals history only when the cursor is at the end', () {
+    final erase = TerminalCellAttributes();
+    final atEnd = TerminalBufferNamespace(
+      columns: 4,
+      rows: 2,
+      scrollback: 10,
+    );
+    atEnd.normal
+      ..cursorY = 1
+      ..scroll(erase)
+      ..scroll(erase)
+      ..scroll(erase);
+
+    atEnd.resize(4, 4, erase);
+    expect((atEnd.normal.length, atEnd.normal.baseY), (5, 1));
+    expect(atEnd.normal.cursorY, 3);
+    atEnd.resize(4, 6, erase);
+    expect((atEnd.normal.length, atEnd.normal.baseY), (6, 0));
+    expect(atEnd.normal.cursorY, 4);
+
+    final aboveEnd = TerminalBufferNamespace(
+      columns: 4,
+      rows: 2,
+      scrollback: 10,
+    );
+    aboveEnd.normal
+      ..scroll(erase)
+      ..scroll(erase)
+      ..scroll(erase);
+    aboveEnd.resize(4, 4, erase);
+    expect((aboveEnd.normal.length, aboveEnd.normal.baseY), (7, 3));
+
+    atEnd.dispose();
+    aboveEnd.dispose();
+  });
 }
