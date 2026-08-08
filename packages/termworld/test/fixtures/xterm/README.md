@@ -12,3 +12,6 @@ upstream tests. Its Git blob hash is verified by the parity gate.
 
 `win32_input_mode_cases.json` similarly captures every event and result from
 all 64 pinned `src/common/input/Win32InputMode.test.ts` cases.
+
+`keyboard_cases.json` captures all 61 legacy keyboard tests and their 156
+individual evaluations, including duplicate upstream test names.

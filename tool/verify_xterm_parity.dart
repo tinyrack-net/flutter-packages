@@ -117,7 +117,35 @@ void main() {
   _checkPinnedLigatureFonts(package, failures);
   _checkPinnedKittyKeyboardCases(package, failures);
   _checkPinnedWin32InputModeCases(package, failures);
+  _checkPinnedKeyboardCases(package, failures);
   _finish(failures);
+}
+
+void _checkPinnedKeyboardCases(Directory package, List<String> failures) {
+  final fixture = File(
+    '${package.path}/test/fixtures/xterm/keyboard_cases.json',
+  );
+  if (!fixture.existsSync()) {
+    failures.add('pinned keyboard cases are missing');
+    return;
+  }
+  final result = Process.runSync('git', <String>[
+    'hash-object',
+    '--no-filters',
+    fixture.path,
+  ]);
+  if (result.exitCode != 0 ||
+      (result.stdout as String).trim() !=
+          'c89dbbb10866621f5210d1655a862d79f4c0a604') {
+    failures.add('pinned keyboard cases changed');
+  }
+  final document = jsonDecode(fixture.readAsStringSync());
+  if (document is! Map<String, Object?> ||
+      document['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb' ||
+      document['cases'] is! List<Object?> ||
+      (document['cases']! as List<Object?>).length != 61) {
+    failures.add('pinned keyboard case identity changed');
+  }
 }
 
 void _checkPinnedWin32InputModeCases(

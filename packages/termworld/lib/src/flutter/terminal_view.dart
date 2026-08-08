@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/keyboard.dart';
 import 'package:termworld/src/core/kitty_keyboard.dart';
 import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
@@ -1181,6 +1182,7 @@ final class _TerminalViewState extends State<TerminalView> {
     final protocolEvent = KittyKeyboardEvent(
       key: _kittyKey(event.logicalKey),
       code: _kittyCode(event.physicalKey),
+      keyCode: _legacyKeyCode(event.logicalKey, event.physicalKey),
       type: event is KeyUpEvent ? 'keyup' : 'keydown',
       shiftKey: keyboard.isShiftPressed,
       altKey: keyboard.isAltPressed,
@@ -1212,20 +1214,76 @@ final class _TerminalViewState extends State<TerminalView> {
       if (result.cancel || sequence != null) return KeyEventResult.handled;
       if (event is KeyUpEvent) return KeyEventResult.ignored;
     }
-    if (keyboard.isShiftPressed &&
-        event.logicalKey == LogicalKeyboardKey.pageUp) {
-      widget.terminal.scrollPages(-1);
-      return KeyEventResult.handled;
+    final legacy = evaluateKeyboardEvent(
+      protocolEvent,
+      applicationCursorMode: widget.terminal.modes.applicationCursorKeysMode,
+      isMac: defaultTargetPlatform == TargetPlatform.macOS,
+      macOptionIsMeta: widget.terminal.options.macOptionIsMeta,
+    );
+    switch (legacy.type) {
+      case KittyKeyboardResultType.selectAll:
+        widget.terminal.selectAll();
+        return KeyEventResult.handled;
+      case KittyKeyboardResultType.pageUp:
+        widget.terminal.scrollPages(-1);
+        return KeyEventResult.handled;
+      case KittyKeyboardResultType.pageDown:
+        widget.terminal.scrollPages(1);
+        return KeyEventResult.handled;
+      case KittyKeyboardResultType.sendKey:
+        final sequence = legacy.key;
+        if (sequence == null) return KeyEventResult.ignored;
+        widget.terminal.input(sequence);
+        return KeyEventResult.handled;
     }
-    if (keyboard.isShiftPressed &&
-        event.logicalKey == LogicalKeyboardKey.pageDown) {
-      widget.terminal.scrollPages(1);
-      return KeyEventResult.handled;
+  }
+
+  int _legacyKeyCode(
+    LogicalKeyboardKey logical,
+    PhysicalKeyboardKey physical,
+  ) {
+    final usage = physical.usbHidUsage & 0xffff;
+    if (usage >= 0x04 && usage <= 0x1d) return 65 + usage - 0x04;
+    if (usage >= 0x1e && usage <= 0x26) return 49 + usage - 0x1e;
+    if (usage == 0x27) return 48;
+    final physicalCodes = <int, int>{
+      0x28: 13,
+      0x29: 27,
+      0x2a: 8,
+      0x2b: 9,
+      0x2c: 32,
+      0x2d: 189,
+      0x2e: 187,
+      0x2f: 219,
+      0x30: 221,
+      0x31: 220,
+      0x33: 186,
+      0x34: 222,
+      0x35: 192,
+      0x36: 188,
+      0x37: 190,
+      0x38: 191,
+    };
+    final physicalCode = physicalCodes[usage];
+    if (physicalCode != null) return physicalCode;
+    final named = <LogicalKeyboardKey, int>{
+      LogicalKeyboardKey.pageUp: 33,
+      LogicalKeyboardKey.pageDown: 34,
+      LogicalKeyboardKey.end: 35,
+      LogicalKeyboardKey.home: 36,
+      LogicalKeyboardKey.arrowLeft: 37,
+      LogicalKeyboardKey.arrowUp: 38,
+      LogicalKeyboardKey.arrowRight: 39,
+      LogicalKeyboardKey.arrowDown: 40,
+      LogicalKeyboardKey.insert: 45,
+      LogicalKeyboardKey.delete: 46,
+    };
+    final namedCode = named[logical];
+    if (namedCode != null) return namedCode;
+    for (var number = 1; number <= 12; number++) {
+      if (logical == _logicalFunctionKey(number)) return 111 + number;
     }
-    final sequence = _keySequence(event.logicalKey, keyboard);
-    if (sequence == null) return KeyEventResult.ignored;
-    widget.terminal.input(sequence);
-    return KeyEventResult.handled;
+    return 0;
   }
 
   String _kittyKey(LogicalKeyboardKey key) {
@@ -1324,151 +1382,6 @@ final class _TerminalViewState extends State<TerminalView> {
           PhysicalKeyboardKey.numpadEqual: 'NumpadEqual',
         }[key] ??
         '';
-  }
-
-  String? _keySequence(
-    LogicalKeyboardKey key,
-    HardwareKeyboard keyboard,
-  ) {
-    final shift = keyboard.isShiftPressed;
-    final alt = keyboard.isAltPressed;
-    final control = keyboard.isControlPressed;
-    final meta = keyboard.isMetaPressed;
-    final modifier =
-        1 +
-        (shift ? 1 : 0) +
-        (alt ? 2 : 0) +
-        (control ? 4 : 0) +
-        (meta ? 8 : 0);
-    final applicationCursorMode =
-        widget.terminal.modes.applicationCursorKeysMode;
-    String? cursor(String finalByte) {
-      if (meta) return null;
-      if (modifier != 1) return '\u001b[1;$modifier$finalByte';
-      return applicationCursorMode ? '\u001bO$finalByte' : '\u001b[$finalByte';
-    }
-
-    String tilde(int code) =>
-        modifier == 1 ? '\u001b[$code~' : '\u001b[$code;$modifier~';
-    if (key == LogicalKeyboardKey.backspace) {
-      final deletion = control ? '\b' : '\u007f';
-      return alt ? '\u001b$deletion' : deletion;
-    }
-    if (key == LogicalKeyboardKey.tab) {
-      if (shift) return '\u001b[Z';
-      return '\t';
-    }
-    if (key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter) {
-      return alt ? '\u001b\r' : '\r';
-    }
-    if (key == LogicalKeyboardKey.escape) {
-      return alt ? '\u001b\u001b' : '\u001b';
-    }
-    if (key == LogicalKeyboardKey.arrowUp) return cursor('A');
-    if (key == LogicalKeyboardKey.arrowDown) return cursor('B');
-    if (key == LogicalKeyboardKey.arrowRight) return cursor('C');
-    if (key == LogicalKeyboardKey.arrowLeft) return cursor('D');
-    if (key == LogicalKeyboardKey.home) return cursor('H');
-    if (key == LogicalKeyboardKey.end) return cursor('F');
-    if (key == LogicalKeyboardKey.insert) {
-      return shift || control ? null : '\u001b[2~';
-    }
-    if (key == LogicalKeyboardKey.delete) return tilde(3);
-    if (key == LogicalKeyboardKey.pageUp) {
-      return control ? tilde(5) : '\u001b[5~';
-    }
-    if (key == LogicalKeyboardKey.pageDown) {
-      return control ? tilde(6) : '\u001b[6~';
-    }
-    final function = _functionKey(key);
-    if (function != null) {
-      final (code, finalByte) = function;
-      if (code == 1) {
-        return modifier == 1
-            ? '\u001bO$finalByte'
-            : '\u001b[1;$modifier$finalByte';
-      }
-      return modifier == 1 ? '\u001b[$code~' : '\u001b[$code;$modifier~';
-    }
-    final controlSequence = _controlSequence(key, shift, control, alt, meta);
-    if (controlSequence != null) return controlSequence;
-    final altSequence = _altSequence(key, shift, control, alt, meta);
-    if (altSequence != null) return altSequence;
-    return null;
-  }
-
-  (int, String)? _functionKey(LogicalKeyboardKey key) {
-    if (key == LogicalKeyboardKey.f1) return (1, 'P');
-    if (key == LogicalKeyboardKey.f2) return (1, 'Q');
-    if (key == LogicalKeyboardKey.f3) return (1, 'R');
-    if (key == LogicalKeyboardKey.f4) return (1, 'S');
-    if (key == LogicalKeyboardKey.f5) return (15, '');
-    if (key == LogicalKeyboardKey.f6) return (17, '');
-    if (key == LogicalKeyboardKey.f7) return (18, '');
-    if (key == LogicalKeyboardKey.f8) return (19, '');
-    if (key == LogicalKeyboardKey.f9) return (20, '');
-    if (key == LogicalKeyboardKey.f10) return (21, '');
-    if (key == LogicalKeyboardKey.f11) return (23, '');
-    if (key == LogicalKeyboardKey.f12) return (24, '');
-    return null;
-  }
-
-  String? _controlSequence(
-    LogicalKeyboardKey key,
-    bool shift,
-    bool control,
-    bool alt,
-    bool meta,
-  ) {
-    if (!control || alt || meta) return null;
-    final label = key.keyLabel;
-    if (!shift && key == LogicalKeyboardKey.space) return '\u0000';
-    if (!shift && label.length == 1) {
-      final code = label.toUpperCase().codeUnitAt(0);
-      if (code >= 0x41 && code <= 0x5a) return String.fromCharCode(code - 0x40);
-      if ('34567'.contains(label)) {
-        return String.fromCharCode(label.codeUnitAt(0) - 0x33 + 0x1b);
-      }
-      if (label == '8') return '\u007f';
-      if (label == '[') return '\u001b';
-      if (label == r'\') return '\u001c';
-      if (label == ']') return '\u001d';
-      if (label == '/') return '\u001f';
-    }
-    if (shift) {
-      if (key == LogicalKeyboardKey.minus) return '\u001f';
-      if (key == LogicalKeyboardKey.digit2) return '\u0000';
-      if (key == LogicalKeyboardKey.digit6) return '\u001e';
-    }
-    return null;
-  }
-
-  String? _altSequence(
-    LogicalKeyboardKey key,
-    bool shift,
-    bool control,
-    bool alt,
-    bool meta,
-  ) {
-    if (!alt || meta) return null;
-    if (defaultTargetPlatform == TargetPlatform.macOS &&
-        !widget.terminal.options.macOptionIsMeta) {
-      return null;
-    }
-    var label = key == LogicalKeyboardKey.space ? ' ' : key.keyLabel;
-    if (label.length != 1) return null;
-    if (control) {
-      final code = label.toUpperCase().codeUnitAt(0);
-      if (code >= 0x41 && code <= 0x5a) {
-        label = String.fromCharCode(code - 0x40);
-      } else if (label == ' ') {
-        label = '\u0000';
-      }
-    } else if (!shift) {
-      label = label.toLowerCase();
-    }
-    return '\u001b$label';
   }
 
   void _reportDimensions(BuildContext context, Size size) {

@@ -1332,8 +1332,8 @@
     "src/common/buffer/Constants.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart"]},
     "src/common/buffer/Types.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart","test/upstream_cell_data_parity_test.dart"]},
     "src/common/data/Charsets.ts": {"implementation":["lib/src/core/charset_service.dart","lib/src/core/engine.dart"],"tests":["test/upstream_charset_service_parity_test.dart","test/xterm_core_parity_test.dart"]},
-    "src/common/input/Keyboard.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_core_focused_test.dart","test/xterm_core_parity_test.dart"]},
-    "src/common/input/Keyboard.test.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_core_focused_test.dart","test/xterm_core_parity_test.dart"]},
+    "src/common/input/Keyboard.ts": {"implementation":["lib/src/core/keyboard.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_keyboard_parity_test.dart"]},
+    "src/common/input/Keyboard.test.ts": {"implementation":["lib/src/core/keyboard.dart"],"tests":["test/upstream_keyboard_parity_test.dart"]},
     "src/common/input/KittyKeyboard.ts": {"implementation":["lib/src/core/kitty_keyboard.dart","lib/src/core/engine.dart"],"tests":["test/upstream_kitty_keyboard_parity_test.dart","test/upstream_core_focused_test.dart"]},
     "src/common/input/KittyKeyboard.test.ts": {"implementation":["lib/src/core/kitty_keyboard.dart"],"tests":["test/upstream_kitty_keyboard_parity_test.dart"]},
     "src/common/input/TextDecoder.ts": {"implementation":["lib/src/core/text_decoder.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_text_decoder_parity_test.dart"]},
@@ -6097,6 +6097,311 @@
     "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent unicode character symbol": {
       "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
       "dartTestName": "xterm Win32InputMode 63",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On macOS platforms should return \\x1b[1;3A for alt+up": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 00",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On macOS platforms should return \\x1b[1;3B for alt+down": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 01",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On macOS platforms should return \\x1b[1;3C for alt+right": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 02",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On macOS platforms should return \\x1b[1;3D for alt+left": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 03",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On macOS platforms should return undefined for alt+a": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 04",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1b[1;3A for alt+up": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 05",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1b[1;3B for alt+down": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 06",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1b[1;3C for alt+right": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 07",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1b[1;3D for alt+left": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 08",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1b\\x00 for ctrl+alt+space": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 09",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1b\\x20 for alt+space": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 10",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence On non-macOS platforms should return \\x1ba for alt+a": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 11",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should handle lowercase letters": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 12",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should handle mobile arrow events": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 13",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should handle uppercase letters": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 14",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x08 for ctrl+backspace": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 15",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[1;3A for alt+up": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 16",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[1;3B for alt+down": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 17",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[3;2~ for shift+delete": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 18",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[3;2~ for shift+delete#2": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 19",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[3;3~ for alt+delete": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 20",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[3;3~ for alt+delete#2": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 21",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[3;5~ for ctrl+delete": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 22",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[5A for ctrl+up": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 23",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[5B for ctrl+down": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 24",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[5C for ctrl+right": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 25",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b[5D for ctrl+left": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 26",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b\\r for alt+enter": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 27",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b\\x08 for ctrl+alt+backspace": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 28",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b\\x1b for alt+esc": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 29",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return \\x1b\\x7f for alt+backspace": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 30",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequence for ctrl+@": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 31",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequence for ctrl+^": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 32",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequence for ctrl+_": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 33",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequence for ctrl+alt+a": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 34",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+'": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 35",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+,": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 36",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+-": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 37",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+.": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 38",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+/": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 39",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+0": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 40",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+1": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 41",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+2": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 42",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+3": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 43",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+4": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 44",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+5": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 45",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+6": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 46",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+7": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 47",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+8": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 48",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+9": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 49",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+;": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 50",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+=": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 51",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+[": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 52",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+\\": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 53",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+]": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 54",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+shift+letter combinations": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 55",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return proper sequences for alt+~": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 56",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return the correct escape sequence for modified F1-F12 keys": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 57",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence should return the correct escape sequence for unmodified keys": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 58",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence with macOptionIsMeta should return \\x1b\\x1b for alt+enter": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 59",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Keyboard.test.ts:Keyboard evaluateKeyEscapeSequence with macOptionIsMeta should return \\x1ba for alt+a": {
+      "dartTestFile": "test/upstream_keyboard_parity_test.dart",
+      "dartTestName": "xterm Keyboard 60",
       "dartTestKind": "test"
     }
   }

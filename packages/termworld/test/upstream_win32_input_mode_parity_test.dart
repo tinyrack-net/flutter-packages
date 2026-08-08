@@ -102,6 +102,8 @@ List<Map<String, Object?>> _loadCases() {
         : 'packages/termworld/$relative',
   );
   final document = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
-  expect(document['revision'], '904ae935269eef5ec6a1415b64463c3d02eff1eb');
+  if (document['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb') {
+    throw StateError('Win32 input fixture revision changed');
+  }
   return (document['cases']! as List<Object?>).cast<Map<String, Object?>>();
 }
