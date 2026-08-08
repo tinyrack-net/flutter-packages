@@ -61,7 +61,7 @@ final class ProgressAddon extends ManagedTerminalAddon {
 
   @override
   void onActivate(Terminal terminal) {
-    own(
+    add(
       terminal.parser.registerOscHandler(9, (data) {
         if (!data.startsWith('4;')) return false;
         final parts = data.split(';');

@@ -122,8 +122,8 @@ final class SearchAddon extends ManagedTerminalAddon {
 
   @override
   void onActivate(Terminal terminal) {
-    own(terminal.onWriteParsed.listen((_) => _scheduleRefresh()));
-    own(terminal.onResize.listen((_) => _scheduleRefresh()));
+    add(terminal.onWriteParsed.listen((_) => _scheduleRefresh()));
+    add(terminal.onResize.listen((_) => _scheduleRefresh()));
   }
 
   void _scheduleRefresh() {

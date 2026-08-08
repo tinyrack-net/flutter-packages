@@ -76,31 +76,42 @@ void main() {
     });
   });
 
-  test('disposable lifetimes are idempotent and reject late ownership', () {
-    var calls = 0;
-    final callback = CallbackDisposable(() => calls++);
-    expect(
-      (
-        (callback
-              ..dispose()
-              ..dispose())
-            .isDisposed,
-        calls,
-      ),
-      (true, 1),
-    );
-
+  test('disposable stores preserve xterm lifecycle semantics', () {
+    final calls = <String>[];
     final store = _Store();
-    final child = CallbackDisposable(() => calls++);
+    final child = CallbackDisposable(() => calls.add('child'));
     store
-      ..own(child)
+      ..add(child)
+      ..add(child)
       ..dispose()
       ..dispose();
-    expect((store.isDisposed, child.isDisposed, calls), (true, true, 2));
+    expect(
+      (store.isDisposed, child.isDisposed, calls),
+      (true, true, <String>['child']),
+    );
 
-    final lateChild = CallbackDisposable(() => calls++);
-    expect(() => store.own(lateChild), throwsStateError);
-    expect((lateChild.isDisposed, calls), (true, 3));
+    final lateChild = CallbackDisposable(() => calls.add('late'));
+    expect(store.add(lateChild), same(lateChild));
+    expect((lateChild.isDisposed, calls), (true, <String>['child', 'late']));
+  });
+
+  test('mutable and combined disposables match xterm replacement rules', () {
+    final calls = <String>[];
+    final first = toDisposable(() => calls.add('first'));
+    final second = toDisposable(() => calls.add('second'));
+    final slot = MutableDisposable<Disposable>()
+      ..value = first
+      ..value = first
+      ..value = second;
+    expect(calls, <String>['first']);
+    slot.clear();
+    expect(calls, <String>['first', 'second']);
+
+    combinedDisposable(<Disposable>[
+      toDisposable(() => calls.add('a')),
+      toDisposable(() => calls.add('b')),
+    ]).dispose();
+    expect(calls, <String>['first', 'second', 'a', 'b']);
   });
 
   test('event disposal rejects listeners and suppresses later delivery', () {

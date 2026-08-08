@@ -37,8 +37,8 @@ final class AttachAddon extends ManagedTerminalAddon {
       ),
     );
     if (bidirectional) {
-      own(terminal.onData.listen(_send));
-      own(
+      add(terminal.onData.listen(_send));
+      add(
         terminal.onBinary.listen((data) {
           _send(
             Uint8List.fromList(

@@ -226,7 +226,7 @@ final class ImageAddon extends ManagedTerminalAddon {
         setWinLines: current.setWinLines,
       );
     }
-    own(
+    add(
       terminal.parser.registerCsiHandler(
         const TerminalFunctionIdentifier(prefix: '?', finalByte: 'h'),
         (parameters) {
@@ -235,7 +235,7 @@ final class ImageAddon extends ManagedTerminalAddon {
         },
       ),
     );
-    own(
+    add(
       terminal.parser.registerCsiHandler(
         const TerminalFunctionIdentifier(prefix: '?', finalByte: 'l'),
         (parameters) {
@@ -244,7 +244,7 @@ final class ImageAddon extends ManagedTerminalAddon {
         },
       ),
     );
-    own(
+    add(
       terminal.parser.registerCsiHandler(
         const TerminalFunctionIdentifier(finalByte: 'c'),
         (parameters) {
@@ -256,26 +256,26 @@ final class ImageAddon extends ManagedTerminalAddon {
         },
       ),
     );
-    own(
+    add(
       terminal.parser.registerCsiHandler(
         const TerminalFunctionIdentifier(prefix: '?', finalByte: 'S'),
         _graphicsAttributes,
       ),
     );
-    own(
+    add(
       terminal.parser.registerCsiHandler(
         const TerminalFunctionIdentifier(intermediates: '!', finalByte: 'p'),
         (_) => reset(),
       ),
     );
-    own(
+    add(
       terminal.parser.registerEscHandler(
         const TerminalFunctionIdentifier(finalByte: 'c'),
         reset,
       ),
     );
     if (options.sixelSupport) {
-      own(
+      add(
         terminal.parser.registerDcsHandler(
           const TerminalFunctionIdentifier(finalByte: 'q'),
           (data, parameters) {
@@ -290,12 +290,12 @@ final class ImageAddon extends ManagedTerminalAddon {
       );
     }
     if (options.iipSupport) {
-      own(
+      add(
         terminal.parser.registerOscHandler(1337, _handleIip),
       );
     }
     if (options.kittySupport) {
-      own(
+      add(
         terminal.parser.registerApcHandler(
           const TerminalFunctionIdentifier(finalByte: 'G'),
           _handleKitty,

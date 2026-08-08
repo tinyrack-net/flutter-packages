@@ -71,7 +71,7 @@ final class ClipboardAddon extends ManagedTerminalAddon {
 
   @override
   void onActivate(Terminal terminal) {
-    own(
+    add(
       terminal.parser.registerOscHandler(52, (data) {
         final arguments = data.split(';');
         if (arguments.length < 2) return true;

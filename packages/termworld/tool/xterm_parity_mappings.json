@@ -242,6 +242,10 @@
     "src/common/Event.test.ts": {
       "implementation": ["lib/src/core/event.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
+    },
+    "src/common/Lifecycle.ts": {
+      "implementation": ["lib/src/core/disposable.dart"],
+      "tests": ["test/lifecycle_parity_test.dart"]
     }
   },
   "tests": {

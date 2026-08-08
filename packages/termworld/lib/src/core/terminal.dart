@@ -504,7 +504,7 @@ final class Terminal extends DisposableStore {
       onBufferDelete: _handleBufferDelete,
     );
     buffer = _engine.buffer;
-    parser = own(
+    parser = add(
       TerminalParser((identifier, parameters) {
         if (identifier.prefix.isNotEmpty ||
             identifier.intermediates.isNotEmpty ||
@@ -517,7 +517,7 @@ final class Terminal extends DisposableStore {
     );
     modes = TerminalModes._(this);
     _linkProviders.add(_OscLinkProvider(this));
-    own(this.options.onChange.listen(_handleOptionChange));
+    add(this.options.onChange.listen(_handleOptionChange));
   }
 
   /// Natural-language strings shared by all terminal instances.
