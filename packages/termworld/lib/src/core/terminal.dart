@@ -13,6 +13,7 @@ import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/mouse_state_service.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
+import 'package:termworld/src/core/text_decoder.dart';
 import 'package:termworld/src/core/unicode.dart';
 import 'package:termworld/src/core/version.dart';
 import 'package:termworld/src/core/windows_mode.dart';
@@ -658,8 +659,8 @@ final class Terminal extends DisposableStore {
   Object? get textarea => _textarea;
 
   final List<_WriteRequest> _writeQueue = <_WriteRequest>[];
-  final _Utf8ChunkDecoder _decoder = _Utf8ChunkDecoder();
-  final _StringChunkDecoder _stringDecoder = _StringChunkDecoder();
+  final Utf8ToUtf32 _decoder = Utf8ToUtf32();
+  final StringToUtf32 _stringDecoder = StringToUtf32();
   bool _writeScheduled = false;
   bool _draining = false;
   int _viewportY = 0;
@@ -742,8 +743,8 @@ final class Terminal extends DisposableStore {
       final request = _writeQueue.removeAt(0);
       try {
         final text = request.data is String
-            ? _stringDecoder.convert(request.data as String)
-            : _decoder.convert(request.data as Uint8List);
+            ? _decodeString(request.data as String)
+            : _decodeUtf8(request.data as Uint8List);
         await _parse(text);
         request.onParsed?.call();
         // Every parser failure must reach the queued write error callback.
@@ -759,6 +760,18 @@ final class Terminal extends DisposableStore {
       _draining = false;
       if (_writeQueue.isNotEmpty) _scheduleDrain();
     }
+  }
+
+  String _decodeString(String input) {
+    final target = Uint32List(input.length + 1);
+    final length = _stringDecoder.decode(input, target);
+    return utf32ToString(target, end: length);
+  }
+
+  String _decodeUtf8(Uint8List input) {
+    final target = Uint32List(input.length + 1);
+    final length = _decoder.decode(input, target);
+    return utf32ToString(target, end: length);
   }
 
   Future<void> _parse(String text) async {
@@ -1449,109 +1462,4 @@ final class _WriteRequest {
   final Object data;
   final void Function()? onParsed;
   final void Function(Object error, StackTrace stackTrace)? onError;
-}
-
-final class _StringChunkDecoder {
-  int? _pendingHighSurrogate;
-
-  String convert(String input) {
-    if (input.isEmpty) return '';
-    final output = StringBuffer();
-    var index = 0;
-    final pending = _pendingHighSurrogate;
-    if (pending != null) {
-      final second = input.codeUnitAt(index++);
-      if (second >= 0xdc00 && second <= 0xdfff) {
-        output.writeCharCode(
-          (pending - 0xd800) * 0x400 + second - 0xdc00 + 0x10000,
-        );
-      } else {
-        output
-          ..writeCharCode(pending)
-          ..writeCharCode(second);
-      }
-      _pendingHighSurrogate = null;
-    }
-    while (index < input.length) {
-      final code = input.codeUnitAt(index++);
-      if (code >= 0xd800 && code <= 0xdbff) {
-        if (index >= input.length) {
-          _pendingHighSurrogate = code;
-          break;
-        }
-        final second = input.codeUnitAt(index++);
-        if (second >= 0xdc00 && second <= 0xdfff) {
-          output.writeCharCode(
-            (code - 0xd800) * 0x400 + second - 0xdc00 + 0x10000,
-          );
-        } else {
-          output
-            ..writeCharCode(code)
-            ..writeCharCode(second);
-        }
-        continue;
-      }
-      if (code != 0xfeff) output.writeCharCode(code);
-    }
-    return output.toString();
-  }
-}
-
-final class _Utf8ChunkDecoder {
-  Uint8List _pending = Uint8List(0);
-
-  String convert(Uint8List bytes) {
-    final source = Uint8List.fromList(<int>[..._pending, ...bytes]);
-    _pending = Uint8List(0);
-    final output = StringBuffer();
-    var index = 0;
-    while (index < source.length) {
-      final first = source[index];
-      if (first < 0x80) {
-        output.writeCharCode(first);
-        index++;
-        continue;
-      }
-      final expected = first & 0xe0 == 0xc0
-          ? 2
-          : first & 0xf0 == 0xe0
-          ? 3
-          : first & 0xf8 == 0xf0
-          ? 4
-          : 0;
-      if (expected == 0) {
-        index++;
-        continue;
-      }
-      var valid = true;
-      for (var offset = 1; offset < expected; offset++) {
-        if (index + offset >= source.length) {
-          _pending = Uint8List.fromList(source.sublist(index));
-          return output.toString();
-        }
-        if (source[index + offset] & 0xc0 != 0x80) {
-          index += offset;
-          valid = false;
-          break;
-        }
-      }
-      if (!valid) continue;
-      var codepoint = first & (0x7f >> expected);
-      for (var offset = 1; offset < expected; offset++) {
-        codepoint = codepoint << 6 | source[index + offset] & 0x3f;
-      }
-      index += expected;
-      final illegal = switch (expected) {
-        2 => codepoint < 0x80,
-        3 =>
-          codepoint < 0x800 ||
-              (codepoint >= 0xd800 && codepoint <= 0xdfff) ||
-              codepoint == 0xfeff,
-        4 => codepoint < 0x10000 || codepoint > 0x10ffff,
-        _ => true,
-      };
-      if (!illegal) output.writeCharCode(codepoint);
-    }
-    return output.toString();
-  }
 }
