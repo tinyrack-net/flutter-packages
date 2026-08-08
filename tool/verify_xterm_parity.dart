@@ -203,6 +203,7 @@ void _checkMappings(
     final file = mapping?['dartTestFile'];
     final name = mapping?['dartTestName'];
     final kind = mapping?['dartTestKind'];
+    final path = mapping?['dartTestPath'];
     if (file is! String ||
         name is! String ||
         name.isEmpty ||
@@ -210,7 +211,11 @@ void _checkMappings(
       failures.add('invalid test mapping: ${entry.key}');
       continue;
     }
-    final identity = '$file::$kind::$name';
+    if (path != null && (path is! String || path.isEmpty)) {
+      failures.add('invalid Dart test path: ${entry.key}');
+      continue;
+    }
+    final identity = '$file::${path ?? '$kind::$name'}';
     if (!dartTests.add(identity)) {
       failures.add('multiple upstream tests map to $identity');
     }

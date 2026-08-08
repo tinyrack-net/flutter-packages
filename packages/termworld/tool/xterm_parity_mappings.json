@@ -17,6 +17,26 @@
       "implementation": "lib/addon_attach.dart",
       "symbol": "AttachAddon(this.socket"
     },
+    "addons/addon-fit/typings/addon-fit.d.ts:13": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "FitAddon"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:17": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "FitAddon extends"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:44": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "TerminalDimensions"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:48": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "final int rows"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:53": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "final int cols"
+    },
     "addons/addon-progress/typings/addon-progress.d.ts:13": {
       "implementation": "lib/addon_progress.dart",
       "symbol": "ProgressAddon"
@@ -70,6 +90,22 @@
     "addons/addon-attach/test/playwright.config.ts": {
       "implementation": ["lib/addon_attach.dart"],
       "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-fit/src/FitAddon.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-fit/test/FitAddon.test.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-fit/test/playwright.config.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
     },
     "addons/addon-progress/typings/addon-progress.d.ts": {
       "implementation": ["lib/addon_progress.dart"],
@@ -158,6 +194,72 @@
     "addons/addon-attach/test/AttachAddon.test.ts:33:test": {
       "dartTestFile": "test/public_api_contract_test.dart",
       "dartTestName": "utf8",
+      "dartTestKind": "test"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:18:describe": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "FitAddon",
+      "dartTestKind": "group"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:42:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "no terminal",
+      "dartTestKind": "test"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:48:describe": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "proposeDimensions",
+      "dartTestKind": "group"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:49:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "default",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/proposeDimensions/default"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:58:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "width",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/proposeDimensions/width"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:67:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "small",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/proposeDimensions/small"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:75:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "hidden",
+      "dartTestKind": "test"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:93:describe": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "fit",
+      "dartTestKind": "group"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:94:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "default",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/fit/default"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:105:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "width",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/fit/width"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:116:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "small",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/fit/small"
+    },
+    "addons/addon-fit/test/FitAddon.test.ts:123:test": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "same dimensions",
       "dartTestKind": "test"
     },
     "addons/addon-progress/test/ProgressAddon.test.ts:13:describe": {
