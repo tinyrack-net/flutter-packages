@@ -1,6 +1,56 @@
 {
   "schemaVersion": 1,
-  "declarations": {},
-  "sources": {},
-  "tests": {}
+  "declarations": {
+    "addons/addon-attach/typings/addon-attach.d.ts:9": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "bidirectional"
+    },
+    "addons/addon-attach/typings/addon-attach.d.ts:13": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "bidirectional"
+    },
+    "addons/addon-attach/typings/addon-attach.d.ts:16": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "AttachAddon"
+    },
+    "addons/addon-attach/typings/addon-attach.d.ts:17": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "AttachAddon(this.socket"
+    }
+  },
+  "sources": {
+    "addons/addon-attach/typings/addon-attach.d.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-attach/src/AttachAddon.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-attach/test/AttachAddon.test.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-attach/test/playwright.config.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    }
+  },
+  "tests": {
+    "addons/addon-attach/test/AttachAddon.test.ts:18:describe": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "AttachAddon",
+      "dartTestKind": "group"
+    },
+    "addons/addon-attach/test/AttachAddon.test.ts:24:test": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "string",
+      "dartTestKind": "test"
+    },
+    "addons/addon-attach/test/AttachAddon.test.ts:33:test": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "utf8",
+      "dartTestKind": "test"
+    }
+  }
 }

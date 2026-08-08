@@ -10,6 +10,36 @@ import 'package:termworld/termworld_headless.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
+  group('AttachAddon', () {
+    test('string', () async {
+      final socket = _FakeSocket();
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(AttachAddon(socket));
+      socket.addIncoming('foo');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        'foo',
+      );
+    });
+
+    test('utf8', () async {
+      final socket = _FakeSocket();
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(AttachAddon(socket));
+      socket.addIncoming(Uint8List.fromList(<int>[102, 111, 111]));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        'foo',
+      );
+    });
+  });
+
   test('options validate mutable values and report effective changes', () {
     final options = TerminalOptions(
       allowProposedApi: true,
