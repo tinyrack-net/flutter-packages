@@ -95,10 +95,13 @@ final class _TerminalViewState extends State<TerminalView> {
   List<List<TerminalLink>>? _activeLinkReplies;
   int _activeLinkLine = -1;
   int _linkRequestGeneration = 0;
+  Timer? _cursorBlinkTimer;
+  bool _cursorVisible = true;
 
   @override
   void initState() {
     super.initState();
+    _focusNode.addListener(_handleFocusChange);
     _attach();
     if (kDebugMode) {
       _testingChannel = const MethodChannel('termworld/testing')
@@ -109,10 +112,14 @@ final class _TerminalViewState extends State<TerminalView> {
   @override
   void didUpdateWidget(TerminalView oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.style != widget.style) _syncCursorBlink();
     if (oldWidget.focusNode != widget.focusNode) {
+      _focusNode.removeListener(_handleFocusChange);
       if (oldWidget.focusNode == null) _focusNode.dispose();
       _focusNode =
           widget.focusNode ?? FocusNode(debugLabel: 'termworld-terminal-input');
+      _focusNode.addListener(_handleFocusChange);
+      _syncCursorBlink();
     }
     if (oldWidget.controller != widget.controller ||
         oldWidget.terminal != widget.terminal) {
@@ -130,7 +137,10 @@ final class _TerminalViewState extends State<TerminalView> {
   void _attach() {
     _controller.attach(widget.terminal, _requestKeyboard);
     _renderListener = widget.terminal.onRender.listen((_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        _syncCursorBlink();
+        setState(() {});
+      }
     });
     _scrollListener = widget.terminal.onScroll.listen((_) {
       if (mounted) setState(() {});
@@ -149,6 +159,28 @@ final class _TerminalViewState extends State<TerminalView> {
     _inputKey.currentState?.requestKeyboard();
   }
 
+  void _handleFocusChange() {
+    _syncCursorBlink();
+    if (mounted) setState(() {});
+  }
+
+  void _syncCursorBlink() {
+    final shouldBlink = _focusNode.hasFocus && _effectiveStyle.cursorBlink;
+    if (!shouldBlink) {
+      _cursorBlinkTimer?.cancel();
+      _cursorBlinkTimer = null;
+      _cursorVisible = true;
+      return;
+    }
+    if (_cursorBlinkTimer != null) return;
+    _cursorVisible = true;
+    _cursorBlinkTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      if (!mounted) return;
+      _cursorVisible = !_cursorVisible;
+      setState(() {});
+    });
+  }
+
   Future<Object?> _handleTestingCall(MethodCall call) async {
     if (call.method != 'injectEditingValue') {
       throw MissingPluginException('Unknown termworld testing method');
@@ -163,6 +195,8 @@ final class _TerminalViewState extends State<TerminalView> {
   @override
   void dispose() {
     _clearLinkCache();
+    _cursorBlinkTimer?.cancel();
+    _focusNode.removeListener(_handleFocusChange);
     _renderListener?.dispose();
     _scrollListener?.dispose();
     _selectionListener?.dispose();
@@ -190,6 +224,7 @@ final class _TerminalViewState extends State<TerminalView> {
           padding: widget.padding ?? EdgeInsets.zero,
           backgroundOpacity: widget.backgroundOpacity,
           focused: _focusNode.hasFocus,
+          cursorVisible: _cursorVisible,
           hoveredLink: _hoveredLink,
         ),
         size: constraints.biggest,
@@ -671,6 +706,7 @@ final class _TerminalPainter extends CustomPainter {
     required this.padding,
     required this.backgroundOpacity,
     required this.focused,
+    required this.cursorVisible,
     required this.hoveredLink,
   });
 
@@ -680,6 +716,7 @@ final class _TerminalPainter extends CustomPainter {
   final EdgeInsets padding;
   final double backgroundOpacity;
   final bool focused;
+  final bool cursorVisible;
   final TerminalLink? hoveredLink;
 
   @override
@@ -764,7 +801,7 @@ final class _TerminalPainter extends CustomPainter {
     }
     _paintDecorations(canvas, dimensions, TerminalDecorationLayer.top);
     _paintHoveredLink(canvas, dimensions);
-    if (terminal.modes.showCursor) {
+    if (terminal.modes.showCursor && (!focused || cursorVisible)) {
       _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
     }
   }
