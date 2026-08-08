@@ -258,20 +258,26 @@ final class _ImeHarness {
     await tester.pumpAndSettle();
   }
 
-  Future<void> _releaseModifiers() => _run('xdotool', <String>[
-    'keyup',
-    'Shift_L',
-    'keyup',
-    'Shift_R',
-    'keyup',
-    'Control_L',
-    'keyup',
-    'Control_R',
-    'keyup',
-    'Alt_L',
-    'keyup',
-    'Alt_R',
-  ]);
+  Future<void> _releaseModifiers() async {
+    await _run('xdotool', <String>[
+      'keyup',
+      'Shift_L',
+      'keyup',
+      'Shift_R',
+      'keyup',
+      'Control_L',
+      'keyup',
+      'Control_R',
+      'keyup',
+      'Alt_L',
+      'keyup',
+      'Alt_R',
+    ]);
+    final keyboardState = await _run('xset', <String>['q']);
+    if (RegExp(r'Caps Lock:\s+on').hasMatch(keyboardState.stdout as String)) {
+      await _run('xdotool', <String>['key', 'Caps_Lock']);
+    }
+  }
 
   Future<void> chord(List<String> modifiers, String key) async {
     await _releaseModifiers();
