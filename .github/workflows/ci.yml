@@ -321,7 +321,8 @@ jobs:
             --target=integration_test/conformance_test.dart \
             -d web-server \
             --browser-name=chrome \
-            --web-browser-flag=--headless=new
+            --web-browser-flag=--headless=new \
+            --web-browser-flag=--enable-features=ClipboardAPI
         working-directory: packages/termworld/example
       - name: L5 web termworld release build
         run: flutter build web --release
