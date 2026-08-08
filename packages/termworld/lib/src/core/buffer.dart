@@ -629,6 +629,217 @@ final class TerminalBufferLine {
   }
 }
 
+/// Computes xterm's exact wrap lengths when a logical line is made narrower.
+///
+/// The returned lengths include cell columns rather than Unicode scalar or
+/// grapheme counts. A wide cell is moved as a unit when it would otherwise
+/// straddle the new right edge. As in xterm.js, [newColumns] must be greater
+/// than one (matching xterm, passing one does not terminate).
+List<int> reflowSmallerGetNewLineLengths(
+  List<TerminalBufferLine> wrappedLines,
+  int oldColumns,
+  int newColumns,
+) {
+  final newLineLengths = <int>[];
+  var cellsNeeded = 0;
+  for (var index = 0; index < wrappedLines.length; index++) {
+    cellsNeeded += _wrappedLineTrimmedLength(
+      wrappedLines,
+      index,
+      oldColumns,
+    );
+  }
+
+  var sourceColumn = 0;
+  var sourceLine = 0;
+  var cellsAvailable = 0;
+  while (cellsAvailable < cellsNeeded) {
+    if (cellsNeeded - cellsAvailable < newColumns) {
+      newLineLengths.add(cellsNeeded - cellsAvailable);
+      break;
+    }
+    sourceColumn += newColumns;
+    final oldTrimmedLength = _wrappedLineTrimmedLength(
+      wrappedLines,
+      sourceLine,
+      oldColumns,
+    );
+    if (sourceColumn > oldTrimmedLength) {
+      sourceColumn -= oldTrimmedLength;
+      sourceLine++;
+    }
+    final endsWithWide =
+        wrappedLines[sourceLine]._cells[sourceColumn - 1].width == 2;
+    if (endsWithWide) sourceColumn--;
+    final lineLength = endsWithWide ? newColumns - 1 : newColumns;
+    newLineLengths.add(lineLength);
+    cellsAvailable += lineLength;
+  }
+  return newLineLengths;
+}
+
+/// Mutates wrapped blocks for xterm's grow-column reflow pass and returns
+/// alternating `start, count` pairs for rows that became redundant.
+List<int> reflowLargerGetLinesToRemove(
+  List<TerminalBufferLine> lines,
+  int oldColumns,
+  int newColumns,
+  int bufferAbsoluteY,
+  TerminalCellAttributes nullAttributes, {
+  required bool reflowCursorLine,
+}) {
+  final toRemove = <int>[];
+  for (var y = 0; y < lines.length - 1; y++) {
+    var index = y + 1;
+    var nextLine = lines[index];
+    if (!nextLine.isWrapped) continue;
+
+    final wrappedLines = <TerminalBufferLine>[lines[y]];
+    while (index < lines.length && nextLine.isWrapped) {
+      wrappedLines.add(nextLine);
+      index++;
+      if (index < lines.length) nextLine = lines[index];
+    }
+
+    if (!reflowCursorLine && bufferAbsoluteY >= y && bufferAbsoluteY < index) {
+      y += wrappedLines.length - 1;
+      continue;
+    }
+
+    var destinationLineIndex = 0;
+    var destinationColumn = _wrappedLineTrimmedLength(
+      wrappedLines,
+      destinationLineIndex,
+      oldColumns,
+    );
+    var sourceLineIndex = 1;
+    var sourceColumn = 0;
+    while (sourceLineIndex < wrappedLines.length) {
+      final sourceTrimmedLength = _wrappedLineTrimmedLength(
+        wrappedLines,
+        sourceLineIndex,
+        oldColumns,
+      );
+      final sourceRemainingCells = sourceTrimmedLength - sourceColumn;
+      final destinationRemainingCells = newColumns - destinationColumn;
+      final cellsToCopy = sourceRemainingCells < destinationRemainingCells
+          ? sourceRemainingCells
+          : destinationRemainingCells;
+      _copyCellsFrom(
+        wrappedLines[destinationLineIndex],
+        wrappedLines[sourceLineIndex],
+        sourceColumn,
+        destinationColumn,
+        cellsToCopy,
+      );
+
+      destinationColumn += cellsToCopy;
+      if (destinationColumn == newColumns) {
+        destinationLineIndex++;
+        destinationColumn = 0;
+      }
+      sourceColumn += cellsToCopy;
+      if (sourceColumn == sourceTrimmedLength) {
+        sourceLineIndex++;
+        sourceColumn = 0;
+      }
+
+      if (destinationColumn == 0 && destinationLineIndex != 0) {
+        final previous = wrappedLines[destinationLineIndex - 1];
+        if (_cellWidth(previous, newColumns - 1) == 2) {
+          _copyCellsFrom(
+            wrappedLines[destinationLineIndex],
+            previous,
+            newColumns - 1,
+            destinationColumn,
+            1,
+          );
+          destinationColumn++;
+          if (newColumns - 1 < previous.length) {
+            previous._cells[newColumns - 1].reset(nullAttributes);
+            previous._invalidateStringCache();
+          }
+        }
+      }
+    }
+
+    final destinationLine = wrappedLines[destinationLineIndex];
+    final destinationCells = destinationLine._cells;
+    destinationLine._invalidateStringCache();
+    for (var column = destinationColumn; column < newColumns; column++) {
+      if (column < destinationCells.length) {
+        destinationCells[column].reset(nullAttributes);
+      }
+    }
+
+    var countToRemove = 0;
+    for (
+      var wrappedIndex = wrappedLines.length - 1;
+      wrappedIndex > 0;
+      wrappedIndex--
+    ) {
+      if (wrappedIndex > destinationLineIndex ||
+          _terminalBufferLineTrimmedLength(wrappedLines[wrappedIndex]) == 0) {
+        countToRemove++;
+      } else {
+        break;
+      }
+    }
+    if (countToRemove > 0) {
+      toRemove
+        ..add(y + wrappedLines.length - countToRemove)
+        ..add(countToRemove);
+    }
+    y += wrappedLines.length - 1;
+  }
+  return toRemove;
+}
+
+int _wrappedLineTrimmedLength(
+  List<TerminalBufferLine> lines,
+  int index,
+  int columns,
+) {
+  if (index == lines.length - 1) {
+    return _terminalBufferLineTrimmedLength(lines[index]);
+  }
+  final endsInNull =
+      lines[index]._cells[columns - 1].chars.isEmpty &&
+      lines[index]._cells[columns - 1].width == 1;
+  final followingLineStartsWithWide = lines[index + 1]._cells[0].width == 2;
+  return endsInNull && followingLineStartsWithWide ? columns - 1 : columns;
+}
+
+int _terminalBufferLineTrimmedLength(TerminalBufferLine line) {
+  var result = line.length;
+  while (result > 0) {
+    final cell = line._cells[result - 1];
+    if (cell.width == 0 || cell.chars.isNotEmpty) break;
+    result--;
+  }
+  return result;
+}
+
+void _copyCellsFrom(
+  TerminalBufferLine destination,
+  TerminalBufferLine source,
+  int sourceColumn,
+  int destinationColumn,
+  int length,
+) {
+  destination._invalidateStringCache();
+  for (var offset = 0; offset < length; offset++) {
+    final target = destinationColumn + offset;
+    final origin = sourceColumn + offset;
+    if (target < destination.length && origin < source.length) {
+      destination._cells[target] = source._cells[origin].copy();
+    }
+  }
+}
+
+int _cellWidth(TerminalBufferLine line, int column) =>
+    column < 0 || column >= line.length ? 0 : line._cells[column].width;
+
 /// A complete normal or alternate terminal buffer.
 final class TerminalBuffer implements Disposable {
   TerminalBuffer._({

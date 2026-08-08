@@ -1327,8 +1327,8 @@
     "src/common/buffer/Buffer.test.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart","test/upstream_buffer_set_parity_test.dart"]},
     "src/common/buffer/BufferLine.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart"]},
     "src/common/buffer/BufferLine.test.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart"]},
-    "src/common/buffer/BufferReflow.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart"]},
-    "src/common/buffer/BufferReflow.test.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart"]},
+    "src/common/buffer/BufferReflow.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_reflow_parity_test.dart"]},
+    "src/common/buffer/BufferReflow.test.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_reflow_parity_test.dart"]},
     "src/common/buffer/Constants.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart"]},
     "src/common/buffer/Types.ts": {"implementation":["lib/src/core/buffer.dart"],"tests":["test/upstream_buffer_parity_test.dart","test/upstream_cell_data_parity_test.dart"]},
     "src/common/data/Charsets.ts": {"implementation":["lib/src/core/charset_service.dart","lib/src/core/engine.dart"],"tests":["test/upstream_charset_service_parity_test.dart","test/xterm_core_parity_test.dart"]},
@@ -1506,6 +1506,41 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowLargerGetLinesToRemove should reflow wrapped blocks when the cursor is outside the block": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 00",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowLargerGetLinesToRemove should skip reflow when the cursor is in a wrapped block and reflowCursorLine is false": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 01",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowSmallerGetNewLineLengths should return correct line lengths for a large line with wide characters": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 02",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowSmallerGetNewLineLengths should return correct line lengths for a small line with wide characters": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 03",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowSmallerGetNewLineLengths should return correct line lengths for a string with wide and single characters": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 04",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowSmallerGetNewLineLengths should return correct line lengths for a wrapped line with wide and single characters": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 05",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowSmallerGetNewLineLengths should work on lines ending in null space": {
+      "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
+      "dartTestName": "xterm BufferReflow 06",
+      "dartTestKind": "test"
+    },
     "unit:addons/addon-image/src/IIPMetrics.test.ts:IIPMetrics bunch of testimages": {"dartTestFile":"test/upstream_iip_metrics_parity_test.dart","dartTestName":"xterm IIPMetrics 00","dartTestKind":"test"},
     "unit:addons/addon-image/src/IIPHeaderParser.test.ts:IIPHeaderParser FileEnd sequence": {"dartTestFile":"test/upstream_iip_header_parser_parity_test.dart","dartTestName":"xterm IIPHeaderParser 11","dartTestKind":"test"},
     "unit:addons/addon-image/src/IIPHeaderParser.test.ts:IIPHeaderParser FileEnd sequence - bytewise": {"dartTestFile":"test/upstream_iip_header_parser_parity_test.dart","dartTestName":"xterm IIPHeaderParser 12","dartTestKind":"test"},
