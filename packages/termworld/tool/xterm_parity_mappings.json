@@ -137,6 +137,8 @@
     }
   },
   "sources": {
+    "src/browser/renderer/dom/WidthCache.ts": {"implementation":["lib/src/core/width_cache.dart"],"tests":["test/upstream_width_cache_parity_test.dart"]},
+    "src/browser/renderer/dom/WidthCache.test.ts": {"implementation":["lib/src/core/width_cache.dart"],"tests":["test/upstream_width_cache_parity_test.dart"]},
     "src/browser/OscLinkProvider.ts": {
       "implementation": ["lib/src/core/terminal.dart"],
       "tests": ["test/upstream_osc_link_provider_parity_test.dart"]
@@ -669,6 +671,16 @@
     }
   },
   "tests": {
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation can cache values": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"can cache values","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/can cache values"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation clear resets cache entries": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"clear resets cache entries","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/clear resets cache entries"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation setFont with changed font name": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"setFont with changed font name","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/setFont with changed font name"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation setFont with changed font size": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"setFont with changed font size","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/setFont with changed font size"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation setFont with changed weight": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"setFont with changed weight","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/setFont with changed weight"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation setFont with changed weightBold": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"setFont with changed weightBold","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/setFont with changed weightBold"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache cache invalidation setFont with unchanged settings does not cache entries": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"setFont with unchanged settings does not cache entries","dartTestKind":"test","dartTestPath":"WidthCache/cache invalidation/setFont with unchanged settings does not cache entries"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache get store regular < WidthCacheSettings.FLAT_SIZE in flat": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"store regular < WidthCacheSettings.FLAT_SIZE in flat","dartTestKind":"test","dartTestPath":"WidthCache/get/store regular < WidthCacheSettings.FLAT_SIZE in flat"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache get stores bold & italic in holey": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"stores bold & italic in holey","dartTestKind":"test","dartTestPath":"WidthCache/get/stores bold & italic in holey"},
+    "unit:src/browser/renderer/dom/DomRendererRowFactory.test.ts:WidthCache get can store any string": {"dartTestFile":"test/upstream_width_cache_parity_test.dart","dartTestName":"can store any string","dartTestKind":"test","dartTestPath":"WidthCache/get/can store any string"},
     "unit:src/browser/OscLinkProvider.test.ts:OscLinkProvider expands a wrapped link range backward to the previous line": {
       "dartTestFile": "test/upstream_osc_link_provider_parity_test.dart",
       "dartTestName": "expands a wrapped link range backward to the previous line",
