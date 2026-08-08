@@ -837,13 +837,17 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   AutofillScope? get currentAutofillScope => null;
 
   @override
-  void updateEditingValue(TextEditingValue value) => _accept(value);
+  void updateEditingValue(TextEditingValue value) {
+    _accept(value);
+    _finishCommittedInput();
+  }
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     for (final delta in deltas) {
       _accept(delta.apply(_editingValue));
     }
+    _finishCommittedInput();
   }
 
   void _accept(TextEditingValue value) {
@@ -853,6 +857,15 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
         ? composing.start
         : value.text.length;
     _reconcileCommitted(value.text.substring(0, committedEnd));
+    widget.onComposingChanged();
+  }
+
+  void _finishCommittedInput() {
+    if (_isComposing || _editingValue.text.isEmpty) return;
+    // xterm clears its hidden textarea after committed input. Keeping the
+    // committed value makes a later platform synchronization to an empty
+    // editing value look like a user deletion and emits duplicate DEL bytes.
+    _resetEditingState();
     widget.onComposingChanged();
   }
 

@@ -171,6 +171,38 @@ void main() {
     expect(output, <String>['e\u0301']);
   });
 
+  testWidgets('clears committed edit state without emitting duplicate DEL', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    final output = <String>[];
+    terminal.onData.listen(output.add);
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '한',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+    );
+    await tester.pump();
+    tester.testTextInput.updateEditingValue(TextEditingValue.empty);
+    await tester.pump();
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '글',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+    );
+    await tester.pump();
+
+    expect(output, <String>['한', '글']);
+  });
+
   testWidgets('debug hook injects through the platform channel boundary', (
     tester,
   ) async {
