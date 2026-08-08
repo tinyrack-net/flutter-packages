@@ -222,7 +222,10 @@ final class Terminal extends DisposableStore {
   /// Creates a terminal with xterm.js defaults.
   Terminal({TerminalOptions? options})
     : options = options ?? TerminalOptions() {
+    unicode = TerminalUnicodeHandling();
     _engine = _TerminalCoreEngine(
+      options: this.options,
+      unicode: unicode,
       columns: this.options.cols,
       rows: this.options.rows,
       scrollback: this.options.scrollback,
@@ -234,7 +237,6 @@ final class Terminal extends DisposableStore {
     );
     buffer = _engine.buffer;
     parser = own(TerminalParser());
-    unicode = TerminalUnicodeHandling();
     modes = TerminalModes._(this);
   }
 

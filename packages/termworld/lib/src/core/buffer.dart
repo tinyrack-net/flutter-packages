@@ -406,6 +406,20 @@ final class TerminalBufferLine {
     _cells[target].chars += value;
   }
 
+  /// Joins [value] into the cell at [index] and updates its display [width].
+  void joinCell(int index, String value, int width) {
+    if (index < 0 || index >= length) return;
+    final cell = _cells[index]
+      ..chars += value
+      ..width = width;
+    if (width == 2 && index + 1 < length) {
+      _cells[index + 1]
+        ..chars = ''
+        ..width = 0
+        ..attributes = cell.attributes.copy();
+    }
+  }
+
   /// Inserts blank cells at [index], shifting existing cells right.
   void insertCells(
     int index,
@@ -413,7 +427,8 @@ final class TerminalBufferLine {
     TerminalCellAttributes eraseAttributes,
   ) {
     if (count <= 0 || index < 0 || index >= length) return;
-    final amount = count.clamp(0, length - index);
+    final oldLength = length;
+    final amount = count.clamp(0, oldLength - index);
     _cells
       ..insertAll(
         index,
@@ -422,7 +437,7 @@ final class TerminalBufferLine {
           (_) => _CellData(attributes: eraseAttributes),
         ),
       )
-      ..removeRange(length, length + amount);
+      ..removeRange(oldLength, oldLength + amount);
   }
 
   /// Deletes cells at [index], appending blank cells at the right edge.
@@ -568,6 +583,12 @@ final class TerminalBuffer {
     cursorY = 0;
   }
 
+  /// Removes retained scrollback without changing the visible viewport.
+  void clearScrollback() {
+    final retained = baseY;
+    if (retained > 0) _lines.removeRange(0, retained);
+  }
+
   /// Scrolls the inclusive region from [top] through [bottom] upward.
   void scroll(
     TerminalCellAttributes eraseAttributes, {
@@ -602,10 +623,11 @@ final class TerminalBuffer {
   }
 
   /// Inserts [count] blank lines at viewport-relative [row].
-  void insertLines(int row, int count) {
-    final amount = count.clamp(0, _rows - row);
+  void insertLines(int row, int count, {int? bottom}) {
+    final last = bottom ?? _rows - 1;
+    final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
-    final end = baseY + _rows;
+    final end = baseY + last + 1;
     _lines
       ..insertAll(
         start,
@@ -618,13 +640,15 @@ final class TerminalBuffer {
   }
 
   /// Deletes [count] lines at viewport-relative [row].
-  void deleteLines(int row, int count) {
-    final amount = count.clamp(0, _rows - row);
+  void deleteLines(int row, int count, {int? bottom}) {
+    final last = bottom ?? _rows - 1;
+    final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
+    final insertion = baseY + last - amount + 1;
     _lines
       ..removeRange(start, start + amount)
       ..insertAll(
-        baseY + _rows - amount,
+        insertion,
         List<TerminalBufferLine>.generate(
           amount,
           (_) => TerminalBufferLine(_columns),
@@ -679,11 +703,22 @@ final class TerminalBufferNamespace {
   TerminalEvent<TerminalBuffer> get onBufferChange => _onBufferChange.event;
 
   /// Activates the normal buffer.
-  void useNormal() => _switch(normal);
+  void useNormal() {
+    if (identical(_active, normal)) return;
+    normal
+      ..cursorX = alternate.cursorX
+      ..cursorY = alternate.cursorY;
+    alternate.clear();
+    _switch(normal);
+  }
 
   /// Activates the alternate buffer, optionally clearing it first.
   void useAlternate({bool clear = true}) {
-    if (clear) alternate.clear();
+    if (identical(_active, alternate)) return;
+    alternate
+      ..clear()
+      ..cursorX = normal.cursorX
+      ..cursorY = normal.cursorY;
     _switch(alternate);
   }
 

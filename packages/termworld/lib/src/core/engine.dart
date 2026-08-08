@@ -21,6 +21,8 @@ enum TerminalMouseTrackingMode {
 /// Standalone VT input handler ported from xterm.js' common input pipeline.
 final class _TerminalCoreEngine {
   _TerminalCoreEngine({
+    required this.options,
+    required this.unicode,
     required int columns,
     required int rows,
     required int scrollback,
@@ -38,6 +40,8 @@ final class _TerminalCoreEngine {
   }
 
   final TerminalBufferNamespace buffer;
+  final TerminalOptions options;
+  final TerminalUnicodeHandling unicode;
   void Function()? onBell;
   void Function(String data)? onData;
   void Function(String title)? onTitle;
@@ -78,6 +82,7 @@ final class _TerminalCoreEngine {
   String _g1 = 'B';
   int _activeCharset = 0;
   String _precedingCharacter = '';
+  int _precedingJoinState = 0;
 
   int get columns => _columns;
   int get rows => _rows;
@@ -87,14 +92,18 @@ final class _TerminalCoreEngine {
     while (index < input.length) {
       final code = input.codeUnitAt(index);
       if (code == 0x1b) {
+        _precedingJoinState = 0;
         index = _escape(input, index);
         continue;
       }
       if (code == 0x9b) {
+        _precedingJoinState = 0;
         index = _csi(input, index + 1);
         continue;
       }
       if (code < 0x20 || code == 0x7f) {
+        _precedingJoinState = 0;
+        _precedingCharacter = '';
         _control(code);
         index++;
         continue;
@@ -123,6 +132,7 @@ final class _TerminalCoreEngine {
     if (start + 1 >= source.length) return source.length;
     final next = source.codeUnitAt(start + 1);
     if (next == 0x5b) return _csi(source, start + 2);
+    _precedingCharacter = '';
     if (next == 0x5d) return _osc(source, start + 2);
     if (next == 0x50 || next == 0x5f || next == 0x5e) {
       return _consumeString(source, start + 2);
@@ -255,6 +265,7 @@ final class _TerminalCoreEngine {
       case 0x09:
         _tab();
       case 0x0a || 0x0b || 0x0c:
+        if (options.convertEol) buffer.active.cursorX = 0;
         _lineFeed();
       case 0x0d:
         buffer.active.cursorX = 0;
@@ -305,6 +316,7 @@ final class _TerminalCoreEngine {
     String finalByte,
     List<List<int>> params,
   ) {
+    if (finalByte != 'b') _precedingCharacter = '';
     final amount = _param(params, 0);
     if (intermediates == '!' && finalByte == 'p') {
       softReset();
@@ -312,6 +324,14 @@ final class _TerminalCoreEngine {
     }
     if (intermediates == r'$' && finalByte == 'p') {
       _requestMode(prefix, params);
+      return;
+    }
+    if (intermediates == ' ' && (finalByte == '@' || finalByte == 'A')) {
+      _shiftColumns(amount, right: finalByte == 'A');
+      return;
+    }
+    if (intermediates == "'" && (finalByte == '}' || finalByte == '~')) {
+      _editColumns(amount, insert: finalByte == '}');
       return;
     }
     switch (finalByte) {
@@ -349,11 +369,19 @@ final class _TerminalCoreEngine {
         _eraseLine(params[0][0], prefix == '?');
       case 'L':
         if (_inMargins) {
-          buffer.active.insertLines(buffer.active.cursorY, amount);
+          buffer.active.insertLines(
+            buffer.active.cursorY,
+            amount,
+            bottom: marginBottom,
+          );
         }
       case 'M':
         if (_inMargins) {
-          buffer.active.deleteLines(buffer.active.cursorY, amount);
+          buffer.active.deleteLines(
+            buffer.active.cursorY,
+            amount,
+            bottom: marginBottom,
+          );
         }
       case 'P':
         buffer.active.currentLine.deleteCells(
@@ -424,9 +452,58 @@ final class _TerminalCoreEngine {
     }
   }
 
+  void _shiftColumns(int amount, {required bool right}) {
+    if (!_inMargins) return;
+    for (var row = marginTop; row <= marginBottom; row++) {
+      final line = buffer.active.getLine(buffer.active.baseY + row)!;
+      if (right) {
+        line.insertCells(0, amount, _eraseAttributes);
+      } else {
+        line.deleteCells(0, amount, _eraseAttributes);
+      }
+      line.isWrapped = false;
+    }
+  }
+
+  void _editColumns(int amount, {required bool insert}) {
+    if (!_inMargins) return;
+    for (var row = marginTop; row <= marginBottom; row++) {
+      final line = buffer.active.getLine(buffer.active.baseY + row)!;
+      if (insert) {
+        line.insertCells(buffer.active.cursorX, amount, _eraseAttributes);
+      } else {
+        line.deleteCells(buffer.active.cursorX, amount, _eraseAttributes);
+      }
+      line.isWrapped = false;
+    }
+  }
+
   void _print(String value, int codePoint) {
+    if (codePoint == 0x00ad) return;
     final mapped = _mapCharset(value);
-    final width = characterWidth(codePoint);
+    final properties = unicode.active.charProperties(
+      codePoint,
+      _precedingJoinState,
+    );
+    final width = TerminalUnicodeHandling.extractWidth(properties);
+    final shouldJoin = TerminalUnicodeHandling.extractShouldJoin(properties);
+    final oldWidth = shouldJoin
+        ? TerminalUnicodeHandling.extractWidth(_precedingJoinState)
+        : 0;
+    _precedingJoinState = properties;
+    if (shouldJoin && buffer.active.cursorX > 0) {
+      final line = buffer.active.currentLine;
+      final previous = line.getCell(buffer.active.cursorX - 1)!;
+      final offset = previous.width == 0 ? 2 : 1;
+      final index = math.max(0, buffer.active.cursorX - offset);
+      line.joinCell(index, mapped, width);
+      buffer.active.cursorX = (buffer.active.cursorX + width - oldWidth).clamp(
+        0,
+        _columns,
+      );
+      _precedingCharacter += mapped;
+      return;
+    }
     if (width == 0) {
       final index = _pendingWrap
           ? buffer.active.cursorX
@@ -450,7 +527,7 @@ final class _TerminalCoreEngine {
     buffer.active.currentLine.setCell(column, mapped, width, _attributes);
     _precedingCharacter = mapped;
     if (column + width >= _columns) {
-      buffer.active.cursorX = _columns - 1;
+      buffer.active.cursorX = _columns;
       _pendingWrap = true;
     } else {
       buffer.active.cursorX = column + width;
@@ -492,7 +569,7 @@ final class _TerminalCoreEngine {
   void _backspace() {
     if (_pendingWrap) {
       _pendingWrap = false;
-      if (!reverseWraparoundMode) buffer.active.cursorX--;
+      buffer.active.cursorX--;
       return;
     }
     if (buffer.active.cursorX > 0) {
@@ -573,9 +650,8 @@ final class _TerminalCoreEngine {
 
   void _moveY(int amount) {
     _pendingWrap = false;
-    final restricted = marginTop != 0 || marginBottom != _rows - 1;
-    final minimum = restricted ? marginTop : 0;
-    final maximum = restricted ? marginBottom : _rows - 1;
+    final minimum = originMode ? marginTop : 0;
+    final maximum = originMode ? marginBottom : _rows - 1;
     buffer.active.cursorY = (buffer.active.cursorY + amount).clamp(
       minimum,
       maximum,
@@ -651,18 +727,7 @@ final class _TerminalCoreEngine {
         }
       case 3:
         if (identical(active, buffer.normal)) {
-          final visible = <TerminalBufferLine>[
-            for (var row = 0; row < _rows; row++)
-              active.getLine(active.baseY + row)!.copy(),
-          ];
-          active.clear();
-          for (var row = 0; row < visible.length; row++) {
-            final target = active.getLine(row)!;
-            for (var column = 0; column < _columns; column++) {
-              final cell = visible[row].getCell(column)!;
-              target.setCell(column, cell.chars, cell.width, _attributes);
-            }
-          }
+          active.clearScrollback();
         }
     }
   }
@@ -736,6 +801,14 @@ final class _TerminalCoreEngine {
           _attributes
             ..bold = false
             ..dim = false;
+        case 221:
+          if (options.vtExtensions.kittySgrBoldFaintControl) {
+            _attributes.bold = false;
+          }
+        case 222:
+          if (options.vtExtensions.kittySgrBoldFaintControl) {
+            _attributes.dim = false;
+          }
         case 23:
           _attributes.italic = false;
         case 24:
@@ -852,7 +925,9 @@ final class _TerminalCoreEngine {
               ? TerminalMouseTrackingMode.x10
               : TerminalMouseTrackingMode.none;
         case 12:
-        // A renderer option owns cursor blink; consume the terminal mode.
+          if (options.quirks.allowSetCursorBlink) {
+            options.cursorBlink = enabled;
+          }
         case 25:
           cursorVisibleMode = enabled;
         case 45:
@@ -900,7 +975,9 @@ final class _TerminalCoreEngine {
         case 2026:
           synchronizedOutputMode = enabled;
         case 9001:
-          win32InputMode = enabled;
+          if (options.vtExtensions.win32InputMode) {
+            win32InputMode = enabled;
+          }
       }
     }
   }
@@ -999,7 +1076,12 @@ final class _TerminalCoreEngine {
     _tabStops
       ..clear()
       ..addAll(<int>[
-        for (var column = 8; column < _columns; column += 8) column,
+        for (
+          var column = options.tabStopWidth;
+          column < _columns;
+          column += options.tabStopWidth
+        )
+          column,
       ]);
   }
 
@@ -1032,37 +1114,10 @@ final class _TerminalCoreEngine {
     _charset = 'B';
     _activeCharset = 0;
     _precedingCharacter = '';
+    _precedingJoinState = 0;
     lineFeedMode = false;
     win32InputMode = false;
     softReset();
     _resetTabStops();
-  }
-
-  static int characterWidth(int codePoint) {
-    if (codePoint == 0 ||
-        codePoint >= 0x300 && codePoint <= 0x36f ||
-        codePoint >= 0x1ab0 && codePoint <= 0x1aff ||
-        codePoint >= 0x1dc0 && codePoint <= 0x1dff ||
-        codePoint >= 0x20d0 && codePoint <= 0x20ff ||
-        codePoint >= 0xfe00 && codePoint <= 0xfe0f ||
-        codePoint >= 0xfe20 && codePoint <= 0xfe2f ||
-        codePoint == 0x200d ||
-        codePoint >= 0x1f3fb && codePoint <= 0x1f3ff) {
-      return 0;
-    }
-    if (codePoint >= 0x1100 && codePoint <= 0x115f ||
-        codePoint == 0x2329 ||
-        codePoint == 0x232a ||
-        codePoint >= 0x2e80 && codePoint <= 0xa4cf ||
-        codePoint >= 0xac00 && codePoint <= 0xd7a3 ||
-        codePoint >= 0xf900 && codePoint <= 0xfaff ||
-        codePoint >= 0xfe10 && codePoint <= 0xfe6f ||
-        codePoint >= 0xff00 && codePoint <= 0xff60 ||
-        codePoint >= 0xffe0 && codePoint <= 0xffe6 ||
-        codePoint >= 0x1f300 && codePoint <= 0x1faff ||
-        codePoint >= 0x20000 && codePoint <= 0x3fffd) {
-      return 2;
-    }
-    return 1;
   }
 }

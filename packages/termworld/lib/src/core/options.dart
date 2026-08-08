@@ -1,3 +1,4 @@
+import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/event.dart';
 
 /// Terminal log levels in increasing severity order.
@@ -62,6 +63,225 @@ abstract interface class TerminalLogger {
   void log(TerminalLogLevel level, String message, [Object? data]);
 }
 
+/// Callbacks for links emitted by OSC 8 or custom providers.
+final class TerminalLinkHandler {
+  /// Creates platform-neutral link interaction callbacks.
+  const TerminalLinkHandler({
+    required this.activate,
+    this.hover,
+    this.leave,
+    this.allowNonHttpProtocols = false,
+  });
+
+  /// Invoked when a user activates a link.
+  final void Function(Object? event, String text, TerminalBufferRange range)
+  activate;
+
+  /// Invoked when a pointer enters a link.
+  final void Function(Object? event, String text, TerminalBufferRange range)?
+  hover;
+
+  /// Invoked when a pointer leaves a link.
+  final void Function(Object? event, String text, TerminalBufferRange range)?
+  leave;
+
+  /// Whether schemes other than HTTP and HTTPS may be delivered.
+  final bool allowNonHttpProtocols;
+}
+
+/// Windows pseudoterminal compatibility information.
+final class TerminalWindowsPtyOptions {
+  /// Creates Windows PTY compatibility settings.
+  const TerminalWindowsPtyOptions({this.backend, this.buildNumber});
+
+  /// PTY backend name, either `conpty` or `winpty`.
+  final String? backend;
+
+  /// Windows build number reported by the PTY host.
+  final int? buildNumber;
+}
+
+/// Optional VT protocol extensions.
+final class TerminalVtExtensions {
+  /// Creates VT extension settings.
+  const TerminalVtExtensions({
+    this.kittyKeyboard = false,
+    this.kittySgrBoldFaintControl = true,
+    this.win32InputMode = false,
+    this.colorSchemeQuery = true,
+  });
+
+  /// Enables the Kitty keyboard protocol.
+  final bool kittyKeyboard;
+
+  /// Enables Kitty's independent bold and faint resets.
+  final bool kittySgrBoldFaintControl;
+
+  /// Enables DECSET 9001 win32 input mode.
+  final bool win32InputMode;
+
+  /// Enables color-scheme query and notification sequences.
+  final bool colorSchemeQuery;
+}
+
+/// Compatibility switches for rejected or non-standard terminal behavior.
+final class TerminalQuirks {
+  /// Creates terminal quirk settings.
+  const TerminalQuirks({this.allowSetCursorBlink = false});
+
+  /// Allows DECSET and DECRST 12 to change cursor blinking.
+  final bool allowSetCursorBlink;
+}
+
+/// Overview ruler border visibility.
+final class TerminalOverviewRulerOptions {
+  /// Creates overview ruler settings.
+  const TerminalOverviewRulerOptions({
+    this.showTopBorder = false,
+    this.showBottomBorder = false,
+  });
+
+  /// Whether the top border is visible.
+  final bool showTopBorder;
+
+  /// Whether the bottom border is visible.
+  final bool showBottomBorder;
+}
+
+/// Scrollbar and overview ruler configuration.
+final class TerminalScrollbarOptions {
+  /// Creates scrollbar settings.
+  const TerminalScrollbarOptions({
+    this.showScrollbar = true,
+    this.showArrows = false,
+    this.width,
+    this.overviewRuler,
+  });
+
+  /// Whether the scrollbar is visible.
+  final bool showScrollbar;
+
+  /// Whether arrow buttons are visible.
+  final bool showArrows;
+
+  /// Scrollbar width in logical pixels.
+  final double? width;
+
+  /// Optional overview ruler border settings.
+  final TerminalOverviewRulerOptions? overviewRuler;
+}
+
+/// Security gates for CSI window manipulation and reporting commands.
+final class TerminalWindowOptions {
+  /// Creates window operation permissions, all disabled by default.
+  const TerminalWindowOptions({
+    this.restoreWin = false,
+    this.minimizeWin = false,
+    this.setWinPosition = false,
+    this.setWinSizePixels = false,
+    this.raiseWin = false,
+    this.lowerWin = false,
+    this.refreshWin = false,
+    this.setWinSizeChars = false,
+    this.maximizeWin = false,
+    this.fullscreenWin = false,
+    this.getWinState = false,
+    this.getWinPosition = false,
+    this.getWinSizePixels = false,
+    this.getScreenSizePixels = false,
+    this.getCellSizePixels = false,
+    this.getWinSizeChars = false,
+    this.getScreenSizeChars = false,
+    this.getIconTitle = false,
+    this.getWinTitle = false,
+    this.pushTitle = false,
+    this.popTitle = false,
+    this.setWinLines = false,
+  });
+
+  /// Allows de-iconifying the window.
+  final bool restoreWin;
+
+  /// Allows iconifying the window.
+  final bool minimizeWin;
+
+  /// Allows moving the window.
+  final bool setWinPosition;
+
+  /// Allows pixel-based resizing.
+  final bool setWinSizePixels;
+
+  /// Allows raising the window.
+  final bool raiseWin;
+
+  /// Allows lowering the window.
+  final bool lowerWin;
+
+  /// Allows explicit window refresh.
+  final bool refreshWin;
+
+  /// Allows character-cell resizing.
+  final bool setWinSizeChars;
+
+  /// Allows maximizing the window.
+  final bool maximizeWin;
+
+  /// Allows changing fullscreen state.
+  final bool fullscreenWin;
+
+  /// Allows reporting window state.
+  final bool getWinState;
+
+  /// Allows reporting window position.
+  final bool getWinPosition;
+
+  /// Allows reporting window pixel dimensions.
+  final bool getWinSizePixels;
+
+  /// Allows reporting screen pixel dimensions.
+  final bool getScreenSizePixels;
+
+  /// Allows reporting cell pixel dimensions.
+  final bool getCellSizePixels;
+
+  /// Allows reporting window dimensions in cells.
+  final bool getWinSizeChars;
+
+  /// Allows reporting screen dimensions in cells.
+  final bool getScreenSizeChars;
+
+  /// Allows reporting the icon title.
+  final bool getIconTitle;
+
+  /// Allows reporting the window title.
+  final bool getWinTitle;
+
+  /// Allows pushing a title onto the title stack.
+  final bool pushTitle;
+
+  /// Allows popping a title from the title stack.
+  final bool popTitle;
+
+  /// Allows changing the number of window lines.
+  final bool setWinLines;
+}
+
+/// Strings exposed by terminal accessibility surfaces.
+final class TerminalLocalizableStrings {
+  /// Creates localizable accessibility strings.
+  const TerminalLocalizableStrings({
+    this.promptLabel = 'Terminal input',
+    this.tooMuchOutput =
+        'Too much output to announce, navigate to rows manually',
+  });
+
+  /// Label for the hidden text input.
+  final String promptLabel;
+
+  /// Announcement used when screen-reader output is suppressed.
+  final String tooMuchOutput;
+}
+
 /// A serializable xterm color theme. Colors use CSS-compatible strings.
 final class TerminalColorTheme {
   /// Creates a theme override. Null entries use the xterm defaults.
@@ -73,6 +293,10 @@ final class TerminalColorTheme {
     this.selectionBackground,
     this.selectionForeground,
     this.selectionInactiveBackground,
+    this.scrollbarSliderBackground,
+    this.scrollbarSliderHoverBackground,
+    this.scrollbarSliderActiveBackground,
+    this.overviewRulerBorder,
     this.black,
     this.red,
     this.green,
@@ -112,6 +336,18 @@ final class TerminalColorTheme {
 
   /// xterm-compatible `selectionInactiveBackground` API.
   final String? selectionInactiveBackground;
+
+  /// xterm-compatible scrollbar slider color.
+  final String? scrollbarSliderBackground;
+
+  /// xterm-compatible hovered scrollbar slider color.
+  final String? scrollbarSliderHoverBackground;
+
+  /// xterm-compatible active scrollbar slider color.
+  final String? scrollbarSliderActiveBackground;
+
+  /// xterm-compatible overview ruler border color.
+  final String? overviewRulerBorder;
 
   /// xterm-compatible `black` API.
   final String? black;
@@ -188,12 +424,14 @@ final class TerminalOptions {
     this.ignoreBracketedPasteMode = false,
     this.letterSpacing = 0,
     double lineHeight = 1,
+    this.linkHandler,
     this.logLevel = TerminalLogLevel.info,
     this.logger,
     this.macOptionIsMeta = false,
     this.macOptionClickForcesSelection = false,
     double minimumContrastRatio = 1,
     this.mouseEventsRequireAlt = false,
+    this.quirks = const TerminalQuirks(),
     this.reflowCursorLine = false,
     this.rescaleOverlappingGlyphs = false,
     this.rightClickSelectsWord = false,
@@ -202,10 +440,14 @@ final class TerminalOptions {
     this.scrollOnEraseInDisplay = false,
     this.scrollOnUserInput = true,
     double scrollSensitivity = 1,
+    this.scrollbar = const TerminalScrollbarOptions(),
     this.smoothScrollDuration = 0,
     int tabStopWidth = 8,
     this.theme = const TerminalColorTheme(),
+    this.vtExtensions = const TerminalVtExtensions(),
+    this.windowsPty = const TerminalWindowsPtyOptions(),
     this.wordSeparator = ' ()[]{}\',"`',
+    this.windowOptions = const TerminalWindowOptions(),
     this.cols = 80,
     this.rows = 24,
     this.showCursorImmediately = false,
@@ -287,6 +529,9 @@ final class TerminalOptions {
   double letterSpacing;
   double _lineHeight;
 
+  /// xterm-compatible `linkHandler` API.
+  TerminalLinkHandler? linkHandler;
+
   /// xterm-compatible `logLevel` API.
   TerminalLogLevel logLevel;
 
@@ -302,6 +547,9 @@ final class TerminalOptions {
 
   /// xterm-compatible `mouseEventsRequireAlt` API.
   bool mouseEventsRequireAlt;
+
+  /// xterm-compatible `quirks` API.
+  TerminalQuirks quirks;
 
   /// xterm-compatible `reflowCursorLine` API.
   bool reflowCursorLine;
@@ -323,6 +571,9 @@ final class TerminalOptions {
   bool scrollOnUserInput;
   double _scrollSensitivity;
 
+  /// xterm-compatible `scrollbar` API.
+  TerminalScrollbarOptions scrollbar;
+
   /// xterm-compatible `smoothScrollDuration` API.
   int smoothScrollDuration;
   int _tabStopWidth;
@@ -330,8 +581,17 @@ final class TerminalOptions {
   /// xterm-compatible `theme` API.
   TerminalColorTheme theme;
 
+  /// xterm-compatible `vtExtensions` API.
+  TerminalVtExtensions vtExtensions;
+
+  /// xterm-compatible `windowsPty` API.
+  TerminalWindowsPtyOptions windowsPty;
+
   /// xterm-compatible `wordSeparator` API.
   String wordSeparator;
+
+  /// xterm-compatible `windowOptions` API.
+  TerminalWindowOptions windowOptions;
 
   /// xterm-compatible `cols` API.
   final int cols;

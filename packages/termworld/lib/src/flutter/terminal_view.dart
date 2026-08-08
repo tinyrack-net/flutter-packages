@@ -566,7 +566,13 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   @override
-  Widget build(BuildContext context) => widget.child;
+  Widget build(BuildContext context) => Focus(
+    focusNode: widget.focusNode,
+    autofocus: widget.autofocus,
+    canRequestFocus: !widget.readOnly,
+    onKeyEvent: widget.onKeyEvent,
+    child: widget.child,
+  );
 
   void requestKeyboard() {
     if (!widget.focusNode.hasFocus) widget.focusNode.requestFocus();
