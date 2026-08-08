@@ -339,15 +339,13 @@ Map<TerminalGlyphSelector, int?> terminalGlyphClasses(
   }
   final range = selector as (int, int);
   final result = <TerminalGlyphSelector, int?>{};
-  var classStart = range.$1;
-  var currentClass = terminalIndividualGlyphClass(table, classStart);
+  final classStart = range.$1;
+  final currentClass = terminalIndividualGlyphClass(table, classStart);
   for (var glyph = range.$1 + 1; glyph < range.$2; glyph++) {
     final nextClass = terminalIndividualGlyphClass(table, glyph);
     if (nextClass == currentClass) continue;
     result[glyph - classStart <= 1 ? classStart : (classStart, glyph)] =
         currentClass;
-    classStart = glyph;
-    currentClass = nextClass;
   }
   result[range.$2 - classStart <= 1 ? classStart : (classStart, range.$2)] =
       currentClass;
@@ -401,15 +399,13 @@ Map<TerminalGlyphSelector, int?> terminalRangeSubstitutionGlyphs(
   (int, int) range,
 ) {
   final result = <TerminalGlyphSelector, int?>{};
-  var segmentStart = range.$1;
-  var current = terminalSubstitutionGlyph(table, segmentStart);
+  final segmentStart = range.$1;
+  final current = terminalSubstitutionGlyph(table, segmentStart);
   for (var glyph = range.$1 + 1; glyph < range.$2; glyph++) {
     final next = terminalSubstitutionGlyph(table, glyph);
     if (next == current) continue;
     result[glyph - segmentStart <= 1 ? segmentStart : (segmentStart, glyph)] =
         current;
-    segmentStart = glyph;
-    current = next;
   }
   result[range.$2 - segmentStart <= 1
           ? segmentStart

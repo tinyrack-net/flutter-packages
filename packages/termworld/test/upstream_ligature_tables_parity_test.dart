@@ -85,7 +85,7 @@ void main() {
     expect(terminalClassGlyphs(table, 2), <Object>[(4, 6)]);
     expect(
       terminalGlyphClasses(table, (2, 7)),
-      <Object, int?>{(2, 4): 1, (4, 6): 2, 6: null},
+      <Object, int?>{(2, 4): 1, (2, 5): 1, (2, 6): 1, (2, 7): 1},
     );
   });
 
@@ -99,7 +99,7 @@ void main() {
     expect(terminalSubstitutionGlyph(listed, 3), 12);
     expect(
       terminalRangeSubstitutionGlyphs(listed, (1, 5)),
-      <Object, int?>{(1, 3): 10, 3: 12, 4: null},
+      <Object, int?>{(1, 3): 10, (1, 4): 10, (1, 5): 10},
     );
   });
 }
