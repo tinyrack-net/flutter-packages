@@ -779,6 +779,9 @@ final class _TerminalCoreEngine {
       case 'G' || '`':
         _setX(amount - 1);
       case 'H' || 'f':
+        if (usesWindowsWrappingHeuristics(options.windowsPty)) {
+          updateWindowsModeWrappedState(buffer.active, _columns);
+        }
         _setPosition(_param(params, 1) - 1, amount - 1);
       case 'I':
         for (var count = 0; count < amount; count++) {
@@ -1385,6 +1388,9 @@ final class _TerminalCoreEngine {
     if (lineFeedMode) buffer.active.cursorX = 0;
     if (buffer.active.cursorX >= _columns) buffer.active.cursorX--;
     buffer.active.currentLine.isWrapped = false;
+    if (usesWindowsWrappingHeuristics(options.windowsPty)) {
+      updateWindowsModeWrappedState(buffer.active, _columns);
+    }
     onLineFeed?.call();
   }
 

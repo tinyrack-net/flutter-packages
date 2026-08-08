@@ -270,6 +270,20 @@
     "src/common/StringBuilder.test.ts": {
       "implementation": ["lib/src/core/string_builder.dart"],
       "tests": ["test/upstream_string_builder_parity_test.dart"]
+    },
+    "src/common/WindowsMode.ts": {
+      "implementation": [
+        "lib/src/core/windows_mode.dart",
+        "lib/src/core/engine.dart"
+      ],
+      "tests": ["test/upstream_windows_mode_parity_test.dart"]
+    },
+    "src/common/WindowsMode.test.ts": {
+      "implementation": [
+        "lib/src/core/windows_mode.dart",
+        "lib/src/core/engine.dart"
+      ],
+      "tests": ["test/upstream_windows_mode_parity_test.dart"]
     }
   },
   "tests": {
@@ -628,6 +642,21 @@
       "dartTestName": "should start empty",
       "dartTestKind": "test",
       "dartTestPath": "StringBuilder/should start empty"
+    },
+    "unit:src/common/WindowsMode.test.ts:WindowsMode updateWindowsModeWrappedState should mark the next line wrapped when the previous line ends in a non-whitespace character": {
+      "dartTestFile": "test/upstream_windows_mode_parity_test.dart",
+      "dartTestName": "should mark the next line wrapped when the previous line ends in a non-whitespace character",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/WindowsMode.test.ts:WindowsMode updateWindowsModeWrappedState should not mark the next line wrapped when the previous line ends in a null cell": {
+      "dartTestFile": "test/upstream_windows_mode_parity_test.dart",
+      "dartTestName": "should not mark the next line wrapped when the previous line ends in a null cell",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/WindowsMode.test.ts:WindowsMode updateWindowsModeWrappedState should not mark the next line wrapped when the previous line ends in whitespace": {
+      "dartTestFile": "test/upstream_windows_mode_parity_test.dart",
+      "dartTestName": "should not mark the next line wrapped when the previous line ends in whitespace",
+      "dartTestKind": "test"
     }
   }
 }

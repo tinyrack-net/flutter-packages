@@ -223,7 +223,8 @@ void _checkMappings(
     final source = File('${package.path}/$file');
     if (source.existsSync()) {
       final literal = RegExp(
-        '\\b${RegExp.escape(kind! as String)}\\s*\\(\\s*'
+        '\\b${RegExp.escape(kind! as String)}\\s*\\('
+        r'(?:\s|//[^\n]*(?:\n|$)|/\*[\s\S]*?\*/)*'
         "['\"]${RegExp.escape(name)}['\"]",
       );
       if (!literal.hasMatch(source.readAsStringSync())) {
