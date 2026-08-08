@@ -1449,7 +1449,20 @@
     "addons/addon-ligatures/src/parse.ts": {"implementation":["lib/src/addons/font_family_parser.dart"],"tests":["test/upstream_ligature_font_family_parser_parity_test.dart"]},
     "addons/addon-ligatures/src/parse.test.ts": {"implementation":["lib/src/addons/font_family_parser.dart"],"tests":["test/upstream_ligature_font_family_parser_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/mergeRange.ts": {"implementation":["lib/src/addons/ligature_ranges.dart"],"tests":["test/upstream_ligature_range_parity_test.dart"]},
-    "addons/addon-ligatures/src/fontLigatures/mergeRange.test.ts": {"implementation":["lib/src/addons/ligature_ranges.dart"],"tests":["test/upstream_ligature_range_parity_test.dart"]}
+    "addons/addon-ligatures/src/fontLigatures/mergeRange.test.ts": {"implementation":["lib/src/addons/ligature_ranges.dart"],"tests":["test/upstream_ligature_range_parity_test.dart"]},
+    "test/benchmark/DecorationService.benchmark.ts": {"implementation":["lib/src/core/decoration_service.dart"],"tests":["test/upstream_decoration_service_parity_test.dart"]},
+    "test/benchmark/EscapeSequenceParser.benchmark.ts": {"implementation":["lib/src/core/parser.dart"],"tests":["test/xterm_core_parity_test.dart","test/upstream_apc_parser_parity_test.dart","test/upstream_dcs_parser_parity_test.dart","test/upstream_osc_parser_parity_test.dart"]},
+    "test/benchmark/Event.benchmark.ts": {"implementation":["lib/src/core/event.dart"],"tests":["test/lifecycle_parity_test.dart"]},
+    "test/benchmark/Terminal.benchmark.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/core/engine.dart"],"tests":["test/xterm_core_parity_test.dart"]},
+    "test/playwright/CharWidth.test.ts": {"implementation":["lib/src/core/unicode.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_unicode_v6_parity_test.dart","test/terminal_view_test.dart"]},
+    "test/playwright/InputHandler.test.ts": {"implementation":["lib/src/core/engine.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "test/playwright/MouseTracking.test.ts": {"implementation":["lib/src/core/mouse_state_service.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_mouse_state_service_parity_test.dart","test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "test/playwright/Parser.test.ts": {"implementation":["lib/src/core/parser.dart"],"tests":["test/xterm_core_parity_test.dart","test/upstream_apc_parser_parity_test.dart","test/upstream_dcs_parser_parity_test.dart","test/upstream_osc_parser_parity_test.dart"]},
+    "test/playwright/Renderer.test.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "test/playwright/SharedRendererTests.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "test/playwright/Terminal.test.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "test/playwright/TestUtils.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "test/playwright/playwright.config.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["example/integration_test/conformance_test.dart"]}
   },
   "tests": {
     "unit:addons/addon-ligatures/src/parse.test.ts:addon-ligatures - parse automatically ends the unicode escape after six digits": {"dartTestFile":"test/upstream_ligature_font_family_parser_parity_test.dart","dartTestName":"automatically ends the unicode escape after six digits","dartTestKind":"test","dartTestPath":"addon-ligatures - parse/automatically ends the unicode escape after six digits"},
