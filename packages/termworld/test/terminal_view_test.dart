@@ -23,6 +23,20 @@ void main() {
     expect(overridden.foreground, const Color(0xff123456));
     expect(overridden.selection, const Color(0x80010203));
     expect(overridden.palette[1], const Color(0xffaabbcc));
+
+    final dynamic = TerminalThemes.resolve(
+      const TerminalColorTheme(),
+      overrides: TerminalColorOverrides(
+        indexed: const <int, int>{1: 0x010203},
+        foreground: 0x112233,
+        background: 0x445566,
+        cursor: 0x778899,
+      ),
+    );
+    expect(dynamic.palette[1], const Color(0xff010203));
+    expect(dynamic.foreground, const Color(0xff112233));
+    expect(dynamic.background, const Color(0xff445566));
+    expect(dynamic.cursor, const Color(0xff778899));
   });
 
   testWidgets('renders and automatically resizes the headless terminal', (

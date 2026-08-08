@@ -37,6 +37,32 @@ final class TerminalRenderEvent {
   final int end;
 }
 
+/// Renderer-facing snapshot of colors changed by OSC 4/10/11/12.
+///
+/// The values are packed 24-bit RGB integers. Missing values mean that the
+/// corresponding color still comes from [TerminalOptions.theme].
+final class TerminalColorOverrides {
+  /// Creates an immutable dynamic color snapshot.
+  TerminalColorOverrides({
+    required Map<int, int> indexed,
+    this.foreground,
+    this.background,
+    this.cursor,
+  }) : indexed = Map<int, int>.unmodifiable(indexed);
+
+  /// OSC 4 palette overrides keyed by an index in the range 0 through 255.
+  final Map<int, int> indexed;
+
+  /// OSC 10 default foreground override.
+  final int? foreground;
+
+  /// OSC 11 default background override.
+  final int? background;
+
+  /// OSC 12 cursor override.
+  final int? cursor;
+}
+
 /// Width and height in logical or device pixels.
 final class TerminalPixelDimensions {
   /// Creates immutable dimensions.
@@ -580,6 +606,9 @@ final class Terminal extends DisposableStore {
 
   /// Current input-handler attributes used for subsequently printed cells.
   TerminalCellAttributes get currentAttributes => _engine.currentAttributes;
+
+  /// Effective renderer overrides installed by OSC color control sequences.
+  TerminalColorOverrides get colorOverrides => _engine.colorOverrides;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalMarker> get markers => List<TerminalMarker>.unmodifiable(

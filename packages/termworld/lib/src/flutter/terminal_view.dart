@@ -217,7 +217,11 @@ final class _TerminalViewState extends State<TerminalView> {
     builder: (context, constraints) {
       _reportDimensions(context, constraints.biggest);
       final theme =
-          widget.theme ?? TerminalThemes.resolve(widget.terminal.options.theme);
+          widget.theme ??
+          TerminalThemes.resolve(
+            widget.terminal.options.theme,
+            overrides: widget.terminal.colorOverrides,
+          );
       final style = _effectiveStyle;
       final renderer = CustomPaint(
         painter: _TerminalPainter(

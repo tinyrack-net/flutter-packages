@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:termworld/src/core/options.dart';
+import 'package:termworld/src/core/terminal.dart';
 
 /// Cursor shape rendered by the Flutter terminal view.
 enum TerminalCursorType {
@@ -131,9 +132,12 @@ abstract final class TerminalThemes {
   );
 
   /// Resolves xterm's partial public theme against its browser defaults.
-  static TerminalTheme resolve(TerminalColorTheme theme) {
+  static TerminalTheme resolve(
+    TerminalColorTheme theme, {
+    TerminalColorOverrides? overrides,
+  }) {
     final palette = List<Color>.of(_palette);
-    final overrides = <String?>[
+    final themeOverrides = <String?>[
       theme.black,
       theme.red,
       theme.green,
@@ -151,8 +155,8 @@ abstract final class TerminalThemes {
       theme.brightCyan,
       theme.brightWhite,
     ];
-    for (var index = 0; index < overrides.length; index++) {
-      palette[index] = _parse(overrides[index]) ?? palette[index];
+    for (var index = 0; index < themeOverrides.length; index++) {
+      palette[index] = _parse(themeOverrides[index]) ?? palette[index];
     }
     final extended = theme.extendedAnsi;
     if (extended != null) {
@@ -160,10 +164,23 @@ abstract final class TerminalThemes {
         palette[index + 16] = _parse(extended[index]) ?? palette[index + 16];
       }
     }
+    if (overrides != null) {
+      for (final entry in overrides.indexed.entries) {
+        if (entry.key >= 0 && entry.key < palette.length) {
+          palette[entry.key] = Color(0xff000000 | entry.value);
+        }
+      }
+    }
     return TerminalTheme(
-      foreground: _parse(theme.foreground) ?? defaultTheme.foreground,
-      background: _parse(theme.background) ?? defaultTheme.background,
-      cursor: _parse(theme.cursor) ?? defaultTheme.cursor,
+      foreground: overrides?.foreground == null
+          ? _parse(theme.foreground) ?? defaultTheme.foreground
+          : Color(0xff000000 | overrides!.foreground!),
+      background: overrides?.background == null
+          ? _parse(theme.background) ?? defaultTheme.background
+          : Color(0xff000000 | overrides!.background!),
+      cursor: overrides?.cursor == null
+          ? _parse(theme.cursor) ?? defaultTheme.cursor
+          : Color(0xff000000 | overrides!.cursor!),
       selection: _parse(theme.selectionBackground) ?? defaultTheme.selection,
       palette: List<Color>.unmodifiable(palette),
     );

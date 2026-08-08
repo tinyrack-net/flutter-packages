@@ -111,10 +111,20 @@ final class _TerminalCoreEngine {
   final Map<int, ({String? id, String uri})> _hyperlinks =
       <int, ({String? id, String uri})>{};
   final Map<String, int> _hyperlinksByExplicitId = <String, int>{};
+  final Map<int, int> _indexedColorOverrides = <int, int>{};
+  int? _foregroundColorOverride;
+  int? _backgroundColorOverride;
+  int? _cursorColorOverride;
 
   int get columns => _columns;
   int get rows => _rows;
   TerminalCellAttributes get currentAttributes => _attributes.copy();
+  TerminalColorOverrides get colorOverrides => TerminalColorOverrides(
+    indexed: _indexedColorOverrides,
+    foreground: _foregroundColorOverride,
+    background: _backgroundColorOverride,
+    cursor: _cursorColorOverride,
+  );
 
   void write(String input) {
     var index = 0;
@@ -256,13 +266,248 @@ final class _TerminalCoreEngine {
       case 2:
         _windowTitle = data;
         onTitle?.call(data);
+      case 4:
+        _setOrReportIndexedColor(data);
       case 8:
         _setHyperlink(data);
+      case 10:
+        _setOrReportSpecialColor(data, 0);
+      case 11:
+        _setOrReportSpecialColor(data, 1);
+      case 12:
+        _setOrReportSpecialColor(data, 2);
+      case 104:
+        _restoreIndexedColor(data);
+      case 110:
+        _foregroundColorOverride = null;
+      case 111:
+        _backgroundColorOverride = null;
+      case 112:
+        _cursorColorOverride = null;
     }
     if (cursor < source.length && source.codeUnitAt(cursor) == 0x1b) {
       return math.min(source.length, cursor + 2);
     }
     return math.min(source.length, cursor + 1);
+  }
+
+  void _setOrReportIndexedColor(String data) {
+    final slots = data.split(';');
+    for (var index = 0; index + 1 < slots.length; index += 2) {
+      final colorIndex = int.tryParse(slots[index]);
+      if (colorIndex == null || colorIndex < 0 || colorIndex > 255) continue;
+      final specification = slots[index + 1];
+      if (specification == '?') {
+        _reportColor('4;$colorIndex', _effectiveIndexedColor(colorIndex));
+        continue;
+      }
+      final color = _parseXColor(specification);
+      if (color != null) _indexedColorOverrides[colorIndex] = color;
+    }
+  }
+
+  void _setOrReportSpecialColor(String data, int offset) {
+    final slots = data.split(';');
+    var specialIndex = offset;
+    for (
+      var index = 0;
+      index < slots.length && specialIndex < 3;
+      index++, specialIndex++
+    ) {
+      if (slots[index] == '?') {
+        _reportColor(
+          '${10 + specialIndex}',
+          _effectiveSpecialColor(specialIndex),
+        );
+        continue;
+      }
+      final color = _parseXColor(slots[index]);
+      if (color == null) continue;
+      switch (specialIndex) {
+        case 0:
+          _foregroundColorOverride = color;
+        case 1:
+          _backgroundColorOverride = color;
+        case 2:
+          _cursorColorOverride = color;
+      }
+    }
+  }
+
+  void _restoreIndexedColor(String data) {
+    if (data.isEmpty) {
+      _indexedColorOverrides.clear();
+      return;
+    }
+    for (final slot in data.split(';')) {
+      final index = int.tryParse(slot);
+      if (index != null && index >= 0 && index <= 255) {
+        _indexedColorOverrides.remove(index);
+      }
+    }
+  }
+
+  void _reportColor(String identifier, int color) {
+    final red = (color >> 16) & 0xff;
+    final green = (color >> 8) & 0xff;
+    final blue = color & 0xff;
+    String channel(int value) {
+      final hex = value.toRadixString(16).padLeft(2, '0');
+      return '$hex$hex';
+    }
+
+    onData?.call(
+      '\u001b]$identifier;rgb:${channel(red)}/${channel(green)}/${channel(blue)}'
+      '\u001b\\',
+    );
+  }
+
+  int _effectiveIndexedColor(int index) =>
+      _indexedColorOverrides[index] ?? _themedIndexedColor(index);
+
+  int _effectiveSpecialColor(int index) => switch (index) {
+    0 =>
+      _foregroundColorOverride ??
+          _parseCssRgb(options.theme.foreground) ??
+          0xffffff,
+    1 =>
+      _backgroundColorOverride ??
+          _parseCssRgb(options.theme.background) ??
+          0x000000,
+    _ => _cursorColorOverride ?? _parseCssRgb(options.theme.cursor) ?? 0xffffff,
+  };
+
+  int _themedIndexedColor(int index) {
+    final themed = <String?>[
+      options.theme.black,
+      options.theme.red,
+      options.theme.green,
+      options.theme.yellow,
+      options.theme.blue,
+      options.theme.magenta,
+      options.theme.cyan,
+      options.theme.white,
+      options.theme.brightBlack,
+      options.theme.brightRed,
+      options.theme.brightGreen,
+      options.theme.brightYellow,
+      options.theme.brightBlue,
+      options.theme.brightMagenta,
+      options.theme.brightCyan,
+      options.theme.brightWhite,
+    ];
+    if (index < 16) {
+      return _parseCssRgb(themed[index]) ?? _defaultAnsiColors[index];
+    }
+    final extended = options.theme.extendedAnsi;
+    if (extended != null && index - 16 < extended.length) {
+      final parsed = _parseCssRgb(extended[index - 16]);
+      if (parsed != null) return parsed;
+    }
+    if (index < 232) {
+      const levels = <int>[0, 95, 135, 175, 215, 255];
+      final offset = index - 16;
+      final red = levels[offset ~/ 36];
+      final green = levels[offset % 36 ~/ 6];
+      final blue = levels[offset % 6];
+      return red << 16 | green << 8 | blue;
+    }
+    final gray = 8 + (index - 232) * 10;
+    return gray << 16 | gray << 8 | gray;
+  }
+
+  static const List<int> _defaultAnsiColors = <int>[
+    0x2e3436,
+    0xcc0000,
+    0x4e9a06,
+    0xc4a000,
+    0x3465a4,
+    0x75507b,
+    0x06989a,
+    0xd3d7cf,
+    0x555753,
+    0xef2929,
+    0x8ae234,
+    0xfce94f,
+    0x729fcf,
+    0xad7fa8,
+    0x34e2e2,
+    0xeeeeec,
+  ];
+
+  static int? _parseXColor(String source) {
+    final value = source.toLowerCase();
+    if (value.startsWith('rgb:')) {
+      final channels = value.substring(4).split('/');
+      if (channels.length != 3 ||
+          channels.any(
+            (part) =>
+                part.isEmpty ||
+                part.length > 4 ||
+                !RegExp(r'^[0-9a-f]+$').hasMatch(part),
+          )) {
+        return null;
+      }
+      final width = channels.first.length;
+      if (channels.any((part) => part.length != width)) return null;
+      final maximum = (1 << (width * 4)) - 1;
+      final rgb = channels
+          .map(
+            (part) => (int.parse(part, radix: 16) / maximum * 255).round(),
+          )
+          .toList(growable: false);
+      return rgb[0] << 16 | rgb[1] << 8 | rgb[2];
+    }
+    if (!value.startsWith('#')) return null;
+    final hex = value.substring(1);
+    if (!const <int>{3, 6, 9, 12}.contains(hex.length) ||
+        !RegExp(r'^[0-9a-f]+$').hasMatch(hex)) {
+      return null;
+    }
+    final width = hex.length ~/ 3;
+    var color = 0;
+    for (var index = 0; index < 3; index++) {
+      final raw = int.parse(
+        hex.substring(index * width, (index + 1) * width),
+        radix: 16,
+      );
+      final channel = switch (width) {
+        1 => raw << 4,
+        2 => raw,
+        3 => raw >> 4,
+        _ => raw >> 8,
+      };
+      color = color << 8 | channel;
+    }
+    return color;
+  }
+
+  static int? _parseCssRgb(String? source) {
+    if (source == null) return null;
+    final value = source.trim().toLowerCase();
+    if (value.startsWith('#')) {
+      final hex = value.substring(1);
+      if (hex.length == 3 || hex.length == 4) {
+        final expanded = hex
+            .substring(0, 3)
+            .split('')
+            .map((part) => '$part$part')
+            .join();
+        return int.tryParse(expanded, radix: 16);
+      }
+      if (hex.length == 6 || hex.length == 8) {
+        return int.tryParse(hex.substring(0, 6), radix: 16);
+      }
+      return null;
+    }
+    final match = RegExp(
+      r'^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)',
+    ).firstMatch(value);
+    if (match == null) return null;
+    final red = int.parse(match.group(1)!).clamp(0, 255);
+    final green = int.parse(match.group(2)!).clamp(0, 255);
+    final blue = int.parse(match.group(3)!).clamp(0, 255);
+    return red << 16 | green << 8 | blue;
   }
 
   void _setHyperlink(String data) {
@@ -1694,6 +1939,12 @@ final class _TerminalCoreEngine {
         return;
       case 'tabStopWidth':
         _resetTabStops();
+        return;
+      case 'theme':
+        _indexedColorOverrides.clear();
+        _foregroundColorOverride = null;
+        _backgroundColorOverride = null;
+        _cursorColorOverride = null;
         return;
     }
   }

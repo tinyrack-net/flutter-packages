@@ -599,6 +599,53 @@ void main() {
       expect(activated, <String>['https://example.com/a;b']);
     });
 
+    test(
+      'OSC colors set, report, stack, and restore xterm color state',
+      () async {
+        final terminal = Terminal(
+          options: TerminalOptions(
+            theme: const TerminalColorTheme(
+              foreground: '#123456',
+              background: '#010203',
+              cursor: '#abcdef',
+              red: '#112233',
+            ),
+          ),
+        );
+        addTearDown(terminal.dispose);
+        final reports = <String>[];
+        terminal.onData.listen(reports.add);
+
+        await terminal.writeAndWait(
+          '\u001b]4;1;?;2;#abc\u001b\\'
+          '\u001b]10;#fff;rgb:00/11/22;#123456\u001b\\'
+          '\u001b]4;2;?\u001b\\'
+          '\u001b]10;?;?;?\u001b\\',
+        );
+
+        expect(reports, <String>[
+          '\u001b]4;1;rgb:1111/2222/3333\u001b\\',
+          '\u001b]4;2;rgb:aaaa/bbbb/cccc\u001b\\',
+          '\u001b]10;rgb:f0f0/f0f0/f0f0\u001b\\',
+          '\u001b]11;rgb:0000/1111/2222\u001b\\',
+          '\u001b]12;rgb:1212/3434/5656\u001b\\',
+        ]);
+        expect(terminal.colorOverrides.indexed[2], 0xa0b0c0);
+        expect(terminal.colorOverrides.foreground, 0xf0f0f0);
+        expect(terminal.colorOverrides.background, 0x001122);
+        expect(terminal.colorOverrides.cursor, 0x123456);
+
+        await terminal.writeAndWait(
+          '\u001b]104;2\u001b\\'
+          '\u001b]110\u0007\u001b]111\u0007\u001b]112\u0007',
+        );
+        expect(terminal.colorOverrides.indexed, isEmpty);
+        expect(terminal.colorOverrides.foreground, isNull);
+        expect(terminal.colorOverrides.background, isNull);
+        expect(terminal.colorOverrides.cursor, isNull);
+      },
+    );
+
     test('OSC 8 rejects unsafe protocols unless explicitly allowed', () async {
       final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
       addTearDown(terminal.dispose);
