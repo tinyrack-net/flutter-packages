@@ -215,6 +215,25 @@ void main() {
       },
     );
 
+    test(
+      'accepts the exact parser payload limit and rejects limit + 1',
+      () async {
+        final terminal = Terminal(options: TerminalOptions(cols: 1, rows: 1));
+        addTearDown(terminal.dispose);
+        final lengths = <int>[];
+        terminal.parser.registerOscHandler(777, (data) {
+          lengths.add(data.length);
+          return true;
+        });
+        final payload = 'A' * 10000000;
+
+        await terminal.writeAndWait('\u001b]777;$payload\u001b\\');
+        await terminal.writeAndWait('\u001b]777;${payload}A\u001b\\');
+
+        expect(lengths, <int>[10000000]);
+      },
+    );
+
     test('dispatches 8-bit C1 CSI, OSC, DCS, and APC forms', () async {
       final terminal = Terminal();
       addTearDown(terminal.dispose);

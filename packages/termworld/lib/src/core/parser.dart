@@ -51,7 +51,7 @@ typedef TerminalApcHandler = FutureOr<bool> Function(String data);
 
 /// Custom parser handler registry with xterm's newest-handler-first ordering.
 final class TerminalParser implements Disposable {
-  static const int _maximumPayload = 10 * 1024 * 1024;
+  static const int _maximumPayload = 10000000;
 
   final Map<String, List<TerminalCsiHandler>> _csi =
       <String, List<TerminalCsiHandler>>{};
@@ -178,10 +178,6 @@ final class TerminalParser implements Disposable {
       if (!parsed.handled) await emit(parsed.sequence);
       index = parsed.end;
     }
-    if (_pending.length > _maximumPayload) {
-      _pending = '';
-      throw StateError('Parser payload exceeded the 10 MB xterm limit');
-    }
   }
 
   String _normalizeC1(String source) {
@@ -259,6 +255,7 @@ final class TerminalParser implements Disposable {
     );
     final data = separator < 0 ? '' : body.substring(separator + 1);
     final handled =
+        data.length <= _maximumPayload &&
         !(identifier == null) &&
         await _callNewest(_osc[identifier], (handler) => handler(data));
     return _ParsedSequence(
@@ -276,10 +273,12 @@ final class TerminalParser implements Disposable {
     final header = source.substring(start + 2, finalIndex);
     final identifier = _identifier(header, source[finalIndex]);
     final data = source.substring(finalIndex + 1, terminator.start);
-    final handled = await _callNewest(
-      _dcs[identifier.key],
-      (handler) => handler(data, _parameters(_parameterPart(header))),
-    );
+    final handled =
+        data.length <= _maximumPayload &&
+        await _callNewest(
+          _dcs[identifier.key],
+          (handler) => handler(data, _parameters(_parameterPart(header))),
+        );
     return _ParsedSequence(
       source.substring(start, terminator.end),
       terminator.end,
@@ -295,10 +294,9 @@ final class TerminalParser implements Disposable {
     final header = source.substring(start + 2, finalIndex);
     final identifier = _identifier(header, source[finalIndex]);
     final data = source.substring(finalIndex + 1, terminator.start);
-    final handled = await _callNewest(
-      _apc[identifier.key],
-      (handler) => handler(data),
-    );
+    final handled =
+        data.length <= _maximumPayload &&
+        await _callNewest(_apc[identifier.key], (handler) => handler(data));
     return _ParsedSequence(
       source.substring(start, terminator.end),
       terminator.end,
