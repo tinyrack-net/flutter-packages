@@ -1,6 +1,21 @@
 {
   "schemaVersion": 1,
   "declarations": {
+    "addons/addon-image/typings/addon-image.d.ts:9": {"implementation":"lib/addon_image.dart","symbol":"class ImageAddonOptions"},
+    "addons/addon-image/typings/addon-image.d.ts:21": {"implementation":"lib/addon_image.dart","symbol":"this.enableSizeReports = true"},
+    "addons/addon-image/typings/addon-image.d.ts:43": {"implementation":"lib/addon_image.dart","symbol":"this.pixelLimit = 16777216"},
+    "addons/addon-image/typings/addon-image.d.ts:51": {"implementation":"lib/addon_image.dart","symbol":"this.storageLimit = 128"},
+    "addons/addon-image/typings/addon-image.d.ts:56": {"implementation":"lib/addon_image.dart","symbol":"this.showPlaceholder = true"},
+    "addons/addon-image/typings/addon-image.d.ts:63": {"implementation":"lib/addon_image.dart","symbol":"this.sixelSupport = true"},
+    "addons/addon-image/typings/addon-image.d.ts:65": {"implementation":"lib/addon_image.dart","symbol":"this.sixelScrolling = true"},
+    "addons/addon-image/typings/addon-image.d.ts:67": {"implementation":"lib/addon_image.dart","symbol":"this.sixelPaletteLimit = 4096"},
+    "addons/addon-image/typings/addon-image.d.ts:69": {"implementation":"lib/addon_image.dart","symbol":"this.sixelSizeLimit = 33554432"},
+    "addons/addon-image/typings/addon-image.d.ts:76": {"implementation":"lib/addon_image.dart","symbol":"this.iipSupport = true"},
+    "addons/addon-image/typings/addon-image.d.ts:78": {"implementation":"lib/addon_image.dart","symbol":"this.iipSizeLimit = 33554432"},
+    "addons/addon-image/typings/addon-image.d.ts:85": {"implementation":"lib/addon_image.dart","symbol":"this.kittySupport = true"},
+    "addons/addon-image/typings/addon-image.d.ts:87": {"implementation":"lib/addon_image.dart","symbol":"this.kittySizeLimit = 33554432"},
+    "addons/addon-image/typings/addon-image.d.ts:90": {"implementation":"lib/addon_image.dart","symbol":"class ImageAddon extends"},
+    "addons/addon-image/typings/addon-image.d.ts:91": {"implementation":"lib/addon_image.dart","symbol":"ImageAddon({this.options"},
     "addons/addon-attach/typings/addon-attach.d.ts:9": {
       "implementation": "lib/addon_attach.dart",
       "symbol": "bidirectional"
