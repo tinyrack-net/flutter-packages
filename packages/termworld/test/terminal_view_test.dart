@@ -7,6 +7,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/termworld.dart';
 
 void main() {
+  test('resolves xterm browser theme defaults and overrides', () {
+    final defaults = TerminalThemes.resolve(const TerminalColorTheme());
+    expect(defaults.foreground, const Color(0xffffffff));
+    expect(defaults.background, const Color(0xff000000));
+    expect(defaults.palette.first, const Color(0xff2e3436));
+
+    final overridden = TerminalThemes.resolve(
+      const TerminalColorTheme(
+        foreground: '#123456',
+        selectionBackground: 'rgba(1, 2, 3, 0.5)',
+        red: '#abc',
+      ),
+    );
+    expect(overridden.foreground, const Color(0xff123456));
+    expect(overridden.selection, const Color(0x80010203));
+    expect(overridden.palette[1], const Color(0xffaabbcc));
+  });
+
   testWidgets('renders and automatically resizes the headless terminal', (
     tester,
   ) async {

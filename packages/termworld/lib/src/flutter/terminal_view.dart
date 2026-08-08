@@ -179,7 +179,8 @@ final class _TerminalViewState extends State<TerminalView> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       _reportDimensions(context, constraints.biggest);
-      final theme = widget.theme ?? TerminalThemes.defaultTheme;
+      final theme =
+          widget.theme ?? TerminalThemes.resolve(widget.terminal.options.theme);
       final style = _effectiveStyle;
       final renderer = CustomPaint(
         painter: _TerminalPainter(

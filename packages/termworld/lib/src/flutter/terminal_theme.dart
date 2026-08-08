@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:termworld/src/core/options.dart';
 
 /// Cursor shape rendered by the Flutter terminal view.
 enum TerminalCursorType {
@@ -122,31 +123,105 @@ abstract final class TerminalThemes {
 
   /// Default dark terminal theme.
   static final TerminalTheme defaultTheme = TerminalTheme(
-    foreground: const Color(0xfff8f8f2),
-    background: const Color(0xff1e1e1e),
-    cursor: const Color(0xfff8f8f2),
-    selection: const Color(0x663399ff),
+    foreground: const Color(0xffffffff),
+    background: const Color(0xff000000),
+    cursor: const Color(0xffffffff),
+    selection: const Color(0x4dffffff),
     palette: _palette,
   );
 
+  /// Resolves xterm's partial public theme against its browser defaults.
+  static TerminalTheme resolve(TerminalColorTheme theme) {
+    final palette = List<Color>.of(_palette);
+    final overrides = <String?>[
+      theme.black,
+      theme.red,
+      theme.green,
+      theme.yellow,
+      theme.blue,
+      theme.magenta,
+      theme.cyan,
+      theme.white,
+      theme.brightBlack,
+      theme.brightRed,
+      theme.brightGreen,
+      theme.brightYellow,
+      theme.brightBlue,
+      theme.brightMagenta,
+      theme.brightCyan,
+      theme.brightWhite,
+    ];
+    for (var index = 0; index < overrides.length; index++) {
+      palette[index] = _parse(overrides[index]) ?? palette[index];
+    }
+    final extended = theme.extendedAnsi;
+    if (extended != null) {
+      for (var index = 0; index < extended.length && index < 240; index++) {
+        palette[index + 16] = _parse(extended[index]) ?? palette[index + 16];
+      }
+    }
+    return TerminalTheme(
+      foreground: _parse(theme.foreground) ?? defaultTheme.foreground,
+      background: _parse(theme.background) ?? defaultTheme.background,
+      cursor: _parse(theme.cursor) ?? defaultTheme.cursor,
+      selection: _parse(theme.selectionBackground) ?? defaultTheme.selection,
+      palette: List<Color>.unmodifiable(palette),
+    );
+  }
+
+  static Color? _parse(String? source) {
+    if (source == null) return null;
+    final value = source.trim().toLowerCase();
+    if (value.startsWith('#')) {
+      final hex = value.substring(1);
+      if (hex.length == 3 || hex.length == 4) {
+        final expanded = hex.split('').map((part) => '$part$part').join();
+        return _hexColor(expanded);
+      }
+      return _hexColor(hex);
+    }
+    final match = RegExp(
+      r'^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$',
+    ).firstMatch(value);
+    if (match == null) return null;
+    final red = int.parse(match.group(1)!).clamp(0, 255);
+    final green = int.parse(match.group(2)!).clamp(0, 255);
+    final blue = int.parse(match.group(3)!).clamp(0, 255);
+    final alphaText = match.group(4);
+    final alpha = alphaText == null
+        ? 255
+        : (double.parse(alphaText).clamp(0, 1) * 255).round();
+    return Color.fromARGB(alpha, red, green, blue);
+  }
+
+  static Color? _hexColor(String hex) {
+    final parsed = int.tryParse(hex, radix: 16);
+    if (parsed == null) return null;
+    if (hex.length == 6) return Color(0xff000000 | parsed);
+    if (hex.length == 8) {
+      return Color((parsed & 0xff) << 24 | parsed >> 8);
+    }
+    return null;
+  }
+
   static List<Color> _buildPalette() {
     final colors = <Color>[
-      const Color(0xff000000),
-      const Color(0xffcd0000),
-      const Color(0xff00cd00),
-      const Color(0xffcdcd00),
-      const Color(0xff0000ee),
-      const Color(0xffcd00cd),
-      const Color(0xff00cdcd),
-      const Color(0xffe5e5e5),
-      const Color(0xff7f7f7f),
-      const Color(0xffff0000),
-      const Color(0xff00ff00),
-      const Color(0xffffff00),
-      const Color(0xff5c5cff),
-      const Color(0xffff00ff),
-      const Color(0xff00ffff),
-      const Color(0xffffffff),
+      const Color(0xff2e3436),
+      const Color(0xffcc0000),
+      const Color(0xff4e9a06),
+      const Color(0xffc4a000),
+      const Color(0xff3465a4),
+      const Color(0xff75507b),
+      const Color(0xff06989a),
+      const Color(0xffd3d7cf),
+      const Color(0xff555753),
+      const Color(0xffef2929),
+      const Color(0xff8ae234),
+      const Color(0xfffce94f),
+      const Color(0xff729fcf),
+      const Color(0xffad7fa8),
+      const Color(0xff34e2e2),
+      const Color(0xffeeeeec),
     ];
     const levels = <int>[0, 95, 135, 175, 215, 255];
     for (final red in levels) {
