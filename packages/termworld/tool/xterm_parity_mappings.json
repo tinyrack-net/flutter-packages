@@ -251,6 +251,14 @@
       "implementation": ["lib/src/core/circular_list.dart"],
       "tests": ["test/upstream_circular_list_parity_test.dart"]
     },
+    "src/common/Color.ts": {
+      "implementation": ["lib/src/core/color.dart"],
+      "tests": ["test/upstream_color_parity_test.dart"]
+    },
+    "src/common/Color.test.ts": {
+      "implementation": ["lib/src/core/color.dart"],
+      "tests": ["test/upstream_color_parity_test.dart"]
+    },
     "src/common/Lifecycle.ts": {
       "implementation": ["lib/src/core/disposable.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
@@ -759,6 +767,152 @@
     "unit:src/common/CircularList.test.ts:CircularList trimStart should remove items from the beginning of the list": {
       "dartTestFile": "test/upstream_circular_list_parity_test.dart",
       "dartTestName": "should remove items from the beginning of the list",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color channels toColor should convert an rgb array to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgb array to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color channels toColor should convert an rgba array to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgba array to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color channels toCss should convert an rgb array to css hex string": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgb array to css hex string",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color channels toCss should convert an rgba array to css hex string": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgba array to css hex string",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color channels toRgba should convert an rgb array to an rgba number": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgb array to an rgba number",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color channels toRgba should convert an rgba array to an rgba number": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgba array to an rgba number",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color color blend should blend colors based on the alpha channel": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should blend colors based on the alpha channel",
+      "dartTestKind": "test",
+      "dartTestPath": "Color/color/should blend colors based on the alpha channel"
+    },
+    "unit:src/common/Color.test.ts:Color color isOpaque should return false for transparent colors": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should return false for transparent colors",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color color isOpaque should return true for opaque colors": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should return true for opaque colors",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color color opacity should make the color transparent": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should make the color transparent",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color color opaque should make the color opaque": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should make the color opaque",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color contrastRatio should calculate the relative luminance of the color": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should calculate the relative luminance of the color",
+      "dartTestKind": "test",
+      "dartTestPath": "Color/contrastRatio/should calculate the relative luminance of the color"
+    },
+    "unit:src/common/Color.test.ts:Color contrastRatio should work regardless of the parameter order": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should work regardless of the parameter order",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert \"transparent\" to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert \"transparent\" to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert the #rgb format to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert the #rgb format to an IColor",
+      "dartTestKind": "test",
+      "dartTestPath": "Color/css/#rgb/should convert the #rgb format to an IColor"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert the #rgb format to an IColor#2": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert the #rgb format to an IColor",
+      "dartTestKind": "test",
+      "dartTestPath": "Color/css/#rgba/should convert the #rgb format to an IColor"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert the #rrggbb format to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert the #rrggbb format to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert the #rrggbbaa format to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert the #rrggbbaa format to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert the rgb() format to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert the rgb() format to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color css toColor should convert the rgba() format to an IColor": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert the rgba() format to an IColor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color rgb relativeLuminance should calculate the relative luminance of the color": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should calculate the relative luminance of the color",
+      "dartTestKind": "test",
+      "dartTestPath": "Color/rgb/should calculate the relative luminance of the color"
+    },
+    "unit:src/common/Color.test.ts:Color rgba blend should blend colors based on the alpha channel": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should blend colors based on the alpha channel",
+      "dartTestKind": "test",
+      "dartTestPath": "Color/rgba/should blend colors based on the alpha channel"
+    },
+    "unit:src/common/Color.test.ts:Color rgba ensureContrastRatio should return a color that meets the contrast ratio (black bg)": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should return a color that meets the contrast ratio (black bg)",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color rgba ensureContrastRatio should return a color that meets the contrast ratio (white bg)": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should return a color that meets the contrast ratio (white bg)",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color rgba ensureContrastRatio should return undefined if the color already meets the contrast ratio (black bg)": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should return undefined if the color already meets the contrast ratio (black bg)",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color rgba ensureContrastRatio should return undefined if the color already meets the contrast ratio (white bg)": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should return undefined if the color already meets the contrast ratio (white bg)",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color rgba toChannels should convert an rgba number to an rgba array": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert an rgba number to an rgba array",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Color.test.ts:Color toPaddedHex should convert numbers to 2-digit hex values": {
+      "dartTestFile": "test/upstream_color_parity_test.dart",
+      "dartTestName": "should convert numbers to 2-digit hex values",
       "dartTestKind": "test"
     }
   }
