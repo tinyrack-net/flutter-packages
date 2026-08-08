@@ -334,6 +334,33 @@ void main() {
         'abcX',
       );
     });
+
+    test(
+      'executes CSI controls before dispatch and honors cancellation',
+      () async {
+        final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+        addTearDown(terminal.dispose);
+        final rows = <int>[];
+        terminal.parser.registerCsiHandler(
+          const TerminalFunctionIdentifier(finalByte: 'z'),
+          (params) {
+            rows.add(terminal.buffer.active.cursorY);
+            return true;
+          },
+        );
+
+        await terminal.writeAndWait('a\u001b[1\n;2zX');
+        expect(rows, <int>[1]);
+        expect(
+          terminal.buffer.active.getLine(1)!.translateToString(trimRight: true),
+          ' X',
+        );
+
+        await terminal.writeAndWait('\u001b[1\u0018z\u001b[2CX');
+        expect(rows, <int>[1]);
+        expect(terminal.buffer.active.cursorX, 6);
+      },
+    );
   });
 
   group('terminal public behavior', () {

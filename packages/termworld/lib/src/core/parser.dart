@@ -170,7 +170,7 @@ final class TerminalParser implements Disposable {
         break;
       }
       if (escape > index) await emit(source.substring(index, escape));
-      final parsed = await _parseAt(source, escape);
+      final parsed = await _parseAt(source, escape, emit);
       if (parsed == null) {
         _pending = source.substring(escape);
         break;
@@ -205,11 +205,15 @@ final class TerminalParser implements Disposable {
     return result.toString();
   }
 
-  Future<_ParsedSequence?> _parseAt(String source, int start) async {
+  Future<_ParsedSequence?> _parseAt(
+    String source,
+    int start,
+    FutureOr<void> Function(String data) emit,
+  ) async {
     if (start + 1 >= source.length) return null;
     final introducer = source.codeUnitAt(start + 1);
     final parsed = await switch (introducer) {
-      0x5b => _parseCsi(source, start),
+      0x5b => _parseCsi(source, start, emit),
       0x5d => _parseOsc(source, start),
       0x50 => _parseDcs(source, start),
       0x5f => _parseApc(source, start),
@@ -229,21 +233,59 @@ final class TerminalParser implements Disposable {
     return parsed;
   }
 
-  Future<_ParsedSequence?> _parseCsi(String source, int start) async {
-    final finalIndex = _findFinal(source, start + 2, 0x40);
+  Future<_ParsedSequence?> _parseCsi(
+    String source,
+    int start,
+    FutureOr<void> Function(String data) emit,
+  ) async {
+    final body = StringBuffer();
+    final executed = StringBuffer();
+    var finalIndex = -1;
+    for (var index = start + 2; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      if (code == 0x18 || code == 0x1a) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index + 1),
+          index + 1,
+          handled: true,
+        );
+      }
+      if (code == 0x1b) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index),
+          index,
+          handled: true,
+        );
+      }
+      if (code >= 0x40 && code <= 0x7e) {
+        finalIndex = index;
+        break;
+      }
+      if (_isExecutable(code)) {
+        executed.writeCharCode(code);
+      } else if (code != 0x7f) {
+        body.writeCharCode(code);
+      }
+    }
     if (finalIndex < 0) return null;
-    final body = source.substring(start + 2, finalIndex);
-    final identifier = _identifier(body, source[finalIndex]);
+    if (executed.isNotEmpty) await emit(executed.toString());
+    final bodyValue = body.toString();
+    final identifier = _identifier(bodyValue, source[finalIndex]);
     final handled = await _callNewest(
       _csi[identifier.key],
-      (handler) => handler(_parameters(_parameterPart(body))),
+      (handler) => handler(_parameters(_parameterPart(bodyValue))),
     );
     return _ParsedSequence(
-      source.substring(start, finalIndex + 1),
+      '\u001b[$bodyValue${source[finalIndex]}',
       finalIndex + 1,
       handled: handled,
     );
   }
+
+  bool _isExecutable(int code) =>
+      code <= 0x17 || code == 0x19 || code >= 0x1c && code <= 0x1f;
 
   Future<_ParsedSequence?> _parseOsc(String source, int start) async {
     final terminator = _stringTerminator(source, start + 2);
