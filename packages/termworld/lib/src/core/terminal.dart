@@ -406,15 +406,8 @@ final class Terminal extends DisposableStore {
   /// Queues text followed by CRLF.
   void writeln(Object data, {void Function()? onParsed}) {
     _checkData(data);
-    if (data is String) {
-      write('$data\r\n', onParsed: onParsed);
-    } else {
-      final bytes = data as Uint8List;
-      write(
-        Uint8List.fromList(<int>[...bytes, 0x0d, 0x0a]),
-        onParsed: onParsed,
-      );
-    }
+    write(data);
+    write('\r\n', onParsed: onParsed);
   }
 
   /// Queues data and completes after its parser callback fires.

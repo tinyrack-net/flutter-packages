@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -33,6 +34,28 @@ void main() {
   });
 
   group('write buffer and events', () {
+    test('writeln queues data and CRLF as two ordered writes', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 8, rows: 2));
+      addTearDown(terminal.dispose);
+      final renders = <TerminalRenderEvent>[];
+      final completed = Completer<void>();
+      terminal.onRender.listen(renders.add);
+
+      terminal.writeln(
+        Uint8List.fromList(<int>[0x61]),
+        onParsed: completed.complete,
+      );
+      await completed.future;
+
+      expect(renders, hasLength(2));
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        'a',
+      );
+      expect(terminal.buffer.active.cursorY, 1);
+      expect(terminal.buffer.active.cursorX, 0);
+    });
+
     test(
       'preserves callbacks, event order, and UTF-8 chunk boundaries',
       () async {
