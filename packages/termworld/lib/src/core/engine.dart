@@ -342,6 +342,7 @@ final class _TerminalCoreEngine {
     }
     switch (finalByte) {
       case '@':
+        _restrictCursor();
         buffer.active.currentLine.insertCells(
           buffer.active.cursorX,
           amount,
@@ -370,10 +371,13 @@ final class _TerminalCoreEngine {
           _tab();
         }
       case 'J':
+        _restrictCursor(maxColumn: _columns);
         _eraseDisplay(params[0][0], prefix == '?');
       case 'K':
+        _restrictCursor(maxColumn: _columns);
         _eraseLine(params[0][0], prefix == '?');
       case 'L':
+        _restrictCursor();
         if (_inMargins) {
           buffer.active.insertLines(
             buffer.active.cursorY,
@@ -382,6 +386,7 @@ final class _TerminalCoreEngine {
           );
         }
       case 'M':
+        _restrictCursor();
         if (_inMargins) {
           buffer.active.deleteLines(
             buffer.active.cursorY,
@@ -390,6 +395,7 @@ final class _TerminalCoreEngine {
           );
         }
       case 'P':
+        _restrictCursor();
         buffer.active.currentLine.deleteCells(
           buffer.active.cursorX,
           amount,
@@ -406,18 +412,20 @@ final class _TerminalCoreEngine {
       case 'T' || '^':
         for (var count = 0; count < amount; count++) {
           buffer.active.reverseScroll(
-            _eraseAttributes,
+            TerminalCellAttributes(),
             top: marginTop,
             bottom: marginBottom,
           );
         }
       case 'X':
+        _restrictCursor();
         buffer.active.currentLine.erase(
           buffer.active.cursorX,
           buffer.active.cursorX + amount,
           _eraseAttributes,
         );
       case 'Z':
+        if (buffer.active.cursorX >= _columns) return;
         for (var count = 0; count < amount; count++) {
           _backTab();
         }
@@ -517,13 +525,20 @@ final class _TerminalCoreEngine {
       buffer.active.currentLine.appendCombining(index, value);
       return;
     }
-    if (_pendingWrap || width == 2 && buffer.active.cursorX == _columns - 1) {
+    if (buffer.active.cursorX + width - oldWidth > _columns) {
       if (autoWrapMode) {
+        final oldLine = buffer.active.currentLine;
+        var oldColumn = buffer.active.cursorX - oldWidth;
         _index();
-        buffer.active.cursorX = 0;
+        buffer.active.cursorX = oldWidth;
         buffer.active.currentLine.isWrapped = true;
+        while (oldColumn < _columns) {
+          oldLine.setCell(oldColumn++, '', 1, _attributes);
+        }
+      } else {
+        buffer.active.cursorX = _columns - 1;
+        if (width == 2) return;
       }
-      _pendingWrap = false;
     }
     var column = buffer.active.cursorX;
     if (!autoWrapMode && width == 2 && column == _columns - 1) column--;
@@ -532,12 +547,7 @@ final class _TerminalCoreEngine {
     }
     buffer.active.currentLine.setCell(column, mapped, width, _attributes);
     _precedingCharacter = mapped;
-    if (column + width >= _columns) {
-      buffer.active.cursorX = _columns;
-      _pendingWrap = true;
-    } else {
-      buffer.active.cursorX = column + width;
-    }
+    buffer.active.cursorX = column + width;
   }
 
   String _mapCharset(String value) {
@@ -573,11 +583,10 @@ final class _TerminalCoreEngine {
   }
 
   void _backspace() {
-    if (_pendingWrap) {
-      _pendingWrap = false;
-      buffer.active.cursorX--;
-      return;
-    }
+    buffer.active.cursorX = buffer.active.cursorX.clamp(
+      0,
+      reverseWraparoundMode ? _columns : _columns - 1,
+    );
     if (buffer.active.cursorX > 0) {
       buffer.active.cursorX--;
     } else if (reverseWraparoundMode &&
@@ -591,7 +600,7 @@ final class _TerminalCoreEngine {
   }
 
   void _tab() {
-    if (_pendingWrap) return;
+    if (buffer.active.cursorX >= _columns) return;
     for (var column = buffer.active.cursorX + 1; column < _columns; column++) {
       if (_tabStops.contains(column)) {
         buffer.active.cursorX = column;
@@ -614,6 +623,8 @@ final class _TerminalCoreEngine {
   void _lineFeed() {
     _index();
     if (lineFeedMode) buffer.active.cursorX = 0;
+    if (buffer.active.cursorX >= _columns) buffer.active.cursorX--;
+    buffer.active.currentLine.isWrapped = false;
   }
 
   void _index() {
@@ -648,7 +659,8 @@ final class _TerminalCoreEngine {
 
   void _moveX(int amount) {
     _pendingWrap = false;
-    buffer.active.cursorX = (buffer.active.cursorX + amount).clamp(
+    final current = buffer.active.cursorX.clamp(0, _columns - 1);
+    buffer.active.cursorX = (current + amount).clamp(
       0,
       _columns - 1,
     );
@@ -656,11 +668,25 @@ final class _TerminalCoreEngine {
 
   void _moveY(int amount) {
     _pendingWrap = false;
-    final minimum = originMode ? marginTop : 0;
-    final maximum = originMode ? marginBottom : _rows - 1;
+    _restrictCursor();
+    final minimum = buffer.active.cursorY >= marginTop ? marginTop : 0;
+    final maximum = buffer.active.cursorY <= marginBottom
+        ? marginBottom
+        : _rows - 1;
     buffer.active.cursorY = (buffer.active.cursorY + amount).clamp(
       minimum,
       maximum,
+    );
+  }
+
+  void _restrictCursor({int? maxColumn}) {
+    buffer.active.cursorX = buffer.active.cursorX.clamp(
+      0,
+      maxColumn ?? _columns - 1,
+    );
+    buffer.active.cursorY = buffer.active.cursorY.clamp(
+      originMode ? marginTop : 0,
+      originMode ? marginBottom : _rows - 1,
     );
   }
 
