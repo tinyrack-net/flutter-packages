@@ -502,9 +502,6 @@ final class Terminal extends DisposableStore {
       onA11yChar: _onA11yChar.fire,
       onA11yTab: _onA11yTab.fire,
       onLineFeed: () => _onLineFeed.fire(TerminalVoid.value),
-      onBufferTrim: _handleBufferTrim,
-      onBufferInsert: _handleBufferInsert,
-      onBufferDelete: _handleBufferDelete,
     );
     buffer = _engine.buffer;
     parser = add(
@@ -630,9 +627,7 @@ final class Terminal extends DisposableStore {
   TerminalColorOverrides get colorOverrides => _engine.colorOverrides;
 
   /// xterm-compatible `unmodifiable` API.
-  List<TerminalMarker> get markers => List<TerminalMarker>.unmodifiable(
-    _markers.where((item) => !item.isDisposed),
-  );
+  List<TerminalMarker> get markers => buffer.active.markers;
 
   /// xterm-compatible `dimensions` API.
   TerminalRenderDimensions? get dimensions => _dimensions;
@@ -646,10 +641,8 @@ final class Terminal extends DisposableStore {
   TerminalBufferRange? _selection;
   bool _selectionColumnMode = false;
   TerminalRenderDimensions? _dimensions;
-  final List<TerminalMarker> _markers = <TerminalMarker>[];
   final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
   bool _isDisposing = false;
-  final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
   final AddonManager _addonManager = AddonManager();
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
   final Map<int, TerminalCharacterJoiner> _characterJoiners =
@@ -661,29 +654,6 @@ final class Terminal extends DisposableStore {
   void Function()? _blur;
   bool _hasFocus = false;
   String? _lastMouseReportKey;
-
-  void _handleBufferTrim(int amount) {
-    for (final marker in List<TerminalMarker>.of(_markers)) {
-      marker.move(-amount);
-    }
-  }
-
-  void _handleBufferInsert(int index, int amount) {
-    for (final marker in _markers) {
-      if (marker.line >= index) marker.move(amount);
-    }
-  }
-
-  void _handleBufferDelete(int index, int amount) {
-    final end = index + amount;
-    for (final marker in List<TerminalMarker>.of(_markers)) {
-      if (marker.line >= index && marker.line < end) {
-        marker.dispose();
-      } else if (marker.line >= end) {
-        marker.move(-amount);
-      }
-    }
-  }
 
   void _handleOptionChange(String name) {
     _engine.handleOptionChange(name);
@@ -1039,13 +1009,10 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `registerMarker` API.
   TerminalMarker? registerMarker({int cursorYOffset = 0}) {
-    if (identical(buffer.active, buffer.alternate)) return null;
-    final y = buffer.normal.absoluteCursorY + cursorYOffset;
-    if (y < 0 || y >= buffer.normal.length) return null;
-    final marker = _markerFactory.create(y);
-    _markers.add(marker);
-    marker.onDispose.listen((_) => _markers.remove(marker));
-    return marker;
+    final active = buffer.active;
+    final y = active.absoluteCursorY + cursorYOffset;
+    if (y < 0 || y >= active.length) return null;
+    return active.addMarker(y);
   }
 
   /// xterm-compatible `registerDecoration` API.
@@ -1297,9 +1264,6 @@ final class Terminal extends DisposableStore {
     unicode.dispose();
     for (final decoration in List<TerminalDecoration>.of(_decorations)) {
       decoration.dispose();
-    }
-    for (final marker in List<TerminalMarker>.of(_markers)) {
-      marker.dispose();
     }
     buffer.dispose();
     for (final emitter in <Disposable>[

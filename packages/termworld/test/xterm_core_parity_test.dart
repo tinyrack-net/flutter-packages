@@ -988,7 +988,7 @@ void main() {
       expect(terminal.modes.reverseWraparoundMode, isTrue);
       expect(terminal.modes.sendFocusMode, isTrue);
       expect(terminal.modes.bracketedPasteMode, isTrue);
-      expect(terminal.registerMarker(), isNull);
+      expect(terminal.registerMarker(), isNotNull);
     });
 
     test('normalizes and sanitizes bracketed paste', () async {
