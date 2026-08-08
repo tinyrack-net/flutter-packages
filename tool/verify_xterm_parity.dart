@@ -118,7 +118,64 @@ void main() {
   _checkPinnedKittyKeyboardCases(package, failures);
   _checkPinnedWin32InputModeCases(package, failures);
   _checkPinnedKeyboardCases(package, failures);
+  _checkPinnedIipMetricsCases(package, failures);
   _finish(failures);
+}
+
+void _checkPinnedIipMetricsCases(
+  Directory package,
+  List<String> failures,
+) {
+  final manifest = File(
+    '${package.path}/test/fixtures/xterm_image/image_metrics_cases.json',
+  );
+  if (!manifest.existsSync()) {
+    failures.add('pinned IIP metrics cases are missing');
+    return;
+  }
+  final manifestHash = Process.runSync('git', <String>[
+    'hash-object',
+    '--no-filters',
+    manifest.path,
+  ]);
+  if (manifestHash.exitCode != 0 ||
+      (manifestHash.stdout as String).trim() !=
+          '09da36eb320e6841c72060306533a104c58a1c66') {
+    failures.add('pinned IIP metrics manifest changed');
+  }
+  final document = jsonDecode(manifest.readAsStringSync());
+  if (document is! Map<String, Object?> ||
+      document['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb' ||
+      document['license'] != 'MIT' ||
+      document['cases'] is! List<Object?> ||
+      (document['cases']! as List<Object?>).length != 20) {
+    failures.add('pinned IIP metrics case identity changed');
+    return;
+  }
+  for (final raw in document['cases']! as List<Object?>) {
+    if (raw is! Map<String, Object?> ||
+        raw['file'] is! String ||
+        raw['blob'] is! String) {
+      failures.add('invalid pinned IIP metrics case');
+      continue;
+    }
+    final fixture = File(
+      '${package.path}/test/fixtures/xterm_image/testimages/${raw['file']}',
+    );
+    if (!fixture.existsSync()) {
+      failures.add('pinned IIP metrics image is missing: ${raw['file']}');
+      continue;
+    }
+    final result = Process.runSync('git', <String>[
+      'hash-object',
+      '--no-filters',
+      fixture.path,
+    ]);
+    if (result.exitCode != 0 ||
+        (result.stdout as String).trim() != raw['blob']) {
+      failures.add('pinned IIP metrics image changed: ${raw['file']}');
+    }
+  }
 }
 
 void _checkPinnedKeyboardCases(Directory package, List<String> failures) {

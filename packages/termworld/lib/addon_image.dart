@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:termworld/src/addons/iip_header_parser.dart';
+import 'package:termworld/src/addons/iip_metrics.dart';
 import 'package:termworld/src/addons/kitty_graphics_types.dart';
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/event.dart';
@@ -14,6 +15,7 @@ import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/terminal.dart';
 
 export 'src/addons/iip_header_parser.dart';
+export 'src/addons/iip_metrics.dart';
 export 'src/addons/kitty_graphics_types.dart';
 
 /// Supported inline image protocol.
@@ -460,8 +462,11 @@ final class ImageAddon extends ManagedTerminalAddon {
     if (id == null) return true;
     final image = _kittyImages[id];
     if (image == null) return false;
-    _ImageMetrics? metrics;
-    if (image.format == 100) metrics = _imageMetrics(image.bytes);
+    IipImageMetrics? metrics;
+    if (image.format == 100) {
+      final detected = iipImageType(image.bytes);
+      if (detected.type != IipImageType.unsupported) metrics = detected;
+    }
     final width = metrics?.width ?? image.width;
     final height = metrics?.height ?? image.height;
     if (width <= 0 || height <= 0 || width * height > options.pixelLimit) {
@@ -651,8 +656,8 @@ final class ImageAddon extends ManagedTerminalAddon {
   void _addIip(_IipHeader header, String payload) {
     final bytes = _decodeBase64(payload, options.iipSizeLimit);
     if (bytes == null) return;
-    final metrics = _imageMetrics(bytes);
-    if (metrics == null ||
+    final metrics = iipImageType(bytes);
+    if (metrics.type == IipImageType.unsupported ||
         metrics.width == 0 ||
         metrics.height == 0 ||
         metrics.width * metrics.height >= options.pixelLimit) {
@@ -949,68 +954,3 @@ final class _KittyImageData {
   final int height;
   final int format;
 }
-
-final class _ImageMetrics {
-  const _ImageMetrics(this.width, this.height);
-
-  final int width;
-  final int height;
-}
-
-_ImageMetrics? _imageMetrics(List<int> data) {
-  if (data.length < 24) return null;
-  if (data[0] == 0x89 &&
-      data[1] == 0x50 &&
-      data[2] == 0x4e &&
-      data[3] == 0x47 &&
-      data[4] == 0x0d &&
-      data[5] == 0x0a &&
-      data[6] == 0x1a &&
-      data[7] == 0x0a &&
-      data[12] == 0x49 &&
-      data[13] == 0x48 &&
-      data[14] == 0x44 &&
-      data[15] == 0x52) {
-    return _ImageMetrics(_bigEndian32(data, 16), _bigEndian32(data, 20));
-  }
-  if (data[0] == 0x47 &&
-      data[1] == 0x49 &&
-      data[2] == 0x46 &&
-      data[3] == 0x38 &&
-      (data[4] == 0x37 || data[4] == 0x39) &&
-      data[5] == 0x61) {
-    return _ImageMetrics(
-      data[6] | data[7] << 8,
-      data[8] | data[9] << 8,
-    );
-  }
-  if (data[0] == 0x71 &&
-      data[1] == 0x6f &&
-      data[2] == 0x69 &&
-      data[3] == 0x66) {
-    return _ImageMetrics(_bigEndian32(data, 4), _bigEndian32(data, 8));
-  }
-  if (data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff) {
-    var offset = 4;
-    while (offset + 8 < data.length) {
-      final blockLength = data[offset] << 8 | data[offset + 1];
-      offset += blockLength;
-      if (offset + 8 >= data.length || data[offset] != 0xff) return null;
-      final marker = data[offset + 1];
-      if (marker == 0xc0 || marker == 0xc2) {
-        return _ImageMetrics(
-          data[offset + 7] << 8 | data[offset + 8],
-          data[offset + 5] << 8 | data[offset + 6],
-        );
-      }
-      offset += 2;
-    }
-  }
-  return null;
-}
-
-int _bigEndian32(List<int> data, int offset) =>
-    data[offset] << 24 |
-    data[offset + 1] << 16 |
-    data[offset + 2] << 8 |
-    data[offset + 3];
