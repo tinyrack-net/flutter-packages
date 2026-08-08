@@ -340,11 +340,26 @@ final class _TerminalViewState extends State<TerminalView> {
       );
       return Semantics(
         label: widget.semanticLabel,
+        value: widget.terminal.options.screenReaderMode
+            ? _semanticValue()
+            : null,
+        liveRegion: widget.terminal.options.screenReaderMode,
         textField: !widget.readOnly,
         child: view,
       );
     },
   );
+
+  String _semanticValue() {
+    final terminal = widget.terminal;
+    final output = <String>[];
+    for (var row = 0; row < terminal.rows; row++) {
+      final line = terminal.buffer.active.getLine(terminal.viewportY + row);
+      if (line == null) continue;
+      output.add(line.translateToString(trimRight: true));
+    }
+    return output.join('\n');
+  }
 
   TerminalCellOffset _cellAt(Offset localPosition) {
     final dimensions = widget.terminal.dimensions;

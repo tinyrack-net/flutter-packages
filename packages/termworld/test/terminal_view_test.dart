@@ -51,6 +51,37 @@ void main() {
     expect(dynamic.cursor, const Color(0xff778899));
   });
 
+  testWidgets('exposes visible terminal rows in screen reader mode', (
+    tester,
+  ) async {
+    final terminal = Terminal(
+      options: TerminalOptions(cols: 10, rows: 2, screenReaderMode: true),
+    );
+    addTearDown(terminal.dispose);
+    final previousStrings = Terminal.strings;
+    addTearDown(() => Terminal.strings = previousStrings);
+    Terminal.strings = const TerminalLocalizableStrings(
+      promptLabel: 'Localized terminal input',
+      tooMuchOutput: 'Localized output warning',
+    );
+    await terminal.writeAndWait('first\r\nsecond');
+    final semantics = tester.ensureSemantics();
+    addTearDown(semantics.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal: terminal,
+          semanticLabel: Terminal.strings.promptLabel,
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final node = tester.getSemantics(find.byType(TerminalView));
+    expect(node.label, 'Localized terminal input');
+    expect(node.value, 'first\nsecond');
+  });
+
   testWidgets('renders and automatically resizes the headless terminal', (
     tester,
   ) async {

@@ -517,6 +517,10 @@ final class Terminal extends DisposableStore {
     own(this.options.onChange.listen(_handleOptionChange));
   }
 
+  /// Natural-language strings shared by all terminal instances.
+  static TerminalLocalizableStrings strings =
+      const TerminalLocalizableStrings();
+
   late _TerminalCoreEngine _engine;
 
   /// xterm-compatible `options` API.
