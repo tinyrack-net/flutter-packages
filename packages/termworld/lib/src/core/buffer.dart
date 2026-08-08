@@ -512,6 +512,12 @@ final class TerminalBuffer {
   /// Attributes restored together with the saved cursor.
   TerminalCellAttributes savedAttributes = TerminalCellAttributes();
 
+  /// ISO-2022 character sets restored with DECRC.
+  List<String> savedCharsets = <String>['B', 'B', 'B', 'B'];
+
+  /// Active saved ISO-2022 character-set level.
+  int savedCharsetLevel = 0;
+
   /// Absolute row at the top of the live viewport.
   int get viewportY => baseY;
 

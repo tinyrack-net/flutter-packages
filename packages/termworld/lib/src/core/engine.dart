@@ -83,6 +83,8 @@ final class _TerminalCoreEngine {
   String _charset = 'B';
   String _g0 = 'B';
   String _g1 = 'B';
+  String _g2 = 'B';
+  String _g3 = 'B';
   int _activeCharset = 0;
   String _precedingCharacter = '';
   int _precedingJoinState = 0;
@@ -154,7 +156,10 @@ final class _TerminalCoreEngine {
       if ((intermediate == '(' ||
               intermediate == ')' ||
               intermediate == '*' ||
-              intermediate == '+') &&
+              intermediate == '+' ||
+              intermediate == '-' ||
+              intermediate == '.' ||
+              intermediate == '/') &&
           code >= 0x30 &&
           code <= 0x7e) {
         _designateCharset(intermediate, finalByte);
@@ -303,6 +308,15 @@ final class _TerminalCoreEngine {
         appKeypadMode = true;
       case '>':
         appKeypadMode = false;
+      case 'n' || '}':
+        _activeCharset = 2;
+        _charset = _g2;
+      case 'o' || '|':
+        _activeCharset = 3;
+        _charset = _g3;
+      case '~':
+        _activeCharset = 1;
+        _charset = _g1;
       case '#8':
         for (var row = 0; row < _rows; row++) {
           final line = buffer.active.getLine(buffer.active.baseY + row)!;
@@ -574,12 +588,26 @@ final class _TerminalCoreEngine {
   }
 
   void _designateCharset(String slot, String charset) {
-    if (slot == '(' || slot == '*') {
-      _g0 = charset;
-      if (_activeCharset == 0) _charset = charset;
-    } else {
-      _g1 = charset;
-      if (_activeCharset == 1) _charset = charset;
+    if (slot == '/') return;
+    final level = switch (slot) {
+      '(' => 0,
+      ')' || '-' => 1,
+      '*' || '.' => 2,
+      '+' => 3,
+      _ => 0,
+    };
+    switch (level) {
+      case 0:
+        _g0 = charset;
+      case 1:
+        _g1 = charset;
+      case 2:
+        _g2 = charset;
+      case 3:
+        _g3 = charset;
+    }
+    if (_activeCharset == level) {
+      _charset = charset;
     }
   }
 
@@ -887,7 +915,6 @@ final class _TerminalCoreEngine {
       }
     }
     _eraseAttributes = TerminalCellAttributes(
-      foreground: _attributes.foreground,
       background: _attributes.background,
     );
   }
@@ -952,6 +979,8 @@ final class _TerminalCoreEngine {
           if (enabled) {
             _g0 = 'B';
             _g1 = 'B';
+            _g2 = 'B';
+            _g3 = 'B';
             _charset = 'B';
             _activeCharset = 0;
           }
@@ -1115,7 +1144,9 @@ final class _TerminalCoreEngine {
     active
       ..savedCursorX = active.cursorX
       ..savedCursorY = active.cursorY
-      ..savedAttributes = _attributes.copy();
+      ..savedAttributes = _attributes.copy()
+      ..savedCharsets = <String>[_g0, _g1, _g2, _g3]
+      ..savedCharsetLevel = _activeCharset;
     _savedOriginMode = originMode;
     _savedAutoWrapMode = autoWrapMode;
     _savedMarginTop = marginTop;
@@ -1128,6 +1159,12 @@ final class _TerminalCoreEngine {
       ..cursorX = active.savedCursorX.clamp(0, _columns - 1)
       ..cursorY = active.savedCursorY.clamp(0, _rows - 1);
     _attributes = active.savedAttributes.copy();
+    _g0 = active.savedCharsets[0];
+    _g1 = active.savedCharsets[1];
+    _g2 = active.savedCharsets[2];
+    _g3 = active.savedCharsets[3];
+    _activeCharset = active.savedCharsetLevel;
+    _charset = active.savedCharsets[_activeCharset];
     originMode = _savedOriginMode;
     autoWrapMode = _savedAutoWrapMode;
     marginTop = _savedMarginTop.clamp(0, _rows - 1);
@@ -1173,6 +1210,18 @@ final class _TerminalCoreEngine {
     marginBottom = _rows - 1;
     _attributes = TerminalCellAttributes();
     _eraseAttributes = TerminalCellAttributes();
+    _g0 = 'B';
+    _g1 = 'B';
+    _g2 = 'B';
+    _g3 = 'B';
+    _charset = 'B';
+    _activeCharset = 0;
+    buffer.active
+      ..savedCursorX = 0
+      ..savedCursorY = 0
+      ..savedAttributes = TerminalCellAttributes()
+      ..savedCharsets = <String>['B', 'B', 'B', 'B']
+      ..savedCharsetLevel = 0;
     _setPosition(0, 0);
   }
 
@@ -1183,6 +1232,8 @@ final class _TerminalCoreEngine {
       ..alternate.clear();
     _g0 = 'B';
     _g1 = 'B';
+    _g2 = 'B';
+    _g3 = 'B';
     _charset = 'B';
     _activeCharset = 0;
     _precedingCharacter = '';
