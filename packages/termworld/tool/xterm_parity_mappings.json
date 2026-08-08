@@ -1467,6 +1467,7 @@
     "addons/addon-webgl/src/TypedArray.test.ts": {"implementation":["lib/src/addons/webgl_utils.dart"],"tests":["test/upstream_webgl_utils_parity_test.dart"]},
     "addons/addon-webgl/src/CharAtlasUtils.ts": {"implementation":["lib/src/addons/webgl_utils.dart"],"tests":["test/upstream_webgl_utils_parity_test.dart"]},
     "addons/addon-webgl/src/CharAtlasUtils.test.ts": {"implementation":["lib/src/addons/webgl_utils.dart"],"tests":["test/upstream_webgl_utils_parity_test.dart"]},
+    "addons/addon-webgl/src/CellColorResolver.ts": {"implementation":["lib/src/addons/webgl_cell_color_resolver.dart"],"tests":["test/upstream_webgl_cell_color_resolver_parity_test.dart"]},
     "addons/addon-ligatures/src/LigaturesAddon.ts": {"implementation":["lib/addon_ligatures.dart"],"tests":["test/addons_test.dart"]},
     "addons/addon-ligatures/src/Types.ts": {"implementation":["lib/addon_ligatures.dart"],"tests":["test/addons_test.dart","test/public_api_contract_test.dart"]},
     "addons/addon-ligatures/src/index.ts": {"implementation":["lib/addon_ligatures.dart"],"tests":["test/addons_test.dart"]},
