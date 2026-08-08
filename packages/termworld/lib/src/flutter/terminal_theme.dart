@@ -150,6 +150,9 @@ abstract final class TerminalThemes {
   static Color blend(Color background, Color foreground) =>
       _blend(background, foreground);
 
+  /// Parses a CSS color accepted by the terminal renderer.
+  static Color? parseColor(String? source) => _parse(source);
+
   /// Adjusts [foreground] until it reaches xterm's minimum contrast [ratio].
   static Color ensureContrast(
     Color background,

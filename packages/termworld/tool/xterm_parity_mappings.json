@@ -137,6 +137,28 @@
     }
   },
   "sources": {
+    "src/browser/ColorContrastCache.ts": {
+      "implementation": ["lib/src/flutter/theme_service.dart"],
+      "tests": ["test/upstream_theme_service_parity_test.dart"]
+    },
+    "src/browser/ColorContrastCache.test.ts": {
+      "implementation": ["lib/src/flutter/theme_service.dart"],
+      "tests": ["test/upstream_theme_service_parity_test.dart"]
+    },
+    "src/browser/services/ThemeService.ts": {
+      "implementation": [
+        "lib/src/flutter/theme_service.dart",
+        "lib/src/flutter/terminal_theme.dart"
+      ],
+      "tests": ["test/upstream_theme_service_parity_test.dart"]
+    },
+    "src/browser/services/ThemeService.test.ts": {
+      "implementation": [
+        "lib/src/flutter/theme_service.dart",
+        "lib/src/flutter/terminal_theme.dart"
+      ],
+      "tests": ["test/upstream_theme_service_parity_test.dart"]
+    },
     "src/common/services/DecorationService.ts": {
       "implementation": [
         "lib/src/core/decoration_service.dart",
@@ -572,6 +594,61 @@
     }
   },
   "tests": {
+    "unit:src/browser/ColorContrastCache.test.ts:ColorContrastCache should clear all values on clear": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should clear all values on clear",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/ColorContrastCache.test.ts:ColorContrastCache should save and get color values": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should save and get color values",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/ColorContrastCache.test.ts:ColorContrastCache should save and get css values": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should save and get css values",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService constructor should fill 240 colors with expected values": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should fill 240 colors with expected values",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService constructor should fill all colors with values": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should fill all colors with values",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService setTheme should not throw when not setting all colors": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should not throw when not setting all colors",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService setTheme should set a partial set of colors, using the default if not present": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should set a partial set of colors, using the default if not present",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService setTheme should set all extended ansi colors in reverse order": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should set all extended ansi colors in reverse order",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService setTheme should set extended ansi colors to the default when they are partially unset": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should set extended ansi colors to the default when they are partially unset",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService setTheme should set extended ansi colors to the default when they are unset": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should set extended ansi colors to the default when they are unset",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/ThemeService.test.ts:ThemeService setTheme should set one extended ansi color and keep the other default": {
+      "dartTestFile": "test/upstream_theme_service_parity_test.dart",
+      "dartTestName": "should set one extended ansi color and keep the other default",
+      "dartTestKind": "test"
+    },
     "unit:src/common/services/DecorationService.test.ts:DecorationService DecorationLineCache should return undefined for lines with no indexed decorations": {
       "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
       "dartTestName": "should return undefined for lines with no indexed decorations",
