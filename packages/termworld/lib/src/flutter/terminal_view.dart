@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
@@ -84,6 +85,7 @@ final class _TerminalViewState extends State<TerminalView> {
   MethodChannel? _testingChannel;
   Disposable? _renderListener;
   Disposable? _scrollListener;
+  Disposable? _selectionListener;
 
   @override
   void initState() {
@@ -107,6 +109,7 @@ final class _TerminalViewState extends State<TerminalView> {
         oldWidget.terminal != widget.terminal) {
       _renderListener?.dispose();
       _scrollListener?.dispose();
+      _selectionListener?.dispose();
       _controller.detach();
       if (oldWidget.controller == null) _controller.dispose();
       _controller = widget.controller ?? TerminalViewController();
@@ -120,6 +123,9 @@ final class _TerminalViewState extends State<TerminalView> {
       if (mounted) setState(() {});
     });
     _scrollListener = widget.terminal.onScroll.listen((_) {
+      if (mounted) setState(() {});
+    });
+    _selectionListener = widget.terminal.onSelectionChange.listen((_) {
       if (mounted) setState(() {});
     });
     widget.terminal.attachFocusHandlers(
@@ -148,6 +154,7 @@ final class _TerminalViewState extends State<TerminalView> {
   void dispose() {
     _renderListener?.dispose();
     _scrollListener?.dispose();
+    _selectionListener?.dispose();
     _testingChannel?.setMethodCallHandler(null);
     _testingChannel = null;
     _controller.detach();
@@ -376,6 +383,7 @@ final class _TerminalPainter extends CustomPainter {
     );
     final buffer = terminal.buffer.active;
     final selection = terminal.getSelectionPosition();
+    _paintDecorations(canvas, dimensions, TerminalDecorationLayer.bottom);
     for (var row = 0; row < terminal.rows; row++) {
       final bufferRow = terminal.viewportY + row;
       final line = buffer.getLine(bufferRow);
@@ -399,6 +407,8 @@ final class _TerminalPainter extends CustomPainter {
           cell.background,
           theme.background,
         );
+        final decorationForeground = _decorationForeground(column, bufferRow);
+        if (decorationForeground != null) foreground = decorationForeground;
         if (cell.isInverse) {
           final swapped = foreground;
           foreground = background;
@@ -443,9 +453,87 @@ final class _TerminalPainter extends CustomPainter {
         }
       }
     }
+    _paintDecorations(canvas, dimensions, TerminalDecorationLayer.top);
     if (terminal.modes.showCursor && focused) {
       _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
     }
+  }
+
+  Color? _decorationForeground(int column, int row) {
+    Color? result;
+    for (final decoration in terminal.decorations) {
+      final x = _decorationColumn(decoration);
+      if (decoration.marker.line <= row &&
+          decoration.marker.line + decoration.height > row &&
+          column >= x &&
+          column < x + decoration.width) {
+        result = _cssColor(decoration.foregroundColor) ?? result;
+      }
+    }
+    return result;
+  }
+
+  void _paintDecorations(
+    Canvas canvas,
+    TerminalRenderDimensions dimensions,
+    TerminalDecorationLayer layer,
+  ) {
+    for (final decoration in terminal.decorations) {
+      if (decoration.layer != layer || decoration.isDisposed) continue;
+      final viewportRow = decoration.marker.line - terminal.viewportY;
+      if (viewportRow + decoration.height <= 0 ||
+          viewportRow >= terminal.rows) {
+        continue;
+      }
+      final rect = Rect.fromLTWH(
+        padding.left + _decorationColumn(decoration) * dimensions.cellWidth,
+        padding.top + viewportRow * dimensions.cellHeight,
+        decoration.width * dimensions.cellWidth,
+        decoration.height * dimensions.cellHeight,
+      );
+      final background = _cssColor(decoration.backgroundColor);
+      if (background != null) {
+        canvas.drawRect(rect, Paint()..color = background);
+      }
+      final border = _cssColor(decoration.borderColor);
+      if (border != null) {
+        canvas.drawRect(
+          rect.deflate(0.5),
+          Paint()
+            ..color = border
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1,
+        );
+      }
+      decoration.rendered();
+    }
+  }
+
+  int _decorationColumn(TerminalDecoration decoration) =>
+      decoration.anchor == TerminalDecorationAnchor.left
+      ? decoration.x
+      : terminal.cols - decoration.x - decoration.width;
+
+  Color? _cssColor(String? source) {
+    if (source == null) return null;
+    final value = source.trim();
+    if (!value.startsWith('#')) return null;
+    final hex = value.substring(1);
+    if (hex.length == 3 || hex.length == 4) {
+      final expanded = hex.split('').map((part) => '$part$part').join();
+      final parsed = int.tryParse(expanded, radix: 16);
+      if (parsed == null) return null;
+      return hex.length == 3
+          ? Color(0xff000000 | parsed)
+          : Color((parsed & 0xff) << 24 | parsed >> 8);
+    }
+    final parsed = int.tryParse(hex, radix: 16);
+    if (parsed == null) return null;
+    if (hex.length == 6) return Color(0xff000000 | parsed);
+    if (hex.length == 8) {
+      return Color((parsed & 0xff) << 24 | parsed >> 8);
+    }
+    return null;
   }
 
   Color _color(TerminalColorMode mode, int value, Color fallback) =>

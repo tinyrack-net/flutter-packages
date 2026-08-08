@@ -345,6 +345,7 @@ final class Terminal extends DisposableStore {
   TerminalRenderDimensions? _dimensions;
   final List<TerminalMarker> _markers = <TerminalMarker>[];
   final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
+  bool _isDisposing = false;
   final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
   final List<TerminalAddon> _addons = <TerminalAddon>[];
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
@@ -628,7 +629,14 @@ final class Terminal extends DisposableStore {
       layer: layer,
     );
     _decorations.add(decoration);
-    decoration.onDispose.listen((_) => _decorations.remove(decoration));
+    late final Disposable markerListener;
+    markerListener = marker.onDispose.listen((_) => decoration.dispose());
+    decoration.onDispose.listen((_) {
+      markerListener.dispose();
+      _decorations.remove(decoration);
+      if (!_isDisposing) refresh(0, rows - 1);
+    });
+    refresh(0, rows - 1);
     return decoration;
   }
 
@@ -787,6 +795,7 @@ final class Terminal extends DisposableStore {
   @override
   void dispose() {
     if (isDisposed) return;
+    _isDisposing = true;
     for (final addon in _addons.reversed) {
       addon.dispose();
     }

@@ -237,6 +237,50 @@ void main() {
     expect(controller.hasSelection, isTrue);
   });
 
+  testWidgets('renders marker decorations by layer and anchor', (tester) async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 2));
+    addTearDown(terminal.dispose);
+    await terminal.writeAndWait('decorated');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 120,
+          height: 40,
+          child: TerminalView(terminal: terminal, autoResize: false),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final marker = terminal.registerMarker()!;
+    final rendered = <TerminalDecoration>[];
+    final bottom = terminal.registerDecoration(
+      marker: marker,
+      width: 2,
+      height: 2,
+      backgroundColor: '#123',
+      foregroundColor: '#112233',
+      borderColor: '#1234',
+    )!..onRender.listen(rendered.add);
+    final top = terminal.registerDecoration(
+      marker: marker,
+      anchor: TerminalDecorationAnchor.right,
+      x: 1,
+      width: 2,
+      backgroundColor: '#11223344',
+      borderColor: 'invalid',
+      layer: TerminalDecorationLayer.top,
+    )!..onRender.listen(rendered.add);
+    await tester.pump();
+
+    expect(rendered, containsAll(<TerminalDecoration>[bottom, top]));
+    marker.dispose();
+    await tester.pump();
+    expect(bottom.isDisposed, isTrue);
+    expect(top.isDisposed, isTrue);
+    expect(terminal.decorations, isEmpty);
+  });
+
   testWidgets('maps the complete navigation keyboard surface to VT', (
     tester,
   ) async {
