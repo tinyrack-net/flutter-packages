@@ -237,7 +237,6 @@ final class _ImeHarness {
     for (final key in filtered) {
       await _run('xdotool', <String>[
         'keydown',
-        '--clearmodifiers',
         key,
         'sleep',
         '0.04',
@@ -249,9 +248,9 @@ final class _ImeHarness {
   }
 
   Future<void> toggleLanguage() async {
+    await _releaseModifiers();
     await _run('xdotool', <String>[
       'keydown',
-      '--clearmodifiers',
       'Shift_L',
       'sleep',
       '0.04',
@@ -284,7 +283,8 @@ final class _ImeHarness {
   ]);
 
   Future<void> chord(List<String> modifiers, String key) async {
-    final arguments = <String>['keydown', '--clearmodifiers'];
+    await _releaseModifiers();
+    final arguments = <String>['keydown'];
     for (final modifier in modifiers) {
       arguments.addAll(<String>[modifier, 'sleep', '0.04', 'keydown']);
     }
@@ -297,6 +297,7 @@ final class _ImeHarness {
         ],
       ]);
     await _run('xdotool', arguments);
+    await _releaseModifiers();
     await tester.pumpAndSettle();
   }
 
