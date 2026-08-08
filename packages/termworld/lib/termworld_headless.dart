@@ -10,6 +10,7 @@ export 'src/core/decoration_service.dart';
 export 'src/core/disposable.dart';
 export 'src/core/event.dart';
 export 'src/core/marker.dart';
+export 'src/core/mouse_coordinates.dart';
 export 'src/core/move_to_cell.dart';
 export 'src/core/options.dart';
 export 'src/core/parser.dart';

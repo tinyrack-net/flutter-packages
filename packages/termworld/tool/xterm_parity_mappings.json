@@ -137,6 +137,14 @@
     }
   },
   "sources": {
+    "src/browser/input/Mouse.ts": {
+      "implementation": ["lib/src/core/mouse_coordinates.dart"],
+      "tests": ["test/upstream_mouse_coordinates_parity_test.dart"]
+    },
+    "src/browser/input/Mouse.test.ts": {
+      "implementation": ["lib/src/core/mouse_coordinates.dart"],
+      "tests": ["test/upstream_mouse_coordinates_parity_test.dart"]
+    },
     "src/browser/input/MoveToCell.ts": {
       "implementation": ["lib/src/core/move_to_cell.dart"],
       "tests": ["test/upstream_move_to_cell_parity_test.dart"]
@@ -653,6 +661,8 @@
     }
   },
   "tests": {
+    "unit:src/browser/input/Mouse.test.ts:Mouse getCoords should ensure the coordinates are returned within the terminal bounds": {"dartTestFile":"test/upstream_mouse_coordinates_parity_test.dart","dartTestName":"should ensure the coordinates are returned within the terminal bounds","dartTestKind":"test"},
+    "unit:src/browser/input/Mouse.test.ts:Mouse getCoords should return the cell that was clicked": {"dartTestFile":"test/upstream_mouse_coordinates_parity_test.dart","dartTestName":"should return the cell that was clicked","dartTestKind":"test"},
     "unit:src/browser/input/MoveToCell.test.ts:MoveToCell alt buffer should move the cursor across rows": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should move the cursor across rows","dartTestKind":"test"},
     "unit:src/browser/input/MoveToCell.test.ts:MoveToCell normal buffer should use the correct character for application cursor": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should use the correct character for application cursor","dartTestKind":"test"},
     "unit:src/browser/input/MoveToCell.test.ts:MoveToCell normal buffer should use the right directional escape sequences": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should use the right directional escape sequences","dartTestKind":"test"},
