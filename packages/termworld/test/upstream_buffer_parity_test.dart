@@ -104,7 +104,8 @@ void main() {
         ..scroll(erase);
       expect(buffers.normal.length, 4);
       expect(buffers.normal.baseY, 2);
-      expect(buffers.normal.viewportY, 2);
+      // BufferService, not a raw Buffer mutation, owns ydisp synchronization.
+      expect(buffers.normal.viewportY, 0);
       buffers.normal.clearScrollback();
       expect(buffers.normal.length, 2);
 
