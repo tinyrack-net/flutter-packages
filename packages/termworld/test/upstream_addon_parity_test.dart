@@ -312,6 +312,85 @@ void main() {
         ),
       );
     });
+
+    test('Kitty transmit, chunk, placement and delete lifecycle', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final responses = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(responses.add);
+      final payload = base64.encode(_fakePng(3, 2, 32));
+      final split = payload.length ~/ 2;
+
+      await terminal.writeAndWait(
+        '\u001b_Ga=t,f=100,i=42;$payload\u001b\\'
+        '\u001b_Ga=p,i=42,p=9,c=4,r=2,z=-1,C=1\u001b\\',
+      );
+      expect(addon.images, hasLength(1));
+      expect(addon.images.single.kittyId, 42);
+      expect(addon.images.single.placementId, 9);
+      expect(addon.images.single.columns, 4);
+      expect(addon.images.single.rows, 2);
+      expect(addon.images.single.zIndex, -1);
+      expect(terminal.buffer.active.cursorX, 0);
+      expect(
+        responses,
+        <String>[
+          '\u001b_Gi=42;OK\u001b\\',
+          '\u001b_Gi=42,p=9;OK\u001b\\',
+        ],
+      );
+
+      responses.clear();
+      await terminal.writeAndWait(
+        '\u001b_Ga=T,f=100,i=99,m=1;${payload.substring(0, split)}'
+        '\u001b\\'
+        '\u001b_Gm=0;${payload.substring(split)}\u001b\\',
+      );
+      expect(addon.images, hasLength(2));
+      expect(addon.images.last.kittyId, 99);
+      expect(responses, <String>['\u001b_Gi=99;OK\u001b\\']);
+
+      await terminal.writeAndWait('\u001b_Ga=d,d=i,i=42\u001b\\');
+      expect(addon.images.map((image) => image.kittyId), <int?>[99]);
+      await terminal.writeAndWait('\u001b_Ga=d,d=A\u001b\\');
+      expect(addon.images, isEmpty);
+    });
+
+    test('Kitty queries, validation and quiet responses', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final responses = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(responses.add);
+
+      await terminal.writeAndWait(
+        '\u001b_Ga=q,i=1\u001b\\'
+        '\u001b_Ga=q,i=2,t=f;\u001b\\'
+        '\u001b_Ga=q,i=3,f=24;AQID\u001b\\'
+        '\u001b_Ga=q,i=4,f=24,s=1,v=1;AQID\u001b\\'
+        '\u001b_Ga=t,i=5;%%%\u001b\\'
+        '\u001b_Ga=t,i=6,I=7;AQID\u001b\\'
+        '\u001b_Ga=q,i=8,q=1\u001b\\'
+        '\u001b_Ga=t,i=9,q=2;%%%\u001b\\'
+        '\u001b_Ga=p,i=404\u001b\\',
+      );
+
+      expect(
+        responses,
+        <String>[
+          '\u001b_Gi=1;OK\u001b\\',
+          '\u001b_Gi=2;EINVAL:unsupported transmission medium\u001b\\',
+          '\u001b_Gi=3;EINVAL:width and height required for raw pixel data\u001b\\',
+          '\u001b_Gi=4;OK\u001b\\',
+          '\u001b_Gi=5;EINVAL:invalid base64 data\u001b\\',
+          '\u001b_Gi=6;EINVAL:cannot specify both i and I keys\u001b\\',
+          '\u001b_Gi=404;ENOENT:image not found\u001b\\',
+        ],
+      );
+    });
   });
 
   test('addon-unicode-graphemes wcwidth V15 emoji test', () {

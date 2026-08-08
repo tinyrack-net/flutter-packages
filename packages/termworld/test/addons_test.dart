@@ -63,7 +63,10 @@ void main() {
       '\u001b]1337;File=inline=1:'
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u0007',
     );
-    await terminal.writeAndWait('\u001b_Ga=t;S0lUVFk=\u001b\\');
+    await terminal.writeAndWait(
+      '\u001b_Ga=T,f=100;'
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u001b\\',
+    );
 
     expect(
       addon.images.map((image) => image.protocol),

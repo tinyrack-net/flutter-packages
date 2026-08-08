@@ -37,6 +37,11 @@ final class TerminalImage {
     this.pixelWidth,
     this.pixelHeight,
     this.name = 'Unnamed file',
+    this.kittyId,
+    this.placementId,
+    this.columns,
+    this.rows,
+    this.zIndex = 0,
   });
 
   /// xterm-compatible `protocol` API.
@@ -65,6 +70,21 @@ final class TerminalImage {
 
   /// RGBA-equivalent bytes charged against the FIFO storage limit.
   final int storageBytes;
+
+  /// Kitty image identifier, when this is a Kitty placement.
+  final int? kittyId;
+
+  /// Kitty placement identifier.
+  final int? placementId;
+
+  /// Requested placement width in terminal columns.
+  final int? columns;
+
+  /// Requested placement height in terminal rows.
+  final int? rows;
+
+  /// Kitty placement z-index.
+  final int zIndex;
 }
 
 /// Image protocol limits and feature flags.
@@ -160,6 +180,10 @@ final class ImageAddon extends ManagedTerminalAddon {
   late int _sixelPaletteLimit;
   _IipHeader? _multipartHeader;
   StringBuffer? _multipartPayload;
+  final Map<int, _KittyImageData> _kittyImages = <int, _KittyImageData>{};
+  final Map<int, _KittyPending> _kittyPending = <int, _KittyPending>{};
+  int _nextKittyId = 1;
+  int? _lastKittyPendingKey;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalImage> get images => List<TerminalImage>.unmodifiable(_images);
@@ -274,24 +298,263 @@ final class ImageAddon extends ManagedTerminalAddon {
       own(
         terminal.parser.registerApcHandler(
           const TerminalFunctionIdentifier(finalByte: 'G'),
-          (data) {
-            final separator = data.indexOf(';');
-            if (separator < 0) return true;
-            final control = data.substring(0, separator);
-            if (control.split(',').contains('a=d')) {
-              reset();
-            } else {
-              _addBase64(
-                TerminalImageProtocol.kitty,
-                data.substring(separator + 1),
-                options.kittySizeLimit,
-              );
-            }
-            return true;
-          },
+          _handleKitty,
         ),
       );
     }
+  }
+
+  bool _handleKitty(String data) {
+    final separator = data.indexOf(';');
+    final control = separator < 0 ? data : data.substring(0, separator);
+    final payload = separator < 0 ? '' : data.substring(separator + 1);
+    final command = _parseKittyCommand(control);
+    if (command.id != null && command.imageNumber != null) {
+      _kittyResponse(
+        command.id!,
+        'EINVAL:cannot specify both i and I keys',
+        command,
+      );
+      return true;
+    }
+    final action = command.action ?? 't';
+    if (action == 'd') return _deleteKitty(command);
+    if (separator < 0) {
+      if (action == 'q') {
+        _kittyResponse(command.id ?? 0, 'OK', command);
+      } else if (action == 'p') {
+        _handleKittyPlacement(command);
+      } else if (command.id != null) {
+        _kittyResponse(command.id!, 'EINVAL:unsupported action', command);
+      }
+      return true;
+    }
+
+    final key = command.id ?? _lastKittyPendingKey ?? 0;
+    final pending = _kittyPending[key];
+    final encodedLength = (pending?.payload.length ?? 0) + payload.length;
+    if (encodedLength > (options.kittySizeLimit * 4 / 3).ceil()) {
+      _kittyPending.remove(key);
+      if (_lastKittyPendingKey == key) _lastKittyPendingKey = null;
+      return true;
+    }
+    if (command.more == 1) {
+      if (pending == null) {
+        _kittyPending[key] = _KittyPending(command, StringBuffer(payload));
+      } else {
+        pending.payload.write(payload);
+      }
+      _lastKittyPendingKey = key;
+      return true;
+    }
+
+    var effective = command;
+    var encoded = payload;
+    if (pending != null) {
+      pending.payload.write(payload);
+      encoded = pending.payload.toString();
+      effective = pending.command;
+      _kittyPending.remove(key);
+      _lastKittyPendingKey = null;
+    }
+    final bytes = _decodeBase64(encoded, options.kittySizeLimit);
+    final decodeError = bytes == null;
+    return _executeKitty(effective, bytes ?? Uint8List(0), decodeError);
+  }
+
+  bool _executeKitty(
+    _KittyCommand command,
+    Uint8List bytes,
+    bool decodeError,
+  ) {
+    final action = command.action ?? 't';
+    if (action == 'q') {
+      if (command.transmission != null && command.transmission != 'd') {
+        _kittyResponse(
+          command.id ?? 0,
+          'EINVAL:unsupported transmission medium',
+          command,
+        );
+      } else if (decodeError) {
+        _kittyResponse(
+          command.id ?? 0,
+          'EINVAL:invalid base64 data',
+          command,
+        );
+      } else if (!_validKittyPixels(command, bytes)) {
+        _kittyResponse(
+          command.id ?? 0,
+          'EINVAL:width and height required for raw pixel data',
+          command,
+        );
+      } else {
+        _kittyResponse(command.id ?? 0, 'OK', command);
+      }
+      return true;
+    }
+    if (action == 'p') return _handleKittyPlacement(command);
+    if (action != 't' && action != 'T') {
+      if (command.id != null) {
+        _kittyResponse(command.id!, 'EINVAL:unsupported action', command);
+      }
+      return true;
+    }
+    if (command.transmission != null && command.transmission != 'd') {
+      if (command.id != null) {
+        _kittyResponse(
+          command.id!,
+          'EINVAL:unsupported transmission medium',
+          command,
+        );
+      }
+      return true;
+    }
+    if (decodeError || bytes.isEmpty) {
+      if (command.id != null) {
+        _kittyResponse(command.id!, 'EINVAL:invalid base64 data', command);
+      }
+      return true;
+    }
+    final id = command.id ?? _nextKittyId++;
+    _kittyImages[id] = _KittyImageData(
+      id: id,
+      bytes: bytes,
+      width: command.width ?? 0,
+      height: command.height ?? 0,
+      format: command.format ?? 32,
+    );
+    if (_kittyImages.length > 256) {
+      _kittyImages.remove(_kittyImages.keys.first);
+    }
+    if (action == 'T') {
+      final placed = _placeKitty(command.copyWith(id: id));
+      if (command.id != null) {
+        _kittyResponse(
+          id,
+          placed ? 'OK' : 'EINVAL:image rendering failed',
+          command,
+        );
+      }
+    } else if (command.id != null) {
+      _kittyResponse(id, 'OK', command);
+    }
+    return true;
+  }
+
+  bool _validKittyPixels(_KittyCommand command, Uint8List bytes) {
+    final format = command.format ?? 32;
+    if (bytes.isEmpty || format == 100) return true;
+    final width = command.width ?? 0;
+    final height = command.height ?? 0;
+    if (width == 0 || height == 0) return false;
+    return bytes.length >= width * height * (format == 24 ? 3 : 4);
+  }
+
+  bool _placeKitty(_KittyCommand command) {
+    final id = command.id;
+    if (id == null) return true;
+    final image = _kittyImages[id];
+    if (image == null) return false;
+    _ImageMetrics? metrics;
+    if (image.format == 100) metrics = _imageMetrics(image.bytes);
+    final width = metrics?.width ?? image.width;
+    final height = metrics?.height ?? image.height;
+    if (width <= 0 || height <= 0 || width * height > options.pixelLimit) {
+      return false;
+    }
+    final cellWidth = terminal.dimensions?.cellWidth ?? 7;
+    final cellHeight = terminal.dimensions?.cellHeight ?? 14;
+    var columns = command.columns;
+    var rows = command.rows;
+    if (columns != null && rows == null) {
+      rows = math.max(
+        1,
+        (height / width * (columns * cellWidth) / cellHeight).ceil(),
+      );
+    } else if (rows != null && columns == null) {
+      columns = math.max(
+        1,
+        (width / height * (rows * cellHeight) / cellWidth).ceil(),
+      );
+    }
+    columns ??= math.max(1, (width / cellWidth).ceil());
+    rows ??= math.max(1, (height / cellHeight).ceil());
+    _add(
+      TerminalImageProtocol.kitty,
+      image.bytes,
+      options.kittySizeLimit,
+      pixelWidth: width,
+      pixelHeight: height,
+      storageBytes: width * height * 4,
+      kittyId: id,
+      placementId: command.placementId,
+      columns: columns,
+      rows: rows,
+      zIndex: command.zIndex ?? 0,
+    );
+    if (command.cursorMovement != 1) {
+      terminal.buffer.active.cursorX = math.min(
+        terminal.buffer.active.cursorX + columns,
+        terminal.cols,
+      );
+    }
+    return true;
+  }
+
+  bool _handleKittyPlacement(_KittyCommand command) {
+    final id = command.id;
+    if (id == null) return true;
+    if (!_kittyImages.containsKey(id)) {
+      _kittyResponse(id, 'ENOENT:image not found', command);
+      return true;
+    }
+    final placed = _placeKitty(command);
+    _kittyResponse(
+      id,
+      placed ? 'OK' : 'EINVAL:image rendering failed',
+      command,
+    );
+    return true;
+  }
+
+  bool _deleteKitty(_KittyCommand command) {
+    final selector = command.deleteSelector ?? 'a';
+    if (selector == 'a' || selector == 'A') {
+      _kittyPending.clear();
+      _lastKittyPendingKey = null;
+      _kittyImages.clear();
+      _removeKittyPlacements();
+    } else if ((selector == 'i' || selector == 'I') && command.id != null) {
+      final id = command.id!;
+      _kittyPending.remove(id);
+      if (_lastKittyPendingKey == id) _lastKittyPendingKey = null;
+      _kittyImages.remove(id);
+      _removeKittyPlacements(id);
+    }
+    return true;
+  }
+
+  void _removeKittyPlacements([int? id]) {
+    for (var index = _images.length - 1; index >= 0; index--) {
+      final image = _images[index];
+      if (image.protocol == TerminalImageProtocol.kitty &&
+          (id == null || image.kittyId == id)) {
+        _storageBytes -= image.storageBytes;
+        _images.removeAt(index);
+      }
+    }
+  }
+
+  void _kittyResponse(int id, String message, _KittyCommand command) {
+    final quiet = command.quiet ?? 0;
+    if (message == 'OK' && quiet >= 1 || message != 'OK' && quiet >= 2) return;
+    final placement = command.placementId == null
+        ? ''
+        : ',p=${command.placementId}';
+    terminal.input(
+      '\u001b_Gi=$id$placement;$message\u001b\\',
+      wasUserInput: false,
+    );
   }
 
   bool _handleIip(String data) {
@@ -484,11 +747,6 @@ final class ImageAddon extends ManagedTerminalAddon {
     terminal.input('\u001b[?${values}S', wasUserInput: false);
   }
 
-  void _addBase64(TerminalImageProtocol protocol, String payload, int limit) {
-    final decoded = _decodeBase64(payload, limit);
-    if (decoded != null) _add(protocol, decoded, limit);
-  }
-
   void _add(
     TerminalImageProtocol protocol,
     List<int> bytes,
@@ -497,6 +755,11 @@ final class ImageAddon extends ManagedTerminalAddon {
     int? pixelHeight,
     String name = 'Unnamed file',
     int? storageBytes,
+    int? kittyId,
+    int? placementId,
+    int? columns,
+    int? rows,
+    int zIndex = 0,
   }) {
     if (bytes.length > limit) return;
     final image = TerminalImage(
@@ -509,6 +772,11 @@ final class ImageAddon extends ManagedTerminalAddon {
       pixelHeight: pixelHeight,
       name: name,
       storageBytes: storageBytes ?? bytes.length,
+      kittyId: kittyId,
+      placementId: placementId,
+      columns: columns,
+      rows: rows,
+      zIndex: zIndex,
     );
     _images.add(image);
     _storageBytes += image.storageBytes;
@@ -556,6 +824,10 @@ final class ImageAddon extends ManagedTerminalAddon {
     _sixelPaletteLimit = options.sixelPaletteLimit;
     _multipartHeader = null;
     _multipartPayload = null;
+    _kittyImages.clear();
+    _kittyPending.clear();
+    _lastKittyPendingKey = null;
+    _nextKittyId = 1;
     _images.clear();
     _storageBytes = 0;
     return false;
@@ -585,6 +857,116 @@ final class _IipHeader {
   final String width;
   final String height;
   final int preserveAspectRatio;
+}
+
+final class _KittyCommand {
+  const _KittyCommand({
+    this.action,
+    this.format,
+    this.id,
+    this.imageNumber,
+    this.width,
+    this.height,
+    this.columns,
+    this.rows,
+    this.more,
+    this.quiet,
+    this.cursorMovement,
+    this.zIndex,
+    this.transmission,
+    this.deleteSelector,
+    this.placementId,
+  });
+
+  final String? action;
+  final int? format;
+  final int? id;
+  final int? imageNumber;
+  final int? width;
+  final int? height;
+  final int? columns;
+  final int? rows;
+  final int? more;
+  final int? quiet;
+  final int? cursorMovement;
+  final int? zIndex;
+  final String? transmission;
+  final String? deleteSelector;
+  final int? placementId;
+
+  _KittyCommand copyWith({int? id}) => _KittyCommand(
+    action: action,
+    format: format,
+    id: id ?? this.id,
+    imageNumber: imageNumber,
+    width: width,
+    height: height,
+    columns: columns,
+    rows: rows,
+    more: more,
+    quiet: quiet,
+    cursorMovement: cursorMovement,
+    zIndex: zIndex,
+    transmission: transmission,
+    deleteSelector: deleteSelector,
+    placementId: placementId,
+  );
+}
+
+_KittyCommand _parseKittyCommand(String source) {
+  final fields = <String, String>{};
+  for (final field in source.split(',')) {
+    final separator = field.indexOf('=');
+    if (separator < 0) continue;
+    fields[field.substring(0, separator)] = field.substring(separator + 1);
+  }
+  int? number(String key) => _parseLeadingInt(fields[key]);
+  return _KittyCommand(
+    action: fields['a'],
+    format: number('f'),
+    id: number('i'),
+    imageNumber: number('I'),
+    width: number('s'),
+    height: number('v'),
+    columns: number('c'),
+    rows: number('r'),
+    more: number('m'),
+    quiet: number('q'),
+    cursorMovement: number('C'),
+    zIndex: number('z'),
+    transmission: fields['t'],
+    deleteSelector: fields['d'],
+    placementId: number('p'),
+  );
+}
+
+int? _parseLeadingInt(String? source) {
+  if (source == null) return null;
+  final match = RegExp(r'^[-+]?\d+').firstMatch(source);
+  return match == null ? null : int.tryParse(match.group(0)!);
+}
+
+final class _KittyPending {
+  const _KittyPending(this.command, this.payload);
+
+  final _KittyCommand command;
+  final StringBuffer payload;
+}
+
+final class _KittyImageData {
+  const _KittyImageData({
+    required this.id,
+    required this.bytes,
+    required this.width,
+    required this.height,
+    required this.format,
+  });
+
+  final int id;
+  final Uint8List bytes;
+  final int width;
+  final int height;
+  final int format;
 }
 
 final class _ImageMetrics {
