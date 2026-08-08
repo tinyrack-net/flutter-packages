@@ -160,7 +160,7 @@ final class TerminalParser implements Disposable {
     FutureOr<void> Function(String data) emit,
   ) async {
     if (_isDisposed) throw StateError('TerminalParser has been disposed');
-    final source = '$_pending$chunk';
+    final source = '$_pending${_normalizeC1(chunk)}';
     _pending = '';
     var index = 0;
     while (index < source.length) {
@@ -182,6 +182,31 @@ final class TerminalParser implements Disposable {
       _pending = '';
       throw StateError('Parser payload exceeded the 10 MB xterm limit');
     }
+  }
+
+  String _normalizeC1(String source) {
+    StringBuffer? result;
+    var copied = 0;
+    for (var index = 0; index < source.length; index++) {
+      final replacement = switch (source.codeUnitAt(index)) {
+        0x90 => '\u001bP',
+        0x98 => '\u001bX',
+        0x9b => '\u001b[',
+        0x9c => '\u001b\\',
+        0x9d => '\u001b]',
+        0x9e => '\u001b^',
+        0x9f => '\u001b_',
+        _ => null,
+      };
+      if (replacement == null) continue;
+      (result ??= StringBuffer())
+        ..write(source.substring(copied, index))
+        ..write(replacement);
+      copied = index + 1;
+    }
+    if (result == null) return source;
+    result.write(source.substring(copied));
+    return result.toString();
   }
 
   Future<_ParsedSequence?> _parseAt(String source, int start) async {

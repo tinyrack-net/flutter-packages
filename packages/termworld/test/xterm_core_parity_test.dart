@@ -179,6 +179,49 @@ void main() {
         'apc:kitty',
       ]);
     });
+
+    test('dispatches 8-bit C1 CSI, OSC, DCS, and APC forms', () async {
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      final calls = <String>[];
+      terminal.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(finalByte: 'z'),
+        (params) {
+          calls.add('csi:$params');
+          return true;
+        },
+      );
+      terminal.parser.registerOscHandler(777, (data) {
+        calls.add('osc:$data');
+        return true;
+      });
+      terminal.parser.registerDcsHandler(
+        const TerminalFunctionIdentifier(finalByte: 'q'),
+        (data, params) {
+          calls.add('dcs:$data');
+          return true;
+        },
+      );
+      terminal.parser.registerApcHandler(
+        const TerminalFunctionIdentifier(finalByte: 'G'),
+        (data) {
+          calls.add('apc:$data');
+          return true;
+        },
+      );
+
+      await terminal.writeAndWait(
+        '\u009b1z\u009d777;title\u009c\u00901qdata\u009c'
+        '\u009fGpayload\u009c',
+      );
+
+      expect(calls, <String>[
+        'csi:[1]',
+        'osc:title',
+        'dcs:data',
+        'apc:payload',
+      ]);
+    });
   });
 
   group('terminal public behavior', () {
