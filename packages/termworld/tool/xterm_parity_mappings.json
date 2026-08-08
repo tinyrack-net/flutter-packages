@@ -1334,8 +1334,8 @@
     "src/common/data/Charsets.ts": {"implementation":["lib/src/core/charset_service.dart","lib/src/core/engine.dart"],"tests":["test/upstream_charset_service_parity_test.dart","test/xterm_core_parity_test.dart"]},
     "src/common/input/Keyboard.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_core_focused_test.dart","test/xterm_core_parity_test.dart"]},
     "src/common/input/Keyboard.test.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_core_focused_test.dart","test/xterm_core_parity_test.dart"]},
-    "src/common/input/KittyKeyboard.ts": {"implementation":["lib/src/core/engine.dart"],"tests":["test/upstream_core_focused_test.dart"]},
-    "src/common/input/KittyKeyboard.test.ts": {"implementation":["lib/src/core/engine.dart"],"tests":["test/upstream_core_focused_test.dart"]},
+    "src/common/input/KittyKeyboard.ts": {"implementation":["lib/src/core/kitty_keyboard.dart","lib/src/core/engine.dart"],"tests":["test/upstream_kitty_keyboard_parity_test.dart","test/upstream_core_focused_test.dart"]},
+    "src/common/input/KittyKeyboard.test.ts": {"implementation":["lib/src/core/kitty_keyboard.dart"],"tests":["test/upstream_kitty_keyboard_parity_test.dart"]},
     "src/common/input/TextDecoder.ts": {"implementation":["lib/src/core/text_decoder.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_text_decoder_parity_test.dart"]},
     "src/common/input/TextDecoder.test.ts": {"implementation":["lib/src/core/text_decoder.dart"],"tests":["test/upstream_text_decoder_parity_test.dart"]},
     "src/common/input/Win32InputMode.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/windows_mode.dart"],"tests":["test/upstream_windows_mode_parity_test.dart","test/upstream_core_focused_test.dart"]},
@@ -4952,6 +4952,831 @@
     "unit:src/common/input/TextDecoder.test.ts:text encodings stringFromCodePoint/utf32ToString": {
       "dartTestFile": "test/upstream_text_decoder_parity_test.dart",
       "dartTestName": "xterm TextDecoder 287",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Alt+Escape → CSI 27;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 000",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Alt+Space → CSI 32;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 001",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Backspace → legacy \\x7f": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 002",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Ctrl+Backspace → CSI 127;5 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 003",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Ctrl+Enter → CSI 13;5 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 004",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Ctrl+Space → CSI 32;5 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 005",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Enter → legacy \\r": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 006",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Escape → CSI 27 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 007",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Shift+Tab → CSI 9;2 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 008",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Space → plain space (text-generating key)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 009",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate C0 control keys with DISAMBIGUATE_ESCAPE_CODES Tab → legacy \\t": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 010",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag brackets → CSI codepoint u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 011",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag digit → CSI codepoint u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 012",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag lowercase letter → CSI codepoint u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 013",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag punctuation → CSI codepoint u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 014",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag space → CSI 32 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 015",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag uppercase letter uses lowercase codepoint": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 016",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Backspace key press event → CSI 127 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 017",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Backspace key release event → CSI 127;1:3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 018",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Backspace key repeat event → CSI 127;1:2 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 019",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Enter key press event → CSI 13 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 020",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Enter key release event → CSI 13;1:3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 021",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Enter key repeat event → CSI 13;1:2 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 022",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Tab key press event → CSI 9 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 023",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Tab key release event → CSI 9;1:3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 024",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALL_KEYS_AS_ESCAPE_CODES flag with REPORT_EVENT_TYPES Tab key repeat event → CSI 9;1:2 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 025",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALTERNATE_KEYS flag Shift+5 includes shifted key → CSI 53:37 ; 2 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 026",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALTERNATE_KEYS flag Shift+a includes shifted key → CSI 97:65 ; 2 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 027",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALTERNATE_KEYS flag functional keys have no shifted alternate": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 028",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALTERNATE_KEYS flag unshifted key has no alternate": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 029",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALTERNATE_KEYS with REPORT_ASSOCIATED_TEXT Shift+a release → CSI 97:65 ; 2:3 u (no text)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 030",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ALTERNATE_KEYS with REPORT_ASSOCIATED_TEXT Shift+a → CSI 97:65 ; 2 ; 65 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 031",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag Ctrl+key omits text (control code)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 032",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag Shift+digit shows shifted symbol": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 033",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag digit with text": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 034",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag functional key has no text": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 035",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag regular key includes text codepoint": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 036",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag release event has no text": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 037",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_ASSOCIATED_TEXT flag shifted key includes shifted text": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 038",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_EVENT_TYPES flag without DISAMBIGUATE_ESCAPE_CODES press event is not swallowed when modifiers present": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 039",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_EVENT_TYPES flag without DISAMBIGUATE_ESCAPE_CODES release event is reported as CSI u sequence": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 040",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate REPORT_EVENT_TYPES flag without DISAMBIGUATE_ESCAPE_CODES repeat event is not swallowed when modifiers present": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 041",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys ArrowDown → CSI B": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 042",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys ArrowLeft → CSI D": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 043",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys ArrowRight → CSI C": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 044",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys ArrowUp → CSI A": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 045",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys Ctrl+ArrowLeft → CSI 1;5 D": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 046",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys Ctrl+Shift+ArrowRight → CSI 1;6 C": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 047",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate arrow keys Shift+ArrowUp → CSI 1;2 A": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 048",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases ContextMenu → CSI 57363 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 049",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases Dead key produces no output": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 050",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases Pause → CSI 57362 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 051",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases PrintScreen → CSI 57361 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 052",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases Unidentified key produces no output": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 053",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases ctrl+shift+a sends lowercase codepoint 97": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 054",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate edge cases shift+letter sends plain character in DISAMBIGUATE mode": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 055",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Backspace key press event → legacy \\x7f": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 056",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Backspace key release event is not reported": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 057",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Backspace key repeat event → legacy \\x7f": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 058",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Enter key press event → legacy \\r": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 059",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Enter key release event is not reported": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 060",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Enter key repeat event → legacy \\r": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 061",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Escape key press event (default, no suffix)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 062",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Escape key release event → :3 suffix": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 063",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Escape key repeat event → :2 suffix": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 064",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Tab key press event → legacy \\t": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 065",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Tab key release event is not reported": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 066",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) Tab key repeat event → legacy \\t": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 067",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) UTF-8 text press event": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 068",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) UTF-8 text repeat event": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 069",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) functional key release → CSI code;1:3 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 070",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) modifier key release includes its own bit cleared": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 071",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) press event when modifiers present": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 072",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) release event → :3 suffix": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 073",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) release with modifier → mod:3": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 074",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate event types (press/repeat/release) repeat with modifier → mod:2": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 075",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate extended function keys F13-F35 (Private Use Area) F13 → CSI 57376 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 076",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate extended function keys F13-F35 (Private Use Area) F14 → CSI 57377 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 077",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate extended function keys F13-F35 (Private Use Area) F20 → CSI 57383 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 078",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate extended function keys F13-F35 (Private Use Area) F24 → CSI 57387 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 079",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 Ctrl+F5 → CSI 15;5 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 080",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F1 → CSI P (SS3 form)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 081",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F10 → CSI 21 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 082",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F11 → CSI 23 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 083",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F12 → CSI 24 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 084",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F2 → CSI Q (SS3 form)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 085",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F3 → CSI R (SS3 form)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 086",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F4 → CSI S (SS3 form)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 087",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F5 → CSI 15 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 088",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F6 → CSI 17 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 089",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F7 → CSI 18 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 090",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F8 → CSI 19 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 091",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 F9 → CSI 20 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 092",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate function keys F1-F12 Shift+F1 → CSI 1;2 P": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 093",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Ctrl+Opt+f (key=ƒ) → CSI 102;7 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 094",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+5 (key=∞) → CSI 53;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 095",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+Shift+f (key=Ï) → CSI 102;4 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 096",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+b (key=∫) → CSI 98;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 097",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+d (key=∂) → CSI 100;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 098",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+e dead key (key=Dead, code=KeyE) → CSI 101;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 099",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+f (key=ƒ) → CSI 102;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 100",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+f release with REPORT_EVENT_TYPES → CSI 102;3:3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 101",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+n dead key (key=Dead, code=KeyN) → CSI 110;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 102",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) Opt+u dead key (key=Dead, code=KeyU) → CSI 117;3 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 103",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) does not unwind on Linux AZERTY (key=a, code=KeyQ) — uses ev.key not ev.code": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 104",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) does not unwind when altKey is false": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 105",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) does not unwind when macOptionAsAlt is false (Linux Alt is a chord)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 106",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) does not unwind when macOptionAsAlt is false even with composed key": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 107",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate macOS Option as Alt (macOptionIsMeta) falls through when ev.code is not Key*/Digit* (Opt+;)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 108",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) AudioVolumeDown → CSI 57438 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 109",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) AudioVolumeMute → CSI 57440 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 110",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) AudioVolumeUp → CSI 57439 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 111",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) MediaPlayPause → CSI 57430 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 112",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) MediaStop → CSI 57432 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 113",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) MediaTrackNext → CSI 57435 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 114",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate media keys (Private Use Area) MediaTrackPrevious → CSI 57436 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 115",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) all four modifiers=16 (1+1+2+4+8)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 116",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) alt=3 (1+2) still uses CSI u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 117",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) ctrl+alt+shift=8 (1+4+2+1)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 118",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) ctrl+alt=7 (1+4+2)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 119",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) ctrl+shift=6 (1+4+1)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 120",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) ctrl+super=13 (1+4+8)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 121",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) ctrl=5 (1+4)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 122",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) no modifiers omits modifier field": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 123",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) shift+letter sends plain character in DISAMBIGUATE mode": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 124",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier encoding (value = 1 + modifiers) super/meta=9 (1+8)": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 125",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) CapsLock → CSI 57358 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 126",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Left Alt → CSI 57443 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 127",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Left Control → CSI 57442 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 128",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Left Meta/Super → CSI 57444 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 129",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Left Shift → CSI 57441 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 130",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) NumLock → CSI 57360 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 131",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Right Alt → CSI 57449 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 132",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Right Control → CSI 57448 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 133",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Right Meta/Super → CSI 57450 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 134",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) Right Shift → CSI 57447 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 135",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier keys (Private Use Area) ScrollLock → CSI 57359 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 136",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier-only reporting does not report CapsLock press without REPORT_ALL_KEYS_AS_ESCAPE_CODES": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 137",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier-only reporting does not report CapsLock release without REPORT_ALL_KEYS_AS_ESCAPE_CODES": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 138",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier-only reporting does not report NumLock press without REPORT_ALL_KEYS_AS_ESCAPE_CODES": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 139",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier-only reporting does not report ScrollLock press without REPORT_ALL_KEYS_AS_ESCAPE_CODES": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 140",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier-only reporting does not report modifier press without REPORT_ALL_KEYS_AS_ESCAPE_CODES": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 141",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate modifier-only reporting does not report modifier release without REPORT_ALL_KEYS_AS_ESCAPE_CODES": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 142",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys Ctrl+Home → CSI 1;5 H": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 143",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys Delete → CSI 3 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 144",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys End → CSI F": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 145",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys Home → CSI H": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 146",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys Insert → CSI 2 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 147",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys PageDown → CSI 6 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 148",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys PageUp → CSI 5 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 149",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate navigation keys Shift+PageUp → CSI 5;2 ~": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 150",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) Ctrl+Numpad5 → CSI 57404;5 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 151",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) Numpad0 → CSI 57399 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 152",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) Numpad1 → CSI 57400 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 153",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) Numpad9 → CSI 57408 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 154",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadAdd → CSI 57413 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 155",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadDecimal → CSI 57409 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 156",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadDivide → CSI 57410 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 157",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadEnter → CSI 57414 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 158",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadEqual → CSI 57415 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 159",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadMultiply → CSI 57411 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 160",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate numpad keys (Private Use Area) NumpadSubtract → CSI 57412 u": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 161",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard evaluate release events without REPORT_EVENT_TYPES should not generate key sequence for release events": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 162",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard shouldUseProtocol should return false when flags are 0": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 163",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard shouldUseProtocol should return true when any flag is set": {
+      "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
+      "dartTestName": "xterm KittyKeyboard 164",
       "dartTestKind": "test"
     }
   }

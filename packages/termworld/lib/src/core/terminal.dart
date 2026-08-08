@@ -9,6 +9,7 @@ import 'package:termworld/src/core/clipboard.dart';
 import 'package:termworld/src/core/decoration_service.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
+import 'package:termworld/src/core/kitty_keyboard.dart';
 import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/mouse_state_service.dart';
 import 'package:termworld/src/core/options.dart';
@@ -643,6 +644,9 @@ final class Terminal extends DisposableStore {
   /// Effective renderer overrides installed by OSC color control sequences.
   TerminalColorOverrides get colorOverrides => _engine.colorOverrides;
 
+  /// Active Kitty keyboard protocol enhancement flags.
+  int get kittyKeyboardFlags => _engine.kittyKeyboardFlags;
+
   /// xterm-compatible `unmodifiable` API.
   List<TerminalMarker> get markers => buffer.active.markers;
 
@@ -670,6 +674,7 @@ final class Terminal extends DisposableStore {
   late final DecorationService _decorationService;
   bool _isDisposing = false;
   final AddonManager _addonManager = AddonManager();
+  final KittyKeyboard _kittyKeyboard = KittyKeyboard();
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
   final Map<int, TerminalCharacterJoiner> _characterJoiners =
       <int, TerminalCharacterJoiner>{};
@@ -885,6 +890,17 @@ final class Terminal extends DisposableStore {
     _onKey.fire(event);
     return _customKeyHandler?.call(event) ?? true;
   }
+
+  /// Encodes one native keyboard event with the active Kitty protocol state.
+  KittyKeyboardResult evaluateKittyKeyboard(
+    KittyKeyboardEvent event, {
+    KittyKeyboardEventType eventType = KittyKeyboardEventType.press,
+  }) => _kittyKeyboard.evaluate(
+    event,
+    kittyKeyboardFlags,
+    eventType: eventType,
+    macOptionAsAlt: options.macOptionIsMeta,
+  );
 
   /// xterm-compatible `handleWheelEvent` API.
   bool handleWheelEvent(TerminalWheelEvent event) =>

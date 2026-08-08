@@ -115,7 +115,38 @@ void main() {
   }
   _checkFixtureHashes(package, snapshot, failures);
   _checkPinnedLigatureFonts(package, failures);
+  _checkPinnedKittyKeyboardCases(package, failures);
   _finish(failures);
+}
+
+void _checkPinnedKittyKeyboardCases(
+  Directory package,
+  List<String> failures,
+) {
+  final fixture = File(
+    '${package.path}/test/fixtures/xterm/kitty_keyboard_cases.json',
+  );
+  if (!fixture.existsSync()) {
+    failures.add('pinned Kitty keyboard cases are missing');
+    return;
+  }
+  final result = Process.runSync('git', <String>[
+    'hash-object',
+    '--no-filters',
+    fixture.path,
+  ]);
+  if (result.exitCode != 0 ||
+      (result.stdout as String).trim() !=
+          'bcba2f6407bbc2db87b5b1fc1c6309b36cbb72cb') {
+    failures.add('pinned Kitty keyboard cases changed');
+  }
+  final document = jsonDecode(fixture.readAsStringSync());
+  if (document is! Map<String, Object?> ||
+      document['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb' ||
+      document['cases'] is! List<Object?> ||
+      (document['cases']! as List<Object?>).length != 165) {
+    failures.add('pinned Kitty keyboard case identity changed');
+  }
 }
 
 void _checkPinnedLigatureFonts(Directory package, List<String> failures) {

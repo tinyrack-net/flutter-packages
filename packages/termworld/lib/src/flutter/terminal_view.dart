@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/kitty_keyboard.dart';
 import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/terminal.dart';
@@ -1159,18 +1160,45 @@ final class _TerminalViewState extends State<TerminalView> {
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is KeyUpEvent) return KeyEventResult.ignored;
     final keyboard = HardwareKeyboard.instance;
-    final allowed = widget.terminal.handleKeyEvent(
-      TerminalKeyEvent(
-        key: event.logicalKey.keyLabel,
-        shift: keyboard.isShiftPressed,
-        alt: keyboard.isAltPressed,
-        control: keyboard.isControlPressed,
-        meta: keyboard.isMetaPressed,
-      ),
-    );
-    if (!allowed) return KeyEventResult.handled;
+    final kittyFlags = widget.terminal.kittyKeyboardFlags;
+    if (event is KeyUpEvent && !KittyKeyboard.shouldUseProtocol(kittyFlags)) {
+      return KeyEventResult.ignored;
+    }
+    if (event is! KeyUpEvent) {
+      final allowed = widget.terminal.handleKeyEvent(
+        TerminalKeyEvent(
+          key: event.logicalKey.keyLabel,
+          shift: keyboard.isShiftPressed,
+          alt: keyboard.isAltPressed,
+          control: keyboard.isControlPressed,
+          meta: keyboard.isMetaPressed,
+        ),
+      );
+      if (!allowed) return KeyEventResult.handled;
+    }
+    if (KittyKeyboard.shouldUseProtocol(kittyFlags)) {
+      final result = widget.terminal.evaluateKittyKeyboard(
+        KittyKeyboardEvent(
+          key: _kittyKey(event.logicalKey),
+          code: _kittyCode(event.physicalKey),
+          type: event is KeyUpEvent ? 'keyup' : 'keydown',
+          shiftKey: keyboard.isShiftPressed,
+          altKey: keyboard.isAltPressed,
+          ctrlKey: keyboard.isControlPressed,
+          metaKey: keyboard.isMetaPressed,
+        ),
+        eventType: event is KeyUpEvent
+            ? KittyKeyboardEventType.release
+            : event is KeyRepeatEvent
+            ? KittyKeyboardEventType.repeat
+            : KittyKeyboardEventType.press,
+      );
+      final sequence = result.key;
+      if (sequence != null) widget.terminal.input(sequence);
+      if (result.cancel || sequence != null) return KeyEventResult.handled;
+      if (event is KeyUpEvent) return KeyEventResult.ignored;
+    }
     if (keyboard.isShiftPressed &&
         event.logicalKey == LogicalKeyboardKey.pageUp) {
       widget.terminal.scrollPages(-1);
@@ -1185,6 +1213,104 @@ final class _TerminalViewState extends State<TerminalView> {
     if (sequence == null) return KeyEventResult.ignored;
     widget.terminal.input(sequence);
     return KeyEventResult.handled;
+  }
+
+  String _kittyKey(LogicalKeyboardKey key) {
+    final named = <LogicalKeyboardKey, String>{
+      LogicalKeyboardKey.escape: 'Escape',
+      LogicalKeyboardKey.enter: 'Enter',
+      LogicalKeyboardKey.numpadEnter: 'Enter',
+      LogicalKeyboardKey.tab: 'Tab',
+      LogicalKeyboardKey.backspace: 'Backspace',
+      LogicalKeyboardKey.capsLock: 'CapsLock',
+      LogicalKeyboardKey.scrollLock: 'ScrollLock',
+      LogicalKeyboardKey.numLock: 'NumLock',
+      LogicalKeyboardKey.printScreen: 'PrintScreen',
+      LogicalKeyboardKey.pause: 'Pause',
+      LogicalKeyboardKey.contextMenu: 'ContextMenu',
+      LogicalKeyboardKey.arrowUp: 'ArrowUp',
+      LogicalKeyboardKey.arrowDown: 'ArrowDown',
+      LogicalKeyboardKey.arrowRight: 'ArrowRight',
+      LogicalKeyboardKey.arrowLeft: 'ArrowLeft',
+      LogicalKeyboardKey.home: 'Home',
+      LogicalKeyboardKey.end: 'End',
+      LogicalKeyboardKey.insert: 'Insert',
+      LogicalKeyboardKey.delete: 'Delete',
+      LogicalKeyboardKey.pageUp: 'PageUp',
+      LogicalKeyboardKey.pageDown: 'PageDown',
+      LogicalKeyboardKey.shift: 'Shift',
+      LogicalKeyboardKey.control: 'Control',
+      LogicalKeyboardKey.alt: 'Alt',
+      LogicalKeyboardKey.meta: 'Meta',
+    };
+    for (var number = 1; number <= 24; number++) {
+      if (key == _logicalFunctionKey(number)) return 'F$number';
+    }
+    return named[key] ?? key.keyLabel;
+  }
+
+  LogicalKeyboardKey _logicalFunctionKey(int number) => switch (number) {
+    1 => LogicalKeyboardKey.f1,
+    2 => LogicalKeyboardKey.f2,
+    3 => LogicalKeyboardKey.f3,
+    4 => LogicalKeyboardKey.f4,
+    5 => LogicalKeyboardKey.f5,
+    6 => LogicalKeyboardKey.f6,
+    7 => LogicalKeyboardKey.f7,
+    8 => LogicalKeyboardKey.f8,
+    9 => LogicalKeyboardKey.f9,
+    10 => LogicalKeyboardKey.f10,
+    11 => LogicalKeyboardKey.f11,
+    12 => LogicalKeyboardKey.f12,
+    13 => LogicalKeyboardKey.f13,
+    14 => LogicalKeyboardKey.f14,
+    15 => LogicalKeyboardKey.f15,
+    16 => LogicalKeyboardKey.f16,
+    17 => LogicalKeyboardKey.f17,
+    18 => LogicalKeyboardKey.f18,
+    19 => LogicalKeyboardKey.f19,
+    20 => LogicalKeyboardKey.f20,
+    21 => LogicalKeyboardKey.f21,
+    22 => LogicalKeyboardKey.f22,
+    23 => LogicalKeyboardKey.f23,
+    _ => LogicalKeyboardKey.f24,
+  };
+
+  String _kittyCode(PhysicalKeyboardKey key) {
+    final usage = key.usbHidUsage & 0xffff;
+    if (usage >= 0x04 && usage <= 0x1d) {
+      return 'Key${String.fromCharCode(0x41 + usage - 0x04)}';
+    }
+    if (usage >= 0x1e && usage <= 0x26) return 'Digit${usage - 0x1d}';
+    if (usage == 0x27) return 'Digit0';
+    return <PhysicalKeyboardKey, String>{
+          PhysicalKeyboardKey.shiftLeft: 'ShiftLeft',
+          PhysicalKeyboardKey.shiftRight: 'ShiftRight',
+          PhysicalKeyboardKey.controlLeft: 'ControlLeft',
+          PhysicalKeyboardKey.controlRight: 'ControlRight',
+          PhysicalKeyboardKey.altLeft: 'AltLeft',
+          PhysicalKeyboardKey.altRight: 'AltRight',
+          PhysicalKeyboardKey.metaLeft: 'MetaLeft',
+          PhysicalKeyboardKey.metaRight: 'MetaRight',
+          PhysicalKeyboardKey.numpad0: 'Numpad0',
+          PhysicalKeyboardKey.numpad1: 'Numpad1',
+          PhysicalKeyboardKey.numpad2: 'Numpad2',
+          PhysicalKeyboardKey.numpad3: 'Numpad3',
+          PhysicalKeyboardKey.numpad4: 'Numpad4',
+          PhysicalKeyboardKey.numpad5: 'Numpad5',
+          PhysicalKeyboardKey.numpad6: 'Numpad6',
+          PhysicalKeyboardKey.numpad7: 'Numpad7',
+          PhysicalKeyboardKey.numpad8: 'Numpad8',
+          PhysicalKeyboardKey.numpad9: 'Numpad9',
+          PhysicalKeyboardKey.numpadDecimal: 'NumpadDecimal',
+          PhysicalKeyboardKey.numpadDivide: 'NumpadDivide',
+          PhysicalKeyboardKey.numpadMultiply: 'NumpadMultiply',
+          PhysicalKeyboardKey.numpadSubtract: 'NumpadSubtract',
+          PhysicalKeyboardKey.numpadAdd: 'NumpadAdd',
+          PhysicalKeyboardKey.numpadEnter: 'NumpadEnter',
+          PhysicalKeyboardKey.numpadEqual: 'NumpadEqual',
+        }[key] ??
+        '';
   }
 
   String? _keySequence(

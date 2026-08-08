@@ -9,6 +9,7 @@ export 'src/core/color_zone_store.dart';
 export 'src/core/decoration_service.dart';
 export 'src/core/disposable.dart';
 export 'src/core/event.dart';
+export 'src/core/kitty_keyboard.dart';
 export 'src/core/marker.dart';
 export 'src/core/mouse_coordinates.dart';
 export 'src/core/move_to_cell.dart';
