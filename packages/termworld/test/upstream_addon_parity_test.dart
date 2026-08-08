@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_progress.dart';
+import 'package:termworld/addon_unicode11.dart';
+import 'package:termworld/addon_unicode_graphemes.dart';
 import 'package:termworld/termworld_headless.dart';
 
 void main() {
@@ -89,6 +91,41 @@ void main() {
       expect(changes, isEmpty);
     });
   });
+
+  test('addon-unicode11 wcwidth V11 emoji test', () {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(Unicode11Addon());
+    expect(terminal.unicode.versions, contains('11'));
+    terminal.unicode.activeVersion = '11';
+    expect(
+      _stringCellWidth(terminal, List<String>.filled(10, '🤣').join()),
+      20,
+    );
+  });
+
+  test('addon-unicode-graphemes wcwidth V15 emoji test', () {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(UnicodeGraphemesAddon());
+    expect(terminal.unicode.versions, <String>['6', '15', '15-graphemes']);
+    expect(
+      _stringCellWidth(terminal, List<String>.filled(10, '🤣').join()),
+      20,
+    );
+    expect(_stringCellWidth(terminal, '👶🏿👶'), 4);
+    expect(_stringCellWidth(terminal, '👩‍👩‍👦'), 2);
+    expect(_stringCellWidth(terminal, '=🏋️=\u{f3cb}🏾‍♀='), 7);
+    expect(_stringCellWidth(terminal, '👩👩‍🎓👨🏿‍🎓'), 6);
+    expect(_stringCellWidth(terminal, '🇳🇴/'), 3);
+    expect(_stringCellWidth(terminal, '🇳/🇴'), 3);
+    expect(_stringCellWidth(terminal, 'á'), 1);
+    expect(_stringCellWidth(terminal, '{각가}'), 6);
+    expect(_stringCellWidth(terminal, '가=횅='), 6);
+    expect(_stringCellWidth(terminal, '(⚰︎)'), 3);
+    expect(_stringCellWidth(terminal, '(⚰️)'), 4);
+    expect(_stringCellWidth(terminal, '<É️g️a️l️i️️t️é️>'), 16);
+  });
 }
 
 Future<void> _write(Terminal terminal, int state, [String? value]) {
@@ -103,4 +140,18 @@ void _expectProgress(
 ) {
   expect(progress.state, state);
   expect(progress.value, value);
+}
+
+int _stringCellWidth(Terminal terminal, String value) {
+  var state = 0;
+  var width = 0;
+  for (final codePoint in value.runes) {
+    final next = terminal.unicode.active.charProperties(codePoint, state);
+    final nextWidth = TerminalUnicodeHandling.extractWidth(next);
+    width += TerminalUnicodeHandling.extractShouldJoin(next)
+        ? nextWidth - TerminalUnicodeHandling.extractWidth(state)
+        : nextWidth;
+    state = next;
+  }
+  return width;
 }
