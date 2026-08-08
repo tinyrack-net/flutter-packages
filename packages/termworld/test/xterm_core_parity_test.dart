@@ -465,6 +465,22 @@ void main() {
   });
 
   group('terminal public behavior', () {
+    test('initial dimensions and resize clamp to xterm minimums', () {
+      final terminal = Terminal(
+        options: TerminalOptions(cols: -10, rows: -10),
+      );
+      addTearDown(terminal.dispose);
+      final events = <TerminalResizeEvent>[];
+      terminal.onResize.listen(events.add);
+
+      expect((terminal.cols, terminal.rows), (2, 1));
+      terminal.resize(0, 0);
+      expect((events.single.cols, events.single.rows), (2, 1));
+      terminal.resize(3, 0);
+      expect((terminal.cols, terminal.rows), (3, 1));
+      expect((events.last.cols, events.last.rows), (3, 1));
+    });
+
     test('selection endpoints and line clamping match xterm', () async {
       final terminal = Terminal(options: TerminalOptions(cols: 5, rows: 5));
       addTearDown(terminal.dispose);

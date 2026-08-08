@@ -80,8 +80,8 @@ void main() {
     expect(() => options.scrollback = -1, throwsArgumentError);
     expect(() => options.scrollSensitivity = 0, throwsArgumentError);
     expect(() => options.tabStopWidth = 0, throwsArgumentError);
-    expect(TerminalOptions(cols: -1).cols, 80);
-    expect(TerminalOptions(rows: -1).rows, 24);
+    expect(TerminalOptions(cols: -1).cols, -1);
+    expect(TerminalOptions(rows: -1).rows, -1);
     expect(TerminalOptions(fontWeight: 0).fontWeight, 'normal');
     expect(TerminalOptions(fontWeightBold: 'invalid').fontWeightBold, 'bold');
   });
@@ -240,8 +240,8 @@ void main() {
 
       expect(() => terminal.write(1), throwsArgumentError);
       expect(() => terminal.writeAndWait(1), throwsArgumentError);
-      expect(() => terminal.resize(0, 1), throwsArgumentError);
-      expect(() => terminal.resize(1, 0), throwsArgumentError);
+      terminal.resize(0, 0);
+      expect((terminal.cols, terminal.rows), (2, 1));
       terminal
         ..resize(6, 3)
         ..resize(6, 3);

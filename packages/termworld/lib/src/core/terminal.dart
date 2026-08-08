@@ -225,8 +225,8 @@ final class Terminal extends DisposableStore {
     _engine = _TerminalCoreEngine(
       options: this.options,
       unicode: unicode,
-      columns: this.options.cols,
-      rows: this.options.rows,
+      columns: this.options.cols < 2 ? 2 : this.options.cols,
+      rows: this.options.rows < 1 ? 1 : this.options.rows,
       scrollback: this.options.scrollback,
       onBell: () {
         _onBell.fire(TerminalVoid.value);
@@ -509,15 +509,11 @@ final class Terminal extends DisposableStore {
 
   /// Resizes both normal and alternate buffers.
   void resize(int columns, int rowCount) {
-    if (columns < 1) {
-      throw ArgumentError.value(columns, 'columns', 'must be at least 1');
-    }
-    if (rowCount < 1) {
-      throw ArgumentError.value(rowCount, 'rows', 'must be at least 1');
-    }
     if (columns == cols && rowCount == rows) return;
-    _engine.resize(columns, rowCount);
-    _onResize.fire(TerminalResizeEvent(cols: columns, rows: rowCount));
+    final nextColumns = columns < 2 ? 2 : columns;
+    final nextRows = rowCount < 1 ? 1 : rowCount;
+    _engine.resize(nextColumns, nextRows);
+    _onResize.fire(TerminalResizeEvent(cols: nextColumns, rows: nextRows));
     _viewportY = _viewportY.clamp(0, buffer.active.baseY);
   }
 

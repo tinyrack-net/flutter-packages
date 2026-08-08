@@ -450,8 +450,8 @@ final class TerminalOptions {
     TerminalWindowsPtyOptions windowsPty = const TerminalWindowsPtyOptions(),
     String wordSeparator = ' ()[]{}\',"`',
     TerminalWindowOptions windowOptions = const TerminalWindowOptions(),
-    int cols = 80,
-    int rows = 24,
+    this.cols = 80,
+    this.rows = 24,
     bool showCursorImmediately = false,
   }) : _allowProposedApi = _initial(allowProposedApi),
        _allowTransparency = _initial(allowTransparency),
@@ -487,8 +487,6 @@ final class TerminalOptions {
        _windowsPty = _initial(windowsPty),
        _wordSeparator = wordSeparator.isEmpty ? ' ()[]{}\',"`' : wordSeparator,
        _windowOptions = _initial(windowOptions),
-       cols = cols < 0 ? 80 : cols,
-       rows = rows < 0 ? 24 : rows,
        _showCursorImmediately = _initial(showCursorImmediately),
        _blinkIntervalDuration = blinkIntervalDuration < 0
            ? 0
