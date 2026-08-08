@@ -152,17 +152,36 @@ void main() {
   });
 
   test('web link provider returns validated ranges', () async {
-    final terminal = Terminal(options: TerminalOptions(rows: 2));
+    final terminal = Terminal(options: TerminalOptions(cols: 40, rows: 3));
     final activated = <String>[];
     final addon = WebLinksAddon(handler: activated.add);
     addTearDown(terminal.dispose);
     terminal.loadAddon(addon);
-    await terminal.writeAndWait('see https://example.com/path now');
+    await terminal.writeAndWait(
+      'aaa http://example.com aaa http://example.com aaa',
+    );
 
-    final links = await terminal.linkProviders.single.provideLinks(0);
-    expect(links.single.text, 'https://example.com/path');
-    links.single.activate(links.single.text);
-    expect(activated.single, links.single.text);
+    final firstRowLinks = await terminal.linkProviders.single.provideLinks(0);
+    final secondRowLinks = await terminal.linkProviders.single.provideLinks(1);
+    expect(firstRowLinks, hasLength(2));
+    expect(secondRowLinks, hasLength(2));
+    expect(firstRowLinks.first.text, 'http://example.com');
+    expect(
+      firstRowLinks.first.range,
+      const TerminalBufferRange(
+        start: TerminalBufferPosition(5, 1),
+        end: TerminalBufferPosition(22, 1),
+      ),
+    );
+    expect(
+      firstRowLinks.last.range,
+      const TerminalBufferRange(
+        start: TerminalBufferPosition(28, 1),
+        end: TerminalBufferPosition(5, 2),
+      ),
+    );
+    firstRowLinks.first.activate(firstRowLinks.first.text);
+    expect(activated.single, firstRowLinks.first.text);
   });
 
   test('browser-only addons expose explicit capabilities', () {
