@@ -273,9 +273,9 @@ void main() {
 
       final provider = _LinkProvider();
       final registration = terminal.registerLinkProvider(provider);
-      expect(terminal.linkProviders, <TerminalLinkProvider>[provider]);
+      expect(terminal.linkProviders, contains(provider));
       registration.dispose();
-      expect(terminal.linkProviders, isEmpty);
+      expect(terminal.linkProviders, isNot(contains(provider)));
 
       final firstJoiner = terminal.registerCharacterJoiner(
         (_) => const <TerminalCharacterJoin>[TerminalCharacterJoin(0, 2)],

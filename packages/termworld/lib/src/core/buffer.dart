@@ -141,6 +141,7 @@ final class TerminalCellAttributes {
     this.strikethrough = false,
     this.overline = false,
     this.protected = false,
+    this.hyperlinkId = 0,
   });
 
   /// Foreground color.
@@ -182,6 +183,9 @@ final class TerminalCellAttributes {
   /// Whether selective erase protects the cell.
   bool protected;
 
+  /// Internal numeric identity assigned to an OSC 8 hyperlink.
+  int hyperlinkId;
+
   /// Returns an independent copy of these attributes.
   TerminalCellAttributes copy() => TerminalCellAttributes(
     foreground: foreground,
@@ -197,6 +201,7 @@ final class TerminalCellAttributes {
     strikethrough: strikethrough,
     overline: overline,
     protected: protected,
+    hyperlinkId: hyperlinkId,
   );
 
   /// Whether every observable attribute equals [other].
@@ -213,7 +218,8 @@ final class TerminalCellAttributes {
       invisible == other.invisible &&
       strikethrough == other.strikethrough &&
       overline == other.overline &&
-      protected == other.protected;
+      protected == other.protected &&
+      hyperlinkId == other.hyperlinkId;
 }
 
 final class _CellData {
@@ -315,6 +321,9 @@ final class TerminalCell {
 
   /// Whether selective erase protects the cell.
   bool get isProtected => _cell.attributes.protected;
+
+  /// Numeric OSC 8 hyperlink identity, or zero outside a hyperlink.
+  int get hyperlinkId => _cell.attributes.hyperlinkId;
 
   /// Whether all attributes have their default values.
   bool get isAttributeDefault =>

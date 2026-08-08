@@ -107,6 +107,10 @@ final class _TerminalCoreEngine {
   int _activeCharset = 0;
   String _precedingCharacter = '';
   int _precedingJoinState = 0;
+  int _nextHyperlinkId = 1;
+  final Map<int, ({String? id, String uri})> _hyperlinks =
+      <int, ({String? id, String uri})>{};
+  final Map<String, int> _hyperlinksByExplicitId = <String, int>{};
 
   int get columns => _columns;
   int get rows => _rows;
@@ -251,12 +255,52 @@ final class _TerminalCoreEngine {
       case 2:
         _windowTitle = data;
         onTitle?.call(data);
+      case 8:
+        _setHyperlink(data);
     }
     if (cursor < source.length && source.codeUnitAt(cursor) == 0x1b) {
       return math.min(source.length, cursor + 2);
     }
     return math.min(source.length, cursor + 1);
   }
+
+  void _setHyperlink(String data) {
+    final separator = data.indexOf(';');
+    if (separator < 0) return;
+    final parameters = data.substring(0, separator).trim();
+    final uri = data.substring(separator + 1);
+    if (uri.isEmpty) {
+      if (parameters.isEmpty) _attributes.hyperlinkId = 0;
+      return;
+    }
+    _attributes.hyperlinkId = 0;
+    String? explicitId;
+    for (final parameter in parameters.split(':')) {
+      if (parameter.startsWith('id=')) {
+        final value = parameter.substring(3);
+        if (value.isNotEmpty) explicitId = value;
+        break;
+      }
+    }
+    if (explicitId != null) {
+      final key = '$explicitId;;$uri';
+      final existing = _hyperlinksByExplicitId[key];
+      if (existing != null) {
+        _attributes.hyperlinkId = existing;
+        return;
+      }
+      final linkId = _nextHyperlinkId++;
+      _hyperlinks[linkId] = (id: explicitId, uri: uri);
+      _hyperlinksByExplicitId[key] = linkId;
+      _attributes.hyperlinkId = linkId;
+      return;
+    }
+    final linkId = _nextHyperlinkId++;
+    _hyperlinks[linkId] = (id: null, uri: uri);
+    _attributes.hyperlinkId = linkId;
+  }
+
+  ({String? id, String uri})? hyperlinkData(int linkId) => _hyperlinks[linkId];
 
   int _dcs(String source, int start) {
     final terminator = _stringEnd(source, start);

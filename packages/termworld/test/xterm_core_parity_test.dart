@@ -564,6 +564,56 @@ void main() {
       expect(customCalls, 0);
     });
 
+    test('OSC 8 stores hyperlinks and resolves wrapped ranges', () async {
+      final activated = <String>[];
+      final terminal = Terminal(
+        options: TerminalOptions(
+          cols: 8,
+          rows: 3,
+          linkHandler: TerminalLinkHandler(
+            activate: (_, text, _) => activated.add(text),
+          ),
+        ),
+      );
+      addTearDown(terminal.dispose);
+      await terminal.writeAndWait(
+        '\u001b]8;id=shared;https://example.com/a;b\u001b\\'
+        '1234567890'
+        '\u001b]8;;\u001b\\',
+      );
+
+      final first = await terminal.linkProviders.first.provideLinks(1);
+      final second = await terminal.linkProviders.first.provideLinks(2);
+      expect(first, hasLength(1));
+      expect(second, hasLength(1));
+      expect(first.single.text, 'https://example.com/a;b');
+      expect(
+        first.single.range,
+        const TerminalBufferRange(
+          start: TerminalBufferPosition(1, 1),
+          end: TerminalBufferPosition(2, 2),
+        ),
+      );
+      expect(second.single.range, first.single.range);
+      first.single.activate(null, first.single.text);
+      expect(activated, <String>['https://example.com/a;b']);
+    });
+
+    test('OSC 8 rejects unsafe protocols unless explicitly allowed', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
+      addTearDown(terminal.dispose);
+      await terminal.writeAndWait(
+        '\u001b]8;;file:///tmp/value\u0007value\u001b]8;;\u0007',
+      );
+      expect(await terminal.linkProviders.first.provideLinks(1), isEmpty);
+
+      terminal.options.linkHandler = TerminalLinkHandler(
+        activate: (_, _, _) {},
+        allowNonHttpProtocols: true,
+      );
+      expect(await terminal.linkProviders.first.provideLinks(1), hasLength(1));
+    });
+
     test('DECRQSS reports protected, margins, SGR and cursor style', () async {
       final terminal = Terminal(
         options: TerminalOptions(

@@ -373,6 +373,7 @@ final class Terminal extends DisposableStore {
       }),
     );
     modes = TerminalModes._(this);
+    _linkProviders.add(_OscLinkProvider(this));
     own(this.options.onChange.listen(_handleOptionChange));
   }
 
@@ -1006,6 +1007,135 @@ final class Terminal extends DisposableStore {
     }
     _writeQueue.clear();
     super.dispose();
+  }
+}
+
+final class _OscLinkProvider implements TerminalLinkProvider {
+  const _OscLinkProvider(this.terminal);
+
+  final Terminal terminal;
+
+  @override
+  List<TerminalLink> provideLinks(int bufferLineNumber) {
+    final line = terminal.buffer.active.getLine(bufferLineNumber - 1);
+    if (line == null) return const <TerminalLink>[];
+    final result = <TerminalLink>[];
+    final lineLength = _trimmedLength(line);
+    var currentLinkId = 0;
+    var currentStart = -1;
+    for (var x = 0; x <= lineLength; x++) {
+      final linkId = x < lineLength ? line.getCell(x)?.hyperlinkId ?? 0 : 0;
+      if (currentStart < 0 && linkId != 0) {
+        currentStart = x;
+        currentLinkId = linkId;
+        continue;
+      }
+      if (currentStart < 0 || linkId == currentLinkId) continue;
+      final data = terminal._engine.hyperlinkData(currentLinkId);
+      if (data != null && _protocolAllowed(data.uri)) {
+        final range = _wrappedRange(
+          bufferLineNumber,
+          currentStart,
+          x,
+          currentLinkId,
+        );
+        final handler = terminal.options.linkHandler;
+        result.add(
+          TerminalLink(
+            range: range,
+            text: data.uri,
+            activate: (event, text) {
+              handler?.activate(event, text, range);
+            },
+            hover: handler?.hover == null
+                ? null
+                : (event, text) => handler!.hover!(event, text, range),
+            leave: handler?.leave == null
+                ? null
+                : (event, text) => handler!.leave!(event, text, range),
+          ),
+        );
+      }
+      if (linkId == 0) {
+        currentStart = -1;
+        currentLinkId = 0;
+      } else {
+        currentStart = x;
+        currentLinkId = linkId;
+      }
+    }
+    return result;
+  }
+
+  bool _protocolAllowed(String uri) {
+    if (terminal.options.linkHandler?.allowNonHttpProtocols ?? false) {
+      return true;
+    }
+    final parsed = Uri.tryParse(uri);
+    return parsed != null &&
+        parsed.hasScheme &&
+        (parsed.scheme == 'http' || parsed.scheme == 'https');
+  }
+
+  TerminalBufferRange _wrappedRange(
+    int y,
+    int startX,
+    int endX,
+    int linkId,
+  ) {
+    final buffer = terminal.buffer.active;
+    var startY = y;
+    var finalStartX = startX;
+    var endY = y;
+    var finalEndX = endX;
+    while (finalStartX == 0) {
+      final current = buffer.getLine(startY - 1);
+      final previous = buffer.getLine(startY - 2);
+      if (current?.isWrapped != true || previous == null) break;
+      final previousLength = _trimmedLength(previous);
+      if (previousLength == 0 ||
+          previous.getCell(previousLength - 1)?.hyperlinkId != linkId) {
+        break;
+      }
+      var previousStart = previousLength - 1;
+      while (previousStart > 0 &&
+          previous.getCell(previousStart - 1)?.hyperlinkId == linkId) {
+        previousStart--;
+      }
+      startY--;
+      finalStartX = previousStart;
+    }
+    while (true) {
+      final current = buffer.getLine(endY - 1);
+      if (current == null || finalEndX != _trimmedLength(current)) break;
+      final next = buffer.getLine(endY);
+      if (next?.isWrapped != true || next == null) break;
+      final nextLength = _trimmedLength(next);
+      if (nextLength == 0 || next.getCell(0)?.hyperlinkId != linkId) break;
+      var nextEnd = 1;
+      while (nextEnd < nextLength &&
+          next.getCell(nextEnd)?.hyperlinkId == linkId) {
+        nextEnd++;
+      }
+      endY++;
+      finalEndX = nextEnd;
+    }
+    return TerminalBufferRange(
+      start: TerminalBufferPosition(finalStartX + 1, startY),
+      end: TerminalBufferPosition(finalEndX, endY),
+    );
+  }
+
+  int _trimmedLength(TerminalBufferLine line) {
+    var result = line.length;
+    while (result > 0) {
+      final cell = line.getCell(result - 1);
+      if (cell != null && (cell.chars.isNotEmpty || cell.hyperlinkId != 0)) {
+        break;
+      }
+      result--;
+    }
+    return result;
   }
 }
 
