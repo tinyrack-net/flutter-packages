@@ -66,7 +66,7 @@ final class WebglAddon extends ManagedTerminalAddon {
 
   /// Rejects atlas clearing on unsupported platforms.
   void clearTextureAtlas() {
-    throw StateError('Cannot use addon until it has been loaded');
+    throw UnsupportedError('WebglAddon is only supported on Flutter web');
   }
 
   /// Ignores context loss because no WebGL context exists.

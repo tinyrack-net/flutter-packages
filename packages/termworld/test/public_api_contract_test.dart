@@ -408,7 +408,7 @@ void main() {
     expect(webgl.onChangeTextureAtlas, isNotNull);
     expect(webgl.onRemoveTextureAtlas, isNotNull);
     expect(webgl.onContextLoss, isNotNull);
-    expect(webgl.clearTextureAtlas, throwsStateError);
+    expect(webgl.clearTextureAtlas, throwsUnsupportedError);
     webgl
       ..reportContextLoss()
       ..dispose();

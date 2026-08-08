@@ -79,16 +79,12 @@ final class WebglAddon extends ManagedTerminalAddon {
 
   /// Drops the current atlas and forces a complete refresh.
   void clearTextureAtlas() {
-    if (!isActive) {
-      throw StateError('Cannot use addon until it has been loaded');
-    }
+    if (!isActive) return;
     final previous = _textureAtlas;
     if (previous != null) _onRemoveTextureAtlas.fire(previous);
     final canvas = _canvas;
     final context = _context;
-    if (canvas == null || context == null) {
-      throw StateError('The WebGL2 renderer context is not available');
-    }
+    if (canvas == null || context == null) return;
     context
       ..viewport(0, 0, canvas.width, canvas.height)
       ..clearColor(0, 0, 0, 0)

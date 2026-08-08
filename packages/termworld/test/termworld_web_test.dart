@@ -42,8 +42,9 @@ void main() {
       )
       ..onContextLoss.listen((_) => events.add('loss'));
     expect(WebglAddon.isSupported, isTrue);
-    expect(addon.clearTextureAtlas, throwsStateError);
-    addon.reportContextLoss();
+    addon
+      ..clearTextureAtlas()
+      ..reportContextLoss();
 
     terminal.loadAddon(addon);
     expect(addon.textureAtlas?.generation, 1);
