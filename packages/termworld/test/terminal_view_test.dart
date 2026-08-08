@@ -565,11 +565,42 @@ void main() {
     await tester.pump();
 
     expect(rendered, containsAll(<TerminalDecoration>[bottom, top]));
+    expect(bottom.element, same(bottom));
+    bottom.options
+      ..color = '#abcdef'
+      ..position = TerminalOverviewRulerPosition.right;
+    expect(bottom.overviewRulerColor, '#abcdef');
+    expect(
+      bottom.overviewRulerPosition,
+      TerminalOverviewRulerPosition.right,
+    );
     marker.dispose();
     await tester.pump();
     expect(bottom.isDisposed, isTrue);
     expect(top.isDisposed, isTrue);
     expect(terminal.decorations, isEmpty);
+  });
+
+  testWidgets('maps document override objects across the view lifecycle', (
+    tester,
+  ) async {
+    final terminal = Terminal(
+      options: TerminalOptions(documentOverride: _DocumentOverride()),
+    );
+    addTearDown(terminal.dispose);
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal: terminal)),
+    );
+    await tester.pump();
+
+    expect(terminal.element, 'element');
+    expect(terminal.screenElement, 'screen');
+    expect(terminal.textarea, 'textarea');
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(terminal.element, isNull);
+    expect(terminal.screenElement, isNull);
+    expect(terminal.textarea, isNull);
   });
 
   testWidgets('maps the complete navigation keyboard surface to VT', (
@@ -1123,4 +1154,15 @@ final class _TrackingLinkProvider implements TerminalLinkProvider {
       ),
     ];
   }
+}
+
+final class _DocumentOverride implements TerminalDocumentOverride {
+  @override
+  Object resolveElement(Object? element) => 'element';
+
+  @override
+  Object resolveScreenElement(Object? screenElement) => 'screen';
+
+  @override
+  Object resolveTextarea(Object? textarea) => 'textarea';
 }

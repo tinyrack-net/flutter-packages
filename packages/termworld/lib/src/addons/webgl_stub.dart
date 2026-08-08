@@ -14,10 +14,31 @@ final class TerminalTextureAtlas {
   final Object? canvas;
 }
 
+/// Configuration for the browser WebGL renderer.
+final class WebglAddonOptions {
+  /// Creates WebGL renderer options with xterm.js defaults.
+  const WebglAddonOptions({
+    this.customGlyphs = true,
+    this.preserveDrawingBuffer = false,
+  });
+
+  /// Whether xterm's custom box, block, braille and powerline glyphs are used.
+  final bool customGlyphs;
+
+  /// Whether the WebGL context preserves its drawing buffer.
+  final bool preserveDrawingBuffer;
+}
+
 /// Explicitly unsupported WebGL capability on non-web platforms.
 final class WebglAddon extends ManagedTerminalAddon {
   /// Creates a WebGL addon capability object.
-  WebglAddon({this.customGlyphs = true, this.preserveDrawingBuffer = false});
+  WebglAddon({
+    bool customGlyphs = true,
+    bool preserveDrawingBuffer = false,
+    WebglAddonOptions? options,
+  }) : customGlyphs = options?.customGlyphs ?? customGlyphs,
+       preserveDrawingBuffer =
+           options?.preserveDrawingBuffer ?? preserveDrawingBuffer;
 
   /// Whether custom glyph drawing is requested.
   final bool customGlyphs;

@@ -150,6 +150,9 @@ final class _TerminalViewState extends State<TerminalView> {
     }
     if (oldWidget.controller != widget.controller ||
         oldWidget.terminal != widget.terminal) {
+      oldWidget.terminal
+        ..attachFocusHandlers()
+        ..attachViewElements();
       _clearLinkCache();
       _renderListener?.dispose();
       _cursorMoveListener?.dispose();
@@ -165,6 +168,21 @@ final class _TerminalViewState extends State<TerminalView> {
 
   void _attach() {
     _controller.attach(widget.terminal, _requestKeyboard);
+    final documentOverride = widget.terminal.options.documentOverride;
+    widget.terminal.attachViewElements(
+      element: documentOverride?.resolveElement(context) ?? context,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final currentOverride = widget.terminal.options.documentOverride;
+      final screen = context.findRenderObject();
+      final textarea = _inputKey.currentState;
+      widget.terminal.attachViewElements(
+        element: currentOverride?.resolveElement(context) ?? context,
+        screen: currentOverride?.resolveScreenElement(screen) ?? screen,
+        textarea: currentOverride?.resolveTextarea(textarea) ?? textarea,
+      );
+    });
     _renderListener = widget.terminal.onRender.listen((_) {
       if (mounted) {
         _syncCursorBlink();
@@ -355,6 +373,7 @@ final class _TerminalViewState extends State<TerminalView> {
     _testingChannel = null;
     _controller.detach();
     widget.terminal.attachFocusHandlers();
+    widget.terminal.attachViewElements();
     if (widget.controller == null) _controller.dispose();
     if (widget.focusNode == null) _focusNode.dispose();
     super.dispose();

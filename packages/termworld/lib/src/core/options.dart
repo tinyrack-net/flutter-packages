@@ -58,11 +58,21 @@ enum TerminalInactiveCursorStyle {
 }
 
 /// Logger used by the terminal core.
-// A named interface is required for dependency injection in public options.
-// ignore: one_member_abstracts
 abstract interface class TerminalLogger {
-  /// Emits a diagnostic message.
-  void log(TerminalLogLevel level, String message, [Object? data]);
+  /// Emits a trace diagnostic.
+  void trace(String message, [List<Object?> arguments = const <Object?>[]]);
+
+  /// Emits a debug diagnostic.
+  void debug(String message, [List<Object?> arguments = const <Object?>[]]);
+
+  /// Emits an informational diagnostic.
+  void info(String message, [List<Object?> arguments = const <Object?>[]]);
+
+  /// Emits a warning diagnostic.
+  void warn(String message, [List<Object?> arguments = const <Object?>[]]);
+
+  /// Emits an error diagnostic.
+  void error(Object message, [List<Object?> arguments = const <Object?>[]]);
 }
 
 /// Callbacks for links emitted by OSC 8 or custom providers.
@@ -403,6 +413,22 @@ final class TerminalColorTheme {
   final List<String>? extendedAnsi;
 }
 
+/// Replaces the platform objects exposed by an attached terminal view.
+///
+/// This is the Flutter equivalent of xterm.js' document override. It keeps
+/// browser DOM types out of the headless library while allowing embedders and
+/// tests to substitute the three observable surface objects.
+abstract interface class TerminalDocumentOverride {
+  /// Resolves the object exposed as the terminal element.
+  Object? resolveElement(Object? element);
+
+  /// Resolves the object exposed as the screen element.
+  Object? resolveScreenElement(Object? screenElement);
+
+  /// Resolves the object exposed as the text input element.
+  Object? resolveTextarea(Object? textarea);
+}
+
 /// Mutable terminal options with the defaults and bounds used by xterm.js.
 final class TerminalOptions {
   /// Creates options using xterm.js defaults.
@@ -418,6 +444,7 @@ final class TerminalOptions {
     TerminalInactiveCursorStyle cursorInactiveStyle =
         TerminalInactiveCursorStyle.outline,
     bool disableStdin = false,
+    TerminalDocumentOverride? documentOverride,
     bool drawBoldTextInBrightColors = true,
     double fastScrollSensitivity = 5,
     double fontSize = 15,
@@ -463,6 +490,7 @@ final class TerminalOptions {
        _cursorStyle = _initial(cursorStyle),
        _cursorInactiveStyle = _initial(cursorInactiveStyle),
        _disableStdin = _initial(disableStdin),
+       _documentOverride = _initial(documentOverride),
        _drawBoldTextInBrightColors = _initial(drawBoldTextInBrightColors),
        _fontSize = _initial(fontSize),
        _fontFamily = _initial(fontFamily),
@@ -544,6 +572,7 @@ final class TerminalOptions {
     'cursorStyle',
     'cursorInactiveStyle',
     'disableStdin',
+    'documentOverride',
     'drawBoldTextInBrightColors',
     'fontSize',
     'fontFamily',
@@ -592,6 +621,7 @@ final class TerminalOptions {
   int _cursorWidth;
   TerminalInactiveCursorStyle _cursorInactiveStyle;
   bool _disableStdin;
+  TerminalDocumentOverride? _documentOverride;
   bool _drawBoldTextInBrightColors;
   double _fastScrollSensitivity;
   double _fontSize;
@@ -652,6 +682,15 @@ final class TerminalOptions {
     _allowTransparency,
     value,
     (next) => _allowTransparency = next,
+  );
+
+  /// Platform surface override used by the Flutter view adapter.
+  TerminalDocumentOverride? get documentOverride => _documentOverride;
+  set documentOverride(TerminalDocumentOverride? value) => _setOption(
+    'documentOverride',
+    _documentOverride,
+    value,
+    (next) => _documentOverride = next,
   );
 
   /// xterm-compatible `altClickMovesCursor` API.
@@ -1070,6 +1109,7 @@ final class TerminalOptions {
     'cursorStyle' => cursorStyle,
     'cursorInactiveStyle' => cursorInactiveStyle,
     'disableStdin' => disableStdin,
+    'documentOverride' => documentOverride,
     'drawBoldTextInBrightColors' => drawBoldTextInBrightColors,
     'fontSize' => fontSize,
     'fontFamily' => fontFamily,

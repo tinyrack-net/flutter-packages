@@ -81,6 +81,18 @@ final class TerminalPixelDimensions {
   final double height;
 }
 
+/// Top and left offset within a renderer cell.
+final class TerminalPixelOffset {
+  /// Creates an immutable renderer offset.
+  const TerminalPixelOffset({required this.top, required this.left});
+
+  /// Offset from the top of the cell.
+  final double top;
+
+  /// Offset from the left of the cell.
+  final double left;
+}
+
 /// Character dimensions and its offset within a cell.
 final class TerminalCharacterDimensions {
   /// Creates immutable character geometry.
@@ -636,6 +648,15 @@ final class Terminal extends DisposableStore {
   /// xterm-compatible `dimensions` API.
   TerminalRenderDimensions? get dimensions => _dimensions;
 
+  /// Flutter element hosting this terminal, or null before a view is mounted.
+  Object? get element => _element;
+
+  /// Flutter render object hosting the terminal screen, when laid out.
+  Object? get screenElement => _screenElement;
+
+  /// Flutter text-input client accepting composed input, when attached.
+  Object? get textarea => _textarea;
+
   final List<_WriteRequest> _writeQueue = <_WriteRequest>[];
   final _Utf8ChunkDecoder _decoder = _Utf8ChunkDecoder();
   final _StringChunkDecoder _stringDecoder = _StringChunkDecoder();
@@ -657,6 +678,9 @@ final class Terminal extends DisposableStore {
   void Function()? _focus;
   void Function()? _blur;
   bool _hasFocus = false;
+  Object? _element;
+  Object? _screenElement;
+  Object? _textarea;
   final MouseStateService _mouseStateService = MouseStateService();
   CoreMouseEvent? _lastMouseEvent;
 
@@ -725,7 +749,7 @@ final class Terminal extends DisposableStore {
         // Every parser failure must reach the queued write error callback.
         // ignore: avoid_catches_without_on_clauses
       } catch (error, stackTrace) {
-        options.logger?.log(TerminalLogLevel.error, 'write failed', error);
+        options.logger?.error('write failed', <Object?>[error]);
         request.onError?.call(error, stackTrace);
       }
     }
@@ -801,6 +825,13 @@ final class Terminal extends DisposableStore {
   void attachFocusHandlers({void Function()? focus, void Function()? blur}) {
     _focus = focus;
     _blur = blur;
+  }
+
+  /// Attaches Flutter equivalents of xterm's element, screen and textarea.
+  void attachViewElements({Object? element, Object? screen, Object? textarea}) {
+    _element = element;
+    _screenElement = screen;
+    _textarea = textarea;
   }
 
   /// Reports a renderer focus transition to the terminal input service.

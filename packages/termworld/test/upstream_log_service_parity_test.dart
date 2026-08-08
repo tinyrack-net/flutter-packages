@@ -65,10 +65,25 @@ void main() {
 }
 
 final class _Logger implements TerminalLogger {
-  final records = <(TerminalLogLevel, String, Object?)>[];
+  final records = <(TerminalLogLevel, String, List<Object?>)>[];
 
   @override
-  void log(TerminalLogLevel level, String message, [Object? data]) {
-    records.add((level, message, data));
-  }
+  void trace(String message, [List<Object?> arguments = const <Object?>[]]) =>
+      records.add((TerminalLogLevel.trace, message, arguments));
+
+  @override
+  void debug(String message, [List<Object?> arguments = const <Object?>[]]) =>
+      records.add((TerminalLogLevel.debug, message, arguments));
+
+  @override
+  void info(String message, [List<Object?> arguments = const <Object?>[]]) =>
+      records.add((TerminalLogLevel.info, message, arguments));
+
+  @override
+  void warn(String message, [List<Object?> arguments = const <Object?>[]]) =>
+      records.add((TerminalLogLevel.warning, message, arguments));
+
+  @override
+  void error(Object message, [List<Object?> arguments = const <Object?>[]]) =>
+      records.add((TerminalLogLevel.error, message.toString(), arguments));
 }

@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stream_channel/stream_channel.dart';
 import 'package:termworld/addon_attach.dart';
 import 'package:termworld/addon_web_fonts.dart';
 import 'package:termworld/addon_webgl.dart';
+import 'package:termworld/termworld.dart' show TerminalBufferElementProvider;
 import 'package:termworld/termworld_headless.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -443,10 +445,11 @@ void main() {
     expect(() => fonts.loadFonts(<String>['mono']), throwsUnsupportedError);
     expect(fonts.relayout, throwsUnsupportedError);
 
-    final webgl = WebglAddon(
+    const webglOptions = WebglAddonOptions(
       customGlyphs: false,
       preserveDrawingBuffer: true,
     );
+    final webgl = WebglAddon(options: webglOptions);
     expect(webgl.customGlyphs, isFalse);
     expect(webgl.preserveDrawingBuffer, isTrue);
     expect(webgl.textureAtlas, isNull);
@@ -460,6 +463,13 @@ void main() {
       ..dispose();
     expect(const TerminalTextureAtlas(2).generation, 2);
   }, testOn: '!browser');
+
+  test('Flutter buffer element providers expose a widget subtree', () {
+    expect(
+      _BufferElementProvider().provideBufferElements(),
+      isA<SizedBox>(),
+    );
+  });
 }
 
 final class _UnicodeProvider implements TerminalUnicodeProvider {
@@ -483,6 +493,11 @@ final class _LinkProvider implements TerminalLinkProvider {
 final class _Addon extends TerminalAddon {
   @override
   void activate(Terminal terminal) {}
+}
+
+final class _BufferElementProvider implements TerminalBufferElementProvider {
+  @override
+  Widget provideBufferElements() => const SizedBox.shrink();
 }
 
 final class _FakeSocket extends StreamChannelMixin<Object?>

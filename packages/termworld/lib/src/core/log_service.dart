@@ -76,11 +76,20 @@ final class TerminalLogService extends DisposableStore {
     ];
     final logger = _options.logger;
     if (logger != null) {
-      logger.log(
-        level,
-        message,
-        evaluated.length == 1 ? evaluated.single : evaluated,
-      );
+      switch (level) {
+        case TerminalLogLevel.trace:
+          logger.trace(message, evaluated);
+        case TerminalLogLevel.debug:
+          logger.debug(message, evaluated);
+        case TerminalLogLevel.info:
+          logger.info(message, evaluated);
+        case TerminalLogLevel.warning:
+          logger.warn(message, evaluated);
+        case TerminalLogLevel.error:
+          logger.error(message, evaluated);
+        case TerminalLogLevel.off:
+          return;
+      }
       return;
     }
     _sink(level, '$_prefix$message', evaluated);

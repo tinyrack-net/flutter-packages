@@ -86,6 +86,18 @@ enum TerminalOverviewRulerPosition {
   right,
 }
 
+/// Mutable overview-ruler state exposed by a rendered decoration.
+final class TerminalDecorationRenderOptions {
+  /// Creates mutable decoration render options.
+  TerminalDecorationRenderOptions({required this.position, this.color});
+
+  /// Overview-ruler color, or null when no marker is rendered there.
+  String? color;
+
+  /// Horizontal overview-ruler lane.
+  TerminalOverviewRulerPosition position;
+}
+
 /// A marker-backed decoration.
 final class TerminalDecoration implements Disposable {
   /// xterm-compatible `TerminalDecoration` API.
@@ -98,10 +110,14 @@ final class TerminalDecoration implements Disposable {
     this.backgroundColor,
     this.foregroundColor,
     this.borderColor,
-    this.overviewRulerColor,
-    this.overviewRulerPosition = TerminalOverviewRulerPosition.full,
+    String? overviewRulerColor,
+    TerminalOverviewRulerPosition overviewRulerPosition =
+        TerminalOverviewRulerPosition.full,
     this.layer = TerminalDecorationLayer.bottom,
-  }) {
+  }) : options = TerminalDecorationRenderOptions(
+         color: overviewRulerColor,
+         position: overviewRulerPosition,
+       ) {
     if (x < 0) throw ArgumentError.value(x, 'x', 'cannot be negative');
     if (width < 0 || height < 0) {
       throw ArgumentError('width and height cannot be negative');
@@ -133,10 +149,17 @@ final class TerminalDecoration implements Disposable {
   final String? borderColor;
 
   /// Optional color presented in an overview ruler by capable renderers.
-  final String? overviewRulerColor;
+  String? get overviewRulerColor => options.color;
 
   /// Horizontal lane occupied in the overview ruler.
-  final TerminalOverviewRulerPosition overviewRulerPosition;
+  TerminalOverviewRulerPosition get overviewRulerPosition => options.position;
+
+  /// Mutable overview-ruler options, matching xterm's decoration contract.
+  final TerminalDecorationRenderOptions options;
+
+  /// Flutter render element after the first render, otherwise null.
+  TerminalDecoration? get element => _element;
+  TerminalDecoration? _element;
 
   /// xterm-compatible `layer` API.
   final TerminalDecorationLayer layer;
@@ -154,7 +177,10 @@ final class TerminalDecoration implements Disposable {
 
   /// xterm-compatible `rendered` API.
   void rendered() {
-    if (!_isDisposed) _onRender.fire(this);
+    if (!_isDisposed) {
+      _element = this;
+      _onRender.fire(this);
+    }
   }
 
   @override
@@ -164,6 +190,7 @@ final class TerminalDecoration implements Disposable {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
+    _element = null;
     _onDispose.fire(TerminalVoid.value);
     _onRender.dispose();
     _onDispose.dispose();
