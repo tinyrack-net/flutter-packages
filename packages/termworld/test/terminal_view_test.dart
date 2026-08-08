@@ -341,6 +341,97 @@ void main() {
     expect(output, contains('\u001b\r'));
   });
 
+  testWidgets('matches xterm application, function and control key tables', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    terminal.options.macOptionIsMeta = true;
+    final output = <String>[];
+    addTearDown(terminal.dispose);
+    terminal.onData.listen(output.add);
+    await terminal.writeAndWait('\u001b[?1h');
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    for (final key in <LogicalKeyboardKey>[
+      LogicalKeyboardKey.arrowUp,
+      LogicalKeyboardKey.arrowLeft,
+      LogicalKeyboardKey.home,
+      LogicalKeyboardKey.end,
+      LogicalKeyboardKey.f1,
+      LogicalKeyboardKey.f2,
+      LogicalKeyboardKey.f3,
+      LogicalKeyboardKey.f4,
+      LogicalKeyboardKey.f5,
+      LogicalKeyboardKey.f12,
+    ]) {
+      await tester.sendKeyEvent(key);
+    }
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyA);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.f5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+
+    expect(
+      output,
+      <String>[
+        '\u001bOA',
+        '\u001bOD',
+        '\u001bOH',
+        '\u001bOF',
+        '\u001bOP',
+        '\u001bOQ',
+        '\u001bOR',
+        '\u001bOS',
+        '\u001b[15~',
+        '\u001b[24~',
+        '\u0001',
+        '\u0000',
+        '\u001ba',
+        '\u001b[15;2~',
+      ],
+    );
+  });
+
+  testWidgets('uses Shift+Page keys for local scroll and reserves Insert', (
+    tester,
+  ) async {
+    final terminal = Terminal(options: TerminalOptions(rows: 3));
+    final output = <String>[];
+    addTearDown(terminal.dispose);
+    terminal.onData.listen(output.add);
+    await terminal.writeAndWait(
+      List<String>.generate(12, (index) => '$index\r\n').join(),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal: terminal,
+          autofocus: true,
+          autoResize: false,
+        ),
+      ),
+    );
+    await tester.pump();
+    final bottom = terminal.viewportY;
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.pageUp);
+    await tester.sendKeyEvent(LogicalKeyboardKey.insert);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+
+    expect(terminal.viewportY, lessThan(bottom));
+    expect(output, isEmpty);
+  });
+
   testWidgets(
     'reattaches when terminal, focus, controller, or readonly changes',
     (
