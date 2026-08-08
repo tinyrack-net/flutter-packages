@@ -39,8 +39,22 @@ const Map<String, List<String>> kNativeTestPaths = <String, List<String>>{
   'linux': <String>['linux/test'],
   'macos': <String>['macos/Tests', 'example/macos/RunnerTests'],
   'windows': <String>['windows/test'],
-  'web': <String>['test/dropwell_web_test.dart'],
+  'web': <String>[
+    'test/dropwell_web_test.dart',
+    'test/termworld_web_test.dart',
+  ],
 };
+
+/// L3 locations for packages that declare platforms through platforms.yaml.
+const Map<String, List<String>> kConformanceNativeTestPaths =
+    <String, List<String>>{
+      'android': <String>['example/android/app/src/test'],
+      'ios': <String>['example/ios/RunnerTests'],
+      'linux': <String>['example/linux/test'],
+      'macos': <String>['example/macos/RunnerTests'],
+      'windows': <String>['example/windows/test'],
+      'web': <String>['test/termworld_web_test.dart'],
+    };
 
 /// Checks every package below `packages/`.
 List<String> verifyPackages(String root) {
@@ -104,9 +118,24 @@ List<String> verifyPackages(String root) {
         );
       }
     }
+    for (final platform in conformancePlatforms) {
+      final candidates = <String>{
+        ...?kNativeTestPaths[platform],
+        ...?kConformanceNativeTestPaths[platform],
+      };
+      if (candidates.isEmpty ||
+          !candidates.any(
+            (candidate) => _exists(p.join(package.path, candidate)),
+          )) {
+        violations.add('$name: $platform is missing L3 input-boundary tests');
+      }
+    }
     final requiredPlatforms = <String>{...platforms, ...conformancePlatforms};
     for (final platform in requiredPlatforms) {
-      for (final layer in const <String>['L4', 'L5']) {
+      final layers = conformancePlatforms.contains(platform)
+          ? const <String>['L3', 'L4', 'L5']
+          : const <String>['L4', 'L5'];
+      for (final layer in layers) {
         final marker = '$layer $platform $name';
         if (!steps.any((step) => step.startsWith(marker))) {
           violations.add(
