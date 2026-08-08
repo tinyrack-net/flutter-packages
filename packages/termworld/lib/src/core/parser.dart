@@ -217,7 +217,7 @@ final class TerminalParser implements Disposable {
       0x5d => _parseOsc(source, start),
       0x50 => _parseDcs(source, start),
       0x5f => _parseApc(source, start),
-      _ => _parseEsc(source, start),
+      _ => _parseEsc(source, start, emit),
     };
     final searchEnd = parsed?.end ?? source.length;
     for (var index = start + 1; index < searchEnd; index++) {
@@ -346,12 +346,48 @@ final class TerminalParser implements Disposable {
     );
   }
 
-  Future<_ParsedSequence?> _parseEsc(String source, int start) async {
-    final finalIndex = _findFinal(source, start + 1, 0x30);
+  Future<_ParsedSequence?> _parseEsc(
+    String source,
+    int start,
+    FutureOr<void> Function(String data) emit,
+  ) async {
+    final body = StringBuffer();
+    final executed = StringBuffer();
+    var finalIndex = -1;
+    for (var index = start + 1; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      if (code == 0x18 || code == 0x1a) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        await emit(source[index]);
+        return _ParsedSequence(
+          source.substring(start, index + 1),
+          index + 1,
+          handled: true,
+        );
+      }
+      if (code == 0x1b) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index),
+          index,
+          handled: true,
+        );
+      }
+      if (code >= 0x30 && code <= 0x7e) {
+        finalIndex = index;
+        break;
+      }
+      if (_isExecutable(code)) {
+        executed.writeCharCode(code);
+      } else if (code >= 0x20 && code <= 0x2f) {
+        body.writeCharCode(code);
+      }
+    }
     if (finalIndex < 0) return null;
-    final body = source.substring(start + 1, finalIndex);
+    if (executed.isNotEmpty) await emit(executed.toString());
+    final bodyValue = body.toString();
     final identifier = TerminalFunctionIdentifier(
-      intermediates: body,
+      intermediates: bodyValue,
       finalByte: source[finalIndex],
     );
     final handled = await _callNewest(
@@ -359,7 +395,7 @@ final class TerminalParser implements Disposable {
       (handler) => handler(),
     );
     return _ParsedSequence(
-      source.substring(start, finalIndex + 1),
+      '\u001b$bodyValue${source[finalIndex]}',
       finalIndex + 1,
       handled: handled,
     );

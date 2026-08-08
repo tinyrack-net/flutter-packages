@@ -361,6 +361,27 @@ void main() {
         expect(terminal.buffer.active.cursorX, 6);
       },
     );
+
+    test('executes controls in ESC state before custom dispatch', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+      addTearDown(terminal.dispose);
+      final rows = <int>[];
+      terminal.parser.registerEscHandler(
+        const TerminalFunctionIdentifier(intermediates: '%', finalByte: 'G'),
+        () {
+          rows.add(terminal.buffer.active.cursorY);
+          return true;
+        },
+      );
+
+      await terminal.writeAndWait('a\u001b\n%GX');
+
+      expect(rows, <int>[1]);
+      expect(
+        terminal.buffer.active.getLine(1)!.translateToString(trimRight: true),
+        ' X',
+      );
+    });
   });
 
   group('terminal public behavior', () {
