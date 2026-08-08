@@ -36,6 +36,22 @@
     "addons/addon-progress/typings/addon-progress.d.ts:66": {
       "implementation": "lib/addon_progress.dart",
       "symbol": "final int value"
+    },
+    "addons/addon-unicode11/typings/addon-unicode11.d.ts:9": {
+      "implementation": "lib/addon_unicode11.dart",
+      "symbol": "Unicode11Addon"
+    },
+    "addons/addon-unicode11/typings/addon-unicode11.d.ts:10": {
+      "implementation": "lib/addon_unicode11.dart",
+      "symbol": "Unicode11Addon extends"
+    },
+    "addons/addon-unicode-graphemes/typings/addon-unicode-graphemes.d.ts:9": {
+      "implementation": "lib/addon_unicode_graphemes.dart",
+      "symbol": "UnicodeGraphemesAddon"
+    },
+    "addons/addon-unicode-graphemes/typings/addon-unicode-graphemes.d.ts:10": {
+      "implementation": "lib/addon_unicode_graphemes.dart",
+      "symbol": "UnicodeGraphemesAddon extends"
     }
   },
   "sources": {
@@ -69,6 +85,62 @@
     },
     "addons/addon-progress/test/playwright.config.ts": {
       "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/typings/addon-unicode11.d.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/src/Unicode11Addon.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/src/UnicodeV11.ts": {
+      "implementation": ["lib/src/core/unicode.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/test/Unicode11Addon.test.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/test/playwright.config.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/typings/addon-unicode-graphemes.d.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/benchmark/UnicodeGraphemeAddon.benchmark.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/UnicodeGraphemeProvider.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/UnicodeGraphemesAddon.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/third-party/UnicodeProperties.ts": {
+      "implementation": ["lib/unicode15_properties.g.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/third-party/tiny-inflate.ts": {
+      "implementation": ["lib/unicode15_properties.g.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/third-party/unicode-trie.ts": {
+      "implementation": ["lib/unicode15_properties.g.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/test/UnicodeGraphemesAddon.test.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/test/playwright.config.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
       "tests": ["test/upstream_addon_parity_test.dart"]
     }
   },
@@ -141,6 +213,26 @@
     "addons/addon-progress/test/ProgressAddon.test.ts:125:test": {
       "dartTestFile": "test/upstream_addon_parity_test.dart",
       "dartTestName": "invalid sequences should not emit anything",
+      "dartTestKind": "test"
+    },
+    "addons/addon-unicode11/test/Unicode11Addon.test.ts:17:describe": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "Unicode11Addon",
+      "dartTestKind": "group"
+    },
+    "addons/addon-unicode11/test/Unicode11Addon.test.ts:28:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "wcwidth V11 emoji test",
+      "dartTestKind": "test"
+    },
+    "addons/addon-unicode-graphemes/test/UnicodeGraphemesAddon.test.ts:17:describe": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "UnicodeGraphemesAddon",
+      "dartTestKind": "group"
+    },
+    "addons/addon-unicode-graphemes/test/UnicodeGraphemesAddon.test.ts:32:test": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "wcwidth V15 emoji test",
       "dartTestKind": "test"
     }
   }
