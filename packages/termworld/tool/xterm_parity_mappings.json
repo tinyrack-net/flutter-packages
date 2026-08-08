@@ -299,6 +299,14 @@
       "implementation": ["lib/src/core/dcs_parser.dart"],
       "tests": ["test/upstream_dcs_parser_parity_test.dart"]
     },
+    "src/common/parser/OscParser.ts": {
+      "implementation": ["lib/src/core/osc_parser.dart"],
+      "tests": ["test/upstream_osc_parser_parity_test.dart"]
+    },
+    "src/common/parser/OscParser.test.ts": {
+      "implementation": ["lib/src/core/osc_parser.dart"],
+      "tests": ["test/upstream_osc_parser_parity_test.dart"]
+    },
     "src/common/parser/Params.ts": {
       "implementation": ["lib/src/core/params.dart"],
       "tests": ["test/upstream_params_parity_test.dart"]
@@ -1184,6 +1192,133 @@
     "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests reset should abort active handlers with unhook(false) when reset during payload": {
       "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
       "dartTestName": "should abort active handlers with unhook(false) when reset during payload",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser identifier parsing no report for illegal ids": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "no report for illegal ids",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser identifier parsing no payload": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "no payload",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser identifier parsing with payload": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "with payload",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser handler registration setOscHandler": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "setOscHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser handler registration clearOscHandler": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "clearOscHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser handler registration addOscHandler": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "addOscHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser handler registration addOscHandler with return false": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "addOscHandler with return false",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser handler registration dispose handlers": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "dispose handlers",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser OscHandlerFactory should be called once on end(true)": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should be called once on end(true)",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser/OscHandlerFactory/should be called once on end(true)"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser OscHandlerFactory should not be called on end(false)": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should not be called on end(false)",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser/OscHandlerFactory/should not be called on end(false)"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser OscHandlerFactory should be disposable": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should be disposable",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser/OscHandlerFactory/should be disposable"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser OscHandlerFactory should respect return false": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should respect return false",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser/OscHandlerFactory/should respect return false"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser OscHandlerFactory should work up to payload limit": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should work up to payload limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser OscHandlerFactory should abort for payload limit +1": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should abort for payload limit +1",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed sync | async | sync first should run, cleanup action for others": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "first should run, cleanup action for others",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/sync | async | sync/first should run, cleanup action for others"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed sync | async | sync all should run": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "all should run",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/sync | async | sync/all should run"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed async | sync | async first should run, cleanup action for others": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "first should run, cleanup action for others",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/async | sync | async/first should run, cleanup action for others"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed async | sync | async all should run": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "all should run",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/async | sync | async/all should run"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed OscHandlerFactory should be called once on end(true)": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should be called once on end(true)",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/OscHandlerFactory/should be called once on end(true)"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed OscHandlerFactory should not be called on end(false)": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should not be called on end(false)",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/OscHandlerFactory/should not be called on end(false)"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed OscHandlerFactory should be disposable": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should be disposable",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/OscHandlerFactory/should be disposable"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests sync and async mixed OscHandlerFactory should respect return false": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should respect return false",
+      "dartTestKind": "test",
+      "dartTestPath": "OscParser - async tests/sync and async mixed/OscHandlerFactory/should respect return false"
+    },
+    "unit:src/common/parser/OscParser.test.ts:OscParser - async tests reset should abort active handlers with end(false) when reset during payload": {
+      "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
+      "dartTestName": "should abort active handlers with end(false) when reset during payload",
       "dartTestKind": "test"
     },
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
