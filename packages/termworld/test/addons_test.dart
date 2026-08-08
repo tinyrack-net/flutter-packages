@@ -30,6 +30,27 @@ void main() {
     expect(provider.value, 'written');
   });
 
+  test(
+    'clipboard preserves synchronous ordering and clears decode errors',
+    () async {
+      final provider = _SyncClipboardProvider('value');
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(ClipboardAddon(provider: provider));
+      final output = <String>[];
+      terminal.onData.listen(output.add);
+
+      await terminal.writeAndWait('\u001b]52;c;?\u0007');
+      expect(output, <String>['\u001b]52;c;dmFsdWU=\u0007']);
+
+      terminal.loadAddon(
+        ClipboardAddon(codec: const _ThrowingCodec(), provider: provider),
+      );
+      await terminal.writeAndWait('\u001b]52;c;invalid\u0007');
+      expect(provider.value, isEmpty);
+    },
+  );
+
   test('fit uses measured cell dimensions', () {
     final terminal = Terminal();
     final addon = FitAddon();
@@ -229,4 +250,26 @@ final class _ClipboardProvider implements TerminalClipboardProvider {
   Future<void> writeText(String selection, String text) async {
     value = text;
   }
+}
+
+final class _SyncClipboardProvider implements TerminalClipboardProvider {
+  _SyncClipboardProvider(this.value);
+
+  String value;
+
+  @override
+  String readText(String selection) => value;
+
+  @override
+  void writeText(String selection, String text) => value = text;
+}
+
+final class _ThrowingCodec implements TerminalBase64Codec {
+  const _ThrowingCodec();
+
+  @override
+  String decodeText(String data) => throw const FormatException('invalid');
+
+  @override
+  String encodeText(String data) => data;
 }

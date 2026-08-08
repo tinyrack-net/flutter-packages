@@ -1,6 +1,7 @@
 /// OSC 52 clipboard addon.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
@@ -37,10 +38,10 @@ final class Base64Codec implements TerminalBase64Codec {
 /// Platform clipboard abstraction. `selection` is the OSC 52 selection code.
 abstract interface class TerminalClipboardProvider {
   /// Reads text from [selection].
-  Future<String> readText(String selection);
+  FutureOr<String> readText(String selection);
 
   /// Replaces [selection] with [text].
-  Future<void> writeText(String selection, String text);
+  FutureOr<void> writeText(String selection, String text);
 }
 
 /// Clipboard provider backed by Flutter's platform clipboard channel.
@@ -71,22 +72,39 @@ final class ClipboardAddon extends ManagedTerminalAddon {
   @override
   void onActivate(Terminal terminal) {
     own(
-      terminal.parser.registerOscHandler(52, (data) async {
+      terminal.parser.registerOscHandler(52, (data) {
         final arguments = data.split(';');
         if (arguments.length < 2) return true;
         final selection = arguments[0];
         final payload = arguments[1];
         if (payload == '?') {
-          final text = await _provider.readText(selection);
-          terminal.input(
-            '\u001b]52;$selection;${_codec.encodeText(text)}\u0007',
-            wasUserInput: false,
-          );
-        } else {
-          await _provider.writeText(selection, _codec.decodeText(payload));
+          final text = _provider.readText(selection);
+          if (text is Future<String>) {
+            return text.then((value) {
+              _reportClipboard(terminal, selection, value);
+              return true;
+            });
+          }
+          _reportClipboard(terminal, selection, text);
+          return true;
         }
+        var text = '';
+        try {
+          text = _codec.decodeText(payload);
+          // Custom codecs may throw arbitrary decoding failures.
+          // ignore: avoid_catches_without_on_clauses
+        } catch (_) {}
+        final result = _provider.writeText(selection, text);
+        if (result is Future<void>) return result.then((_) => true);
         return true;
       }),
+    );
+  }
+
+  void _reportClipboard(Terminal terminal, String selection, String text) {
+    terminal.input(
+      '\u001b]52;$selection;${_codec.encodeText(text)}\u0007',
+      wasUserInput: false,
     );
   }
 }
