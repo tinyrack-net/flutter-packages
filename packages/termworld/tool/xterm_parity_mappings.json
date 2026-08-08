@@ -271,6 +271,14 @@
       "implementation": ["lib/src/core/color.dart"],
       "tests": ["test/upstream_color_parity_test.dart"]
     },
+    "src/common/services/CoreService.ts": {
+      "implementation": ["lib/src/core/core_service.dart"],
+      "tests": ["test/upstream_core_service_parity_test.dart"]
+    },
+    "src/common/services/CoreService.test.ts": {
+      "implementation": ["lib/src/core/core_service.dart"],
+      "tests": ["test/upstream_core_service_parity_test.dart"]
+    },
     "src/common/input/UnicodeV6.ts": {
       "implementation": [
         "lib/src/core/unicode.dart",
@@ -910,6 +918,21 @@
     "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range for end line right after start line": {
       "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
       "dartTestName": "should get range for end line right after start line",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CoreService.test.ts:CoreService isCursorInitialized should be false by default": {
+      "dartTestFile": "test/upstream_core_service_parity_test.dart",
+      "dartTestName": "should be false by default",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CoreService.test.ts:CoreService isCursorInitialized should be true when showCursorImmediately is true": {
+      "dartTestFile": "test/upstream_core_service_parity_test.dart",
+      "dartTestName": "should be true when showCursorImmediately is true",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/CoreService.test.ts:CoreService reset should not affect isCursorInitialized": {
+      "dartTestFile": "test/upstream_core_service_parity_test.dart",
+      "dartTestName": "should not affect isCursorInitialized",
       "dartTestKind": "test"
     },
     "unit:src/common/input/UnicodeV6.test.ts:wcwidth should match all values from the old implementation": {
