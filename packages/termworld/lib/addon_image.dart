@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:termworld/src/addons/iip_header_parser.dart';
 import 'package:termworld/src/addons/kitty_graphics_types.dart';
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/event.dart';
@@ -12,6 +13,7 @@ import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/terminal.dart';
 
+export 'src/addons/iip_header_parser.dart';
 export 'src/addons/kitty_graphics_types.dart';
 
 /// Supported inline image protocol.
@@ -599,7 +601,7 @@ final class ImageAddon extends ManagedTerminalAddon {
       return true;
     }
     if (data.startsWith('MultipartFile=')) {
-      final header = _parseIipHeader(data.substring(14));
+      final header = _parseIipHeader(data);
       if (header?.inline == 1) {
         _multipartHeader = header;
         _multipartPayload = StringBuffer();
@@ -614,7 +616,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     _multipartPayload = null;
     final separator = data.indexOf(':');
     if (separator < 0) return true;
-    final header = _parseIipHeader(data.substring(5, separator));
+    final header = _parseIipHeader(data.substring(0, separator + 1));
     if (header?.inline == 1) {
       _addIip(header!, data.substring(separator + 1));
     }
@@ -624,31 +626,18 @@ final class ImageAddon extends ManagedTerminalAddon {
   int get _iipEncodedLimit => (options.iipSizeLimit * 4 / 3).ceil();
 
   _IipHeader? _parseIipHeader(String source) {
-    final values = <String, String>{};
-    for (final field in source.split(';')) {
-      final separator = field.indexOf('=');
-      if (separator <= 0) continue;
-      values[field.substring(0, separator)] = field.substring(separator + 1);
-    }
-    final inline = int.tryParse(values['inline'] ?? '0');
-    final size = int.tryParse(values['size'] ?? '0');
-    final preserve = int.tryParse(values['preserveAspectRatio'] ?? '1');
-    if (inline == null || size == null || preserve == null) return null;
-    final width = values['width'] ?? 'auto';
-    final height = values['height'] ?? 'auto';
-    final dimension = RegExp(r'^(?:auto|\d+(?:px|%)?)$');
-    if (!dimension.hasMatch(width) || !dimension.hasMatch(height)) return null;
-    var name = 'Unnamed file';
-    final encodedName = values['name'];
-    if (encodedName != null) {
-      final decoded = _decodeBase64(encodedName, options.iipSizeLimit);
-      if (decoded == null) return null;
-      try {
-        name = utf8.decode(decoded);
-      } on FormatException {
-        return null;
-      }
-    }
+    final parser = IipHeaderParser();
+    final input = Uint32List.fromList(source.codeUnits);
+    var result = parser.parse(input, 0, input.length);
+    if (result == -2) result = parser.end();
+    if (result < 0 || parser.state != IipHeaderState.end) return null;
+    final values = parser.fields;
+    final inline = values['inline'] as int? ?? 0;
+    final size = values['size'] as int? ?? 0;
+    final preserve = values['preserveAspectRatio'] as int? ?? 1;
+    final width = values['width'] as String? ?? 'auto';
+    final height = values['height'] as String? ?? 'auto';
+    final name = values['name'] as String? ?? 'Unnamed file';
     return _IipHeader(
       inline: inline,
       size: size,
