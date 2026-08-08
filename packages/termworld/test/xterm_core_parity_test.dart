@@ -69,6 +69,25 @@ void main() {
       },
     );
 
+    test('matches xterm UTF-8 BOM and malformed byte handling', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
+      addTearDown(terminal.dispose);
+
+      terminal
+        ..write(Uint8List.fromList(<int>[0xf0, 0xa0, 0x9c]))
+        ..write(Uint8List.fromList(<int>[0x8e, 0xef, 0xbb]))
+        ..write(Uint8List.fromList(<int>[0xbf, 0xc0, 0x80]))
+        ..write(Uint8List.fromList(<int>[0xed, 0xa0, 0x80]))
+        ..write(Uint8List.fromList(<int>[0xf4, 0x90, 0x80, 0x80]))
+        ..write(Uint8List.fromList(<int>[0xe2, 0x28, 0xa1]));
+      await terminal.writeAndWait('X');
+
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        '𠜎(X',
+      );
+    });
+
     test('fires synchronous data listeners in registration order', () {
       final terminal = Terminal();
       addTearDown(terminal.dispose);

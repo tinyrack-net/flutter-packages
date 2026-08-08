@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -446,10 +445,15 @@ final class Terminal extends DisposableStore {
     final cursorX = buffer.active.cursorX;
     final cursorY = buffer.active.cursorY;
     final height = buffer.active.length;
+    final wasAtBottom = _viewportY == buffer.active.baseY;
     await parser.process(text, (filtered) {
       if (filtered.isNotEmpty) _engine.write(filtered);
     });
-    _viewportY = _viewportY.clamp(0, buffer.active.baseY);
+    final oldViewport = _viewportY;
+    _viewportY = wasAtBottom
+        ? buffer.active.baseY
+        : _viewportY.clamp(0, buffer.active.baseY);
+    if (_viewportY != oldViewport) _onScroll.fire(_viewportY);
     if (buffer.active.cursorX != cursorX || buffer.active.cursorY != cursorY) {
       _onCursorMove.fire(TerminalVoid.value);
     }
@@ -852,27 +856,56 @@ final class _Utf8ChunkDecoder {
 
   String convert(Uint8List bytes) {
     final source = Uint8List.fromList(<int>[..._pending, ...bytes]);
-    var completeLength = source.length;
-    if (source.isNotEmpty) {
-      var lead = source.length - 1;
-      while (lead >= 0 && source[lead] & 0xc0 == 0x80) {
-        lead--;
+    _pending = Uint8List(0);
+    final output = StringBuffer();
+    var index = 0;
+    while (index < source.length) {
+      final first = source[index];
+      if (first < 0x80) {
+        output.writeCharCode(first);
+        index++;
+        continue;
       }
-      if (lead >= 0) {
-        final first = source[lead];
-        final expected = first & 0x80 == 0
-            ? 1
-            : first & 0xe0 == 0xc0
-            ? 2
-            : first & 0xf0 == 0xe0
-            ? 3
-            : first & 0xf8 == 0xf0
-            ? 4
-            : 1;
-        if (source.length - lead < expected) completeLength = lead;
+      final expected = first & 0xe0 == 0xc0
+          ? 2
+          : first & 0xf0 == 0xe0
+          ? 3
+          : first & 0xf8 == 0xf0
+          ? 4
+          : 0;
+      if (expected == 0) {
+        index++;
+        continue;
       }
+      var valid = true;
+      for (var offset = 1; offset < expected; offset++) {
+        if (index + offset >= source.length) {
+          _pending = Uint8List.fromList(source.sublist(index));
+          return output.toString();
+        }
+        if (source[index + offset] & 0xc0 != 0x80) {
+          index += offset;
+          valid = false;
+          break;
+        }
+      }
+      if (!valid) continue;
+      var codepoint = first & (0x7f >> expected);
+      for (var offset = 1; offset < expected; offset++) {
+        codepoint = codepoint << 6 | source[index + offset] & 0x3f;
+      }
+      index += expected;
+      final illegal = switch (expected) {
+        2 => codepoint < 0x80,
+        3 =>
+          codepoint < 0x800 ||
+              (codepoint >= 0xd800 && codepoint <= 0xdfff) ||
+              codepoint == 0xfeff,
+        4 => codepoint < 0x10000 || codepoint > 0x10ffff,
+        _ => true,
+      };
+      if (!illegal) output.writeCharCode(codepoint);
     }
-    _pending = Uint8List.fromList(source.sublist(completeLength));
-    return utf8.decode(source.sublist(0, completeLength), allowMalformed: true);
+    return output.toString();
   }
 }

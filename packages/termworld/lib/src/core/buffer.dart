@@ -562,16 +562,25 @@ final class TerminalBuffer {
     int rows,
     TerminalCellAttributes eraseAttributes,
   ) {
+    final oldRows = _rows;
+    final oldBase = baseY;
+    final absoluteCursor = oldBase + cursorY;
     for (final line in _lines) {
       line.resize(columns, eraseAttributes);
     }
-    if (rows > _rows) {
+    if (rows > oldRows) {
       _lines.addAll(
         List<TerminalBufferLine>.generate(
-          rows - _rows,
+          rows - oldRows,
           (_) => TerminalBufferLine(columns, attributes: eraseAttributes),
         ),
       );
+    } else if (rows < oldRows) {
+      final minimumLength = rows + oldBase;
+      while (_lines.length > minimumLength &&
+          _lines.length > absoluteCursor + 1) {
+        _lines.removeLast();
+      }
     }
     _columns = columns;
     _rows = rows;
@@ -580,7 +589,8 @@ final class TerminalBuffer {
     }
     _trim();
     cursorX = cursorX.clamp(0, columns - 1);
-    cursorY = cursorY.clamp(0, rows - 1);
+    cursorY = (absoluteCursor - baseY).clamp(0, rows - 1);
+    savedCursorY = savedCursorY.clamp(0, rows - 1);
   }
 
   /// Replaces all content with an empty viewport.

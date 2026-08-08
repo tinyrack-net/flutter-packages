@@ -337,7 +337,8 @@ void main() {
     expect(output, contains('\u001b[Z'));
     expect(output, contains('\u001b[A'));
     expect(output, contains('\u001b[1;5A'));
-    expect(output, contains('\u001b[2;5~'));
+    // xterm reserves Ctrl+Insert for host clipboard handling.
+    expect(output, isNot(contains('\u001b[2;5~')));
     expect(output, contains('\u001b\r'));
   });
 

@@ -130,4 +130,18 @@ void main() {
       buffers.dispose();
     },
   );
+
+  test('shrinking rows removes blank lines below the cursor', () {
+    final buffers = TerminalBufferNamespace(
+      columns: 80,
+      rows: 24,
+      scrollback: 1000,
+    )..resize(5, 5, TerminalCellAttributes());
+
+    expect(buffers.normal.length, 5);
+    expect(buffers.normal.baseY, 0);
+    expect(buffers.normal.cursorY, 0);
+    expect(buffers.alternate.length, 5);
+    buffers.dispose();
+  });
 }
