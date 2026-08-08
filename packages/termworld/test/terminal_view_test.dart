@@ -77,7 +77,9 @@ void main() {
     );
     await tester.pump();
 
-    final node = tester.getSemantics(find.byType(TerminalView));
+    final semanticSurface = find.bySemanticsLabel('Localized terminal input');
+    expect(semanticSurface, findsOneWidget);
+    final node = tester.getSemantics(semanticSurface);
     expect(node.label, 'Localized terminal input');
     expect(node.value, 'first\nsecond');
   });
