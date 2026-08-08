@@ -244,6 +244,7 @@ void main() {
     addTearDown(terminal.dispose);
     expect(() => terminal.loadAddon(WebFontsAddon()), throwsUnsupportedError);
     expect(() => terminal.loadAddon(WebglAddon()), throwsUnsupportedError);
+    expect(loadFonts, throwsUnsupportedError);
   }, testOn: '!browser');
 
   test('base64 codec round trips malformed-safe UTF-8', () {

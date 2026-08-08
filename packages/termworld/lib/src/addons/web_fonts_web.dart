@@ -8,6 +8,10 @@ import 'package:web/web.dart' as web;
 @JS('Array.from')
 external JSArray<JSAny?> _arrayFrom(JSAny iterable);
 
+/// Loads browser font resources without requiring an activated addon.
+Future<List<Object>> loadFonts([Iterable<Object>? fonts]) =>
+    WebFontsAddon._loadFonts(fonts);
+
 /// Coordinates browser font readiness with terminal relayout.
 final class WebFontsAddon extends ManagedTerminalAddon {
   /// Creates a web fonts addon.
@@ -25,7 +29,10 @@ final class WebFontsAddon extends ManagedTerminalAddon {
   }
 
   /// Waits for requested font families and then refreshes the renderer.
-  Future<List<Object>> loadFonts([Iterable<Object>? fonts]) async {
+  Future<List<Object>> loadFonts([Iterable<Object>? fonts]) =>
+      _loadFonts(fonts);
+
+  static Future<List<Object>> _loadFonts([Iterable<Object>? fonts]) async {
     await web.document.fonts.ready.toDart;
     final registered = _registeredFonts();
     final requested = List<Object>.of(fonts ?? const <Object>[]);
