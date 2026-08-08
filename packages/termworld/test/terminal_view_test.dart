@@ -821,7 +821,75 @@ void main() {
     }
     await tester.pump();
     expect(terminal.getSelection(), 'abcdefghijk');
+    await tester.pump(const Duration(milliseconds: 600));
+    terminal.clearSelection();
+    for (var count = 0; count < 2; count++) {
+      await wrappedMouse.down(wrapped);
+      await wrappedMouse.up();
+    }
+    await tester.pump();
+    expect(terminal.getSelection(), 'abcdefghijk');
     await wrappedMouse.removePointer();
+  });
+
+  testWidgets('word selection follows separators and word drag boundaries', (
+    tester,
+  ) async {
+    final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
+    addTearDown(terminal.dispose);
+    await terminal.writeAndWait('(cd)[ef] one two three');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 300,
+            height: 80,
+            child: TerminalView(terminal: terminal, autoResize: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final dimensions = terminal.dimensions!;
+    final origin = tester.getTopLeft(find.byType(TerminalView));
+    Offset cell(int column) =>
+        origin +
+        Offset(
+          (column + 0.5) * dimensions.cellWidth,
+          dimensions.cellHeight / 2,
+        );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: cell(0));
+
+    for (final expectation in <(int, String)>[
+      (0, '(cd'),
+      (1, 'cd'),
+      (3, 'cd)'),
+      (4, '[ef'),
+      (7, 'ef]'),
+    ]) {
+      await tester.pump(const Duration(milliseconds: 600));
+      await mouse.moveTo(cell(expectation.$1));
+      for (var count = 0; count < 2; count++) {
+        await mouse.down(cell(expectation.$1));
+        await mouse.up();
+      }
+      await tester.pump();
+      expect(terminal.getSelection(), expectation.$2);
+    }
+
+    await tester.pump(const Duration(milliseconds: 600));
+    await mouse.moveTo(cell(9));
+    await mouse.down(cell(9));
+    await mouse.up();
+    await mouse.down(cell(9));
+    await mouse.moveTo(cell(17));
+    await mouse.up();
+    await tester.pump();
+    expect(terminal.getSelection(), 'one two three');
+    await mouse.removePointer();
   });
 
   testWidgets(

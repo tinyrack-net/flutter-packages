@@ -475,7 +475,7 @@ final class _TerminalViewState extends State<TerminalView> {
     if (range == null) {
       _pointerSelectionMode = _PointerSelectionMode.normal;
       _selectionAnchor = bufferCell;
-      _selectionAnchorEnd = bufferCell;
+      _selectionAnchorEnd = TerminalCellOffset(bufferCell.x + 1, bufferCell.y);
       widget.terminal.select(bufferCell.x, bufferCell.y, 0);
       return;
     }
@@ -588,7 +588,9 @@ final class _TerminalViewState extends State<TerminalView> {
         continue;
       }
       final currentLine = buffer.getLine(startRow);
-      if (startRow == 0 || !(currentLine?.isWrapped ?? false)) break;
+      if (spaces || startRow == 0 || !(currentLine?.isWrapped ?? false)) {
+        break;
+      }
       final previous = buffer.getLine(startRow - 1)?.getCell(terminal.cols - 1);
       if (!matches(previous)) break;
       startRow--;
@@ -604,7 +606,8 @@ final class _TerminalViewState extends State<TerminalView> {
         continue;
       }
       final nextLine = buffer.getLine(endRow + 1);
-      if (nextLine == null ||
+      if (spaces ||
+          nextLine == null ||
           !nextLine.isWrapped ||
           !matches(nextLine.getCell(0))) {
         break;
