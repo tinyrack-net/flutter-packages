@@ -137,6 +137,14 @@
     }
   },
   "sources": {
+    "src/browser/decorations/ColorZoneStore.ts": {
+      "implementation": ["lib/src/core/color_zone_store.dart"],
+      "tests": ["test/upstream_color_zone_store_parity_test.dart"]
+    },
+    "src/browser/decorations/ColorZoneStore.test.ts": {
+      "implementation": ["lib/src/core/color_zone_store.dart"],
+      "tests": ["test/upstream_color_zone_store_parity_test.dart"]
+    },
     "src/browser/services/CharacterJoinerService.ts": {
       "implementation": ["lib/src/core/character_joiner_service.dart"],
       "tests": ["test/upstream_character_joiner_service_parity_test.dart"]
@@ -602,6 +610,9 @@
     }
   },
   "tests": {
+    "unit:src/browser/decorations/ColorZoneStore.test.ts:ColorZoneStore should merge adjacent zones": {"dartTestFile":"test/upstream_color_zone_store_parity_test.dart","dartTestName":"should merge adjacent zones","dartTestKind":"test"},
+    "unit:src/browser/decorations/ColorZoneStore.test.ts:ColorZoneStore should not merge non-adjacent zones": {"dartTestFile":"test/upstream_color_zone_store_parity_test.dart","dartTestName":"should not merge non-adjacent zones","dartTestKind":"test"},
+    "unit:src/browser/decorations/ColorZoneStore.test.ts:ColorZoneStore should reuse zone objects": {"dartTestFile":"test/upstream_color_zone_store_parity_test.dart","dartTestName":"should reuse zone objects","dartTestKind":"test"},
     "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService doesn't process joins on differently-styled characters": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"doesn't process joins on differently-styled characters","dartTestKind":"test"},
     "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService doesn't process same-styled ranges that only have one character": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"doesn't process same-styled ranges that only have one character","dartTestKind":"test"},
     "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles adjacent ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles adjacent ranges","dartTestKind":"test"},

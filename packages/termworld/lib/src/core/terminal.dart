@@ -1016,6 +1016,8 @@ final class Terminal extends DisposableStore {
     String? foregroundColor,
     String? borderColor,
     String? overviewRulerColor,
+    TerminalOverviewRulerPosition overviewRulerPosition =
+        TerminalOverviewRulerPosition.full,
     TerminalDecorationLayer layer = TerminalDecorationLayer.bottom,
   }) {
     if (marker.isDisposed || marker.line < 0) return null;
@@ -1029,6 +1031,7 @@ final class Terminal extends DisposableStore {
       foregroundColor: foregroundColor,
       borderColor: borderColor,
       overviewRulerColor: overviewRulerColor,
+      overviewRulerPosition: overviewRulerPosition,
       layer: layer,
     );
     _decorationService.registerDecoration(decoration);

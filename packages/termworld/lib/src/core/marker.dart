@@ -71,6 +71,21 @@ enum TerminalDecorationLayer {
   top,
 }
 
+/// Horizontal lane used by an overview-ruler decoration.
+enum TerminalOverviewRulerPosition {
+  /// Fill the complete ruler width.
+  full,
+
+  /// Use the left lane.
+  left,
+
+  /// Use the center lane.
+  center,
+
+  /// Use the right lane.
+  right,
+}
+
 /// A marker-backed decoration.
 final class TerminalDecoration implements Disposable {
   /// xterm-compatible `TerminalDecoration` API.
@@ -84,6 +99,7 @@ final class TerminalDecoration implements Disposable {
     this.foregroundColor,
     this.borderColor,
     this.overviewRulerColor,
+    this.overviewRulerPosition = TerminalOverviewRulerPosition.full,
     this.layer = TerminalDecorationLayer.bottom,
   }) {
     if (x < 0) throw ArgumentError.value(x, 'x', 'cannot be negative');
@@ -118,6 +134,9 @@ final class TerminalDecoration implements Disposable {
 
   /// Optional color presented in an overview ruler by capable renderers.
   final String? overviewRulerColor;
+
+  /// Horizontal lane occupied in the overview ruler.
+  final TerminalOverviewRulerPosition overviewRulerPosition;
 
   /// xterm-compatible `layer` API.
   final TerminalDecorationLayer layer;
