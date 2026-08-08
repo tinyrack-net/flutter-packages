@@ -283,6 +283,14 @@
       ],
       "tests": ["test/upstream_platform_parity_test.dart"]
     },
+    "src/common/parser/Params.ts": {
+      "implementation": ["lib/src/core/params.dart"],
+      "tests": ["test/upstream_params_parity_test.dart"]
+    },
+    "src/common/parser/Params.test.ts": {
+      "implementation": ["lib/src/core/params.dart"],
+      "tests": ["test/upstream_params_parity_test.dart"]
+    },
     "src/common/SortedList.ts": {
       "implementation": ["lib/src/core/sorted_list.dart"],
       "tests": ["test/upstream_sorted_list_parity_test.dart"]
@@ -936,6 +944,106 @@
     "unit:src/common/Color.test.ts:Color toPaddedHex should convert numbers to 2-digit hex values": {
       "dartTestFile": "test/upstream_color_parity_test.dart",
       "dartTestName": "should convert numbers to 2-digit hex values",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "Params.fromArray --> toArray",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params addParam": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "addParam",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params addSubParam": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "addSubParam",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params clone": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "clone",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params getSubParamsAll": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "getSubParamsAll",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params hasSubParams / getSubParams": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "hasSubParams / getSubParams",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params issue 2389 should cancel subdigits if beyond params limit": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "should cancel subdigits if beyond params limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params issue 2389 should carry forward isSub state": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "should carry forward isSub state",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params parse tests param defaults to 0 (ZDM - zero default mode)": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "param defaults to 0 (ZDM - zero default mode)",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params parse tests should correctly reset on new sequence": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "should correctly reset on new sequence",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params parse tests should handle length restrictions correctly": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "should handle length restrictions correctly",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params parse tests sub param defaults to -1": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "sub param defaults to -1",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params parse tests typical sequences": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "typical sequences",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params reset": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "reset",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params should not add sub params without previous param": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "should not add sub params without previous param",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params should not overflow to negative clamp parsed params": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "clamp parsed params",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params should not overflow to negative clamp parsed subparams": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "clamp parsed subparams",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params should not overflow to negative reject params lesser -1": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "reject params lesser -1",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params should not overflow to negative reject subparams lesser -1": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "reject subparams lesser -1",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/Params.test.ts:Params should respect ctor args": {
+      "dartTestFile": "test/upstream_params_parity_test.dart",
+      "dartTestName": "should respect ctor args",
       "dartTestKind": "test"
     }
   }
