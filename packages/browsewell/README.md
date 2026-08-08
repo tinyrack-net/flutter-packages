@@ -4,12 +4,15 @@
 one automation contract on Windows, macOS, and Linux. It uses WebView2,
 WKWebView, and WebKitGTK 4.1 respectively.
 
-Consumers provide an explicit profile directory and URL policy. The package
-does not discover product settings, workspace paths, or user home directories.
+Consumers provide a stable, namespaced logical profile ID and URL policy. The
+native backend owns the physical WebView2, WKWebsiteDataStore, or WebKitGTK data
+location; the package does not discover product settings, workspace paths, or
+user home directories. The first profile ID used in a process is binding. More
+views may share it, while a different ID fails with `BrowsewellErrorCode.busy`.
 
 ```dart
 final browser = await BrowsewellController.create(
-  profile: BrowsewellProfile(directory: profileDirectory),
+  profile: const BrowsewellProfile(id: 'com.example.product.default'),
   initialUrl: Uri.parse('https://example.com'),
 );
 
@@ -22,7 +25,7 @@ await browser.click(snapshot.document.children.first.ref!);
 The controller supports navigation, snapshots with generation-scoped refs,
 PNG capture, console logs, waits, trusted pointer and keyboard input, selection,
 dragging, uploads, scrolling, and bounded JavaScript evaluation. A consumer is
-responsible for validating profile and upload paths before passing them in.
+responsible for validating upload paths before passing them in.
 
 ## Verification
 

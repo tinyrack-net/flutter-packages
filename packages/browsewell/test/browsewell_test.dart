@@ -26,12 +26,12 @@ void main() {
     'creates an isolated browser with an explicit persistent profile',
     () async {
       final controller = await BrowsewellController.create(
-        profile: const BrowsewellProfile(directory: '/profiles/coder'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.coder.default'),
         initialUrl: Uri.parse('https://example.test'),
       );
 
       expect(controller.id, 'browser-1');
-      expect(platform.created.single.profile.directory, '/profiles/coder');
+      expect(platform.created.single.profile.id, 'net.tinyrack.coder.default');
       expect(
         platform.created.single.initialUrl,
         Uri.parse('https://example.test'),
@@ -45,7 +45,7 @@ void main() {
 
   test('exposes the complete desktop automation contract', () async {
     final controller = await BrowsewellController.create(
-      profile: const BrowsewellProfile(directory: '/profiles/coder'),
+      profile: const BrowsewellProfile(id: 'net.tinyrack.coder.default'),
     );
 
     await controller.navigate(Uri.parse('https://example.test/form'));
@@ -101,7 +101,7 @@ void main() {
 
   test('rejects navigation outside the configured scheme policy', () async {
     final controller = await BrowsewellController.create(
-      profile: const BrowsewellProfile(directory: '/profiles/coder'),
+      profile: const BrowsewellProfile(id: 'net.tinyrack.coder.default'),
     );
 
     await expectLater(
@@ -121,7 +121,7 @@ void main() {
     tester,
   ) async {
     final controller = await BrowsewellController.create(
-      profile: const BrowsewellProfile(directory: '/profiles/coder'),
+      profile: const BrowsewellProfile(id: 'net.tinyrack.coder.default'),
     );
 
     await tester.pumpWidget(
@@ -146,7 +146,7 @@ void main() {
 
   test('ignores late viewport reports after controller disposal', () async {
     final controller = await BrowsewellController.create(
-      profile: const BrowsewellProfile(directory: '/profiles/coder'),
+      profile: const BrowsewellProfile(id: 'net.tinyrack.coder.default'),
     );
 
     await controller.dispose();

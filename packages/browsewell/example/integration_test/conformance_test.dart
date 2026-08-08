@@ -48,30 +48,53 @@ void main() {
     await profileDirectory.delete(recursive: true);
   });
 
-  testWidgets('desktop backend satisfies the shared browser contract', (
-    tester,
+  Future<({BrowsewellController controller, Map<String, String> refs})> mount(
+    WidgetTester tester,
   ) async {
     final controller = await BrowsewellController.create(
-      profile: BrowsewellProfile(directory: profileDirectory.path),
+      profile: const BrowsewellProfile(
+        id: 'net.tinyrack.browsewell.conformance',
+      ),
       initialUrl: fixtureUrl,
     );
     addTearDown(controller.dispose);
+    await tester.pumpWidget(BrowsewellExample(controller: controller));
+    await tester.pumpAndSettle();
+    await controller.waitFor(text: 'Browsewell fixture');
+    final snapshot = await controller.snapshot();
+    final refs = _refs(snapshot.document);
+    return (controller: controller, refs: refs);
+  }
+
+  testWidgets('reports the complete desktop capability and snapshot contract', (
+    tester,
+  ) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     expect(
       controller.capabilities.toJson(),
       BrowsewellCapabilities.desktop.toJson(),
     );
-
-    await tester.pumpWidget(BrowsewellExample(controller: controller));
-    await tester.pumpAndSettle();
-    await controller.waitFor(text: 'Browsewell fixture');
-
     final snapshot = await controller.snapshot();
-    final refs = _refs(snapshot.document);
     expect(snapshot.generation, greaterThan(0));
     expect(refs.keys, containsAll(<String>['Trusted click', 'Name', 'Choice']));
+  });
 
+  testWidgets('delivers trusted click input', (tester) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     await controller.click(refs['Trusted click']!);
     await controller.waitFor(text: 'trusted-click');
+  });
+
+  testWidgets('delivers trusted text keyboard and select input', (
+    tester,
+  ) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     await controller.fill(refs['Name']!, 'Ada');
     await controller.waitFor(text: 'trusted:Ada');
     await controller.type(' Lovelace', ref: refs['Name']);
@@ -80,10 +103,24 @@ void main() {
     await controller.waitFor(text: 'trusted-key:End');
     await controller.select(refs['Choice']!, 'two');
     await controller.waitFor(text: 'trusted:two');
+  });
+
+  testWidgets('delivers trusted hover and drag input', (tester) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     await controller.hover(refs['Drag source']!);
     await controller.waitFor(text: 'trusted-hover');
     await controller.drag(refs['Drag source']!, refs['Drag target']!);
     await controller.waitFor(text: 'trusted-drop');
+  });
+
+  testWidgets('delivers trusted upload scroll and viewport resize', (
+    tester,
+  ) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     final upload = File('${profileDirectory.path}/upload.txt');
     await upload.writeAsString('browsewell');
     await controller.upload(refs['Upload']!, <String>[upload.path]);
@@ -101,7 +138,16 @@ void main() {
       await controller.evaluate('() => window.innerWidth'),
       closeTo(640, 2),
     );
+  });
 
+  testWidgets('captures evaluates logs dialogs and rejects stale refs', (
+    tester,
+  ) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
+    await controller.click(refs['Trusted click']!);
+    await controller.waitFor(text: 'trusted-click');
     final png = await controller.screenshot(fullPage: true);
     expect(png.take(4), orderedEquals(<int>[137, 80, 78, 71]));
     expect(_pngHeight(png), greaterThanOrEqualTo(1400));
@@ -148,16 +194,9 @@ void main() {
   });
 
   testWidgets('snapshots and automates a cross-origin frame', (tester) async {
-    final controller = await BrowsewellController.create(
-      profile: BrowsewellProfile(directory: profileDirectory.path),
-      initialUrl: fixtureUrl,
-    );
-    addTearDown(controller.dispose);
-    await tester.pumpWidget(BrowsewellExample(controller: controller));
-    await tester.pumpAndSettle();
-    await controller.waitFor(text: 'Browsewell fixture');
-
-    final refs = _refs((await controller.snapshot()).document);
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     expect(refs.keys, contains('Frame button'));
     await controller.click(refs['Frame button']!);
     await controller.waitFor(text: 'trusted-frame-click');
@@ -166,7 +205,9 @@ void main() {
   testWidgets('supports two isolated views sharing one persistent profile', (
     tester,
   ) async {
-    final profile = BrowsewellProfile(directory: profileDirectory.path);
+    const profile = BrowsewellProfile(
+      id: 'net.tinyrack.browsewell.conformance',
+    );
     final first = await BrowsewellController.create(
       profile: profile,
       initialUrl: fixtureUrl,

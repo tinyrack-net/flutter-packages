@@ -1,15 +1,10 @@
-import 'dart:io';
-
 import 'package:browsewell/browsewell.dart';
 import 'package:flutter/material.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final profileDirectory = await Directory.systemTemp.createTemp(
-    'browsewell-example-',
-  );
   final controller = await BrowsewellController.create(
-    profile: BrowsewellProfile(directory: profileDirectory.path),
+    profile: const BrowsewellProfile(id: 'net.tinyrack.browsewell.example'),
   );
   runApp(BrowsewellExample(controller: controller));
 }

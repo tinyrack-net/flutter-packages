@@ -1,5 +1,6 @@
 import 'package:browsewell/browsewell.dart';
 import 'package:browsewell/src/webview_all_browsewell_platform.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -42,7 +43,7 @@ void main() {
   ) async {
     final created = await platform.create(
       BrowsewellCreateRequest(
-        profile: const BrowsewellProfile(directory: '/profile'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
         initialUrl: Uri.parse('https://example.test'),
         policy: const BrowsewellPolicy(),
       ),
@@ -214,7 +215,7 @@ void main() {
   test('rejects unknown commands and times out unmet waits', () async {
     final created = await platform.create(
       BrowsewellCreateRequest(
-        profile: const BrowsewellProfile(directory: '/profile'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
         initialUrl: Uri.parse('about:blank'),
         policy: const BrowsewellPolicy(),
       ),
@@ -241,7 +242,7 @@ void main() {
     () async {
       final created = await platform.create(
         BrowsewellCreateRequest(
-          profile: const BrowsewellProfile(directory: '/profile'),
+          profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
           initialUrl: Uri.parse('about:blank'),
           policy: const BrowsewellPolicy(),
         ),
@@ -263,7 +264,7 @@ void main() {
   test('ignores navigation callbacks that arrive after disposal', () async {
     final created = await platform.create(
       BrowsewellCreateRequest(
-        profile: const BrowsewellProfile(directory: '/profile'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
         initialUrl: Uri.parse('about:blank'),
         policy: const BrowsewellPolicy(),
       ),
@@ -275,10 +276,40 @@ void main() {
     await Future<void>.delayed(Duration.zero);
   });
 
+  test('binds the first logical profile for the process lifetime', () async {
+    final request = BrowsewellCreateRequest(
+      profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
+      initialUrl: Uri(scheme: 'about', path: 'blank'),
+      policy: const BrowsewellPolicy(),
+    );
+    final first = await platform.create(request);
+    final second = await platform.create(request);
+
+    expect(first.id, isNot(second.id));
+    await platform.disposeBrowser(first.id);
+    await platform.disposeBrowser(second.id);
+    await expectLater(
+      platform.create(
+        BrowsewellCreateRequest(
+          profile: const BrowsewellProfile(id: 'net.tinyrack.other'),
+          initialUrl: Uri(scheme: 'about', path: 'blank'),
+          policy: const BrowsewellPolicy(),
+        ),
+      ),
+      throwsA(
+        isA<BrowsewellException>().having(
+          (error) => error.code,
+          'code',
+          BrowsewellErrorCode.busy,
+        ),
+      ),
+    );
+  });
+
   test('rejects stale refs and policy-sized results', () async {
     final created = await platform.create(
       BrowsewellCreateRequest(
-        profile: const BrowsewellProfile(directory: '/profile'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
         initialUrl: Uri.parse('about:blank'),
         policy: const BrowsewellPolicy(
           maxEvaluateResultBytes: 4,
@@ -347,7 +378,7 @@ void main() {
     platform = WebviewAllBrowsewellPlatform(captureFlutterTexture: true);
     final created = await platform.create(
       BrowsewellCreateRequest(
-        profile: const BrowsewellProfile(directory: '/profile'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
         initialUrl: Uri.parse('about:blank'),
         policy: const BrowsewellPolicy(),
       ),
@@ -377,6 +408,74 @@ void main() {
       expect(png.take(4), orderedEquals(<int>[137, 80, 78, 71]));
     }
   });
+
+  test(
+    'injects ordered global pointer events for the Windows wrapper',
+    () async {
+      final pointerEvents = <PointerEvent>[];
+      platform = WebviewAllBrowsewellPlatform(
+        useFlutterPointerInput: true,
+        pointerDispatcher: pointerEvents.add,
+      );
+      final created = await platform.create(
+        BrowsewellCreateRequest(
+          profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
+          initialUrl: Uri.parse('about:blank'),
+          policy: const BrowsewellPolicy(),
+        ),
+      );
+      await platform.setViewport(
+        created.id,
+        rect: const Rect.fromLTWH(100, 200, 320, 240),
+        visible: true,
+      );
+      await platform.execute(created.id, const BrowsewellCommand('snapshot'));
+
+      await platform.execute(
+        created.id,
+        const BrowsewellCommand('click', <String, Object?>{'ref': '@1:1'}),
+      );
+      expect(
+        pointerEvents.map((event) => event.runtimeType),
+        <Type>[PointerHoverEvent, PointerDownEvent, PointerUpEvent],
+      );
+      expect(
+        pointerEvents.map((event) => event.position),
+        everyElement(const Offset(106, 208)),
+      );
+
+      pointerEvents.clear();
+      await platform.execute(
+        created.id,
+        const BrowsewellCommand('drag', <String, Object?>{
+          'sourceRef': '@1:1',
+          'targetRef': '@1:2',
+        }),
+      );
+      expect(pointerEvents, hasLength(11));
+      expect(pointerEvents.first, isA<PointerHoverEvent>());
+      expect(pointerEvents[1], isA<PointerDownEvent>());
+      expect(
+        pointerEvents.skip(2).take(8),
+        everyElement(isA<PointerMoveEvent>()),
+      );
+      expect(pointerEvents.last, isA<PointerUpEvent>());
+
+      pointerEvents.clear();
+      await platform.execute(
+        created.id,
+        const BrowsewellCommand('scroll', <String, Object?>{
+          'deltaX': 3.0,
+          'deltaY': 120.0,
+        }),
+      );
+      expect(pointerEvents.single, isA<PointerScrollEvent>());
+      expect(
+        (pointerEvents.single as PointerScrollEvent).scrollDelta,
+        const Offset(3, 120),
+      );
+    },
+  );
 }
 
 final class _FakeWebViewPlatform extends WebViewPlatform

@@ -34,7 +34,7 @@ void main() {
     final platform = MethodChannelBrowsewell();
     final result = await platform.create(
       BrowsewellCreateRequest(
-        profile: const BrowsewellProfile(directory: '/profiles/coder'),
+        profile: const BrowsewellProfile(id: 'net.tinyrack.coder.default'),
         initialUrl: Uri.parse('about:blank'),
         policy: const BrowsewellPolicy(),
       ),
@@ -50,7 +50,7 @@ void main() {
     expect(value, <String, Object?>{'value': 'ok'});
     expect(calls.first.method, 'create');
     expect(calls.first.arguments, <String, Object?>{
-      'profile': <String, Object?>{'directory': '/profiles/coder'},
+      'profile': <String, Object?>{'id': 'net.tinyrack.coder.default'},
       'initialUrl': 'about:blank',
       'policy': const BrowsewellPolicy().toJson(),
     });
@@ -76,7 +76,7 @@ void main() {
     await expectLater(
       MethodChannelBrowsewell().create(
         BrowsewellCreateRequest(
-          profile: const BrowsewellProfile(directory: '/profile'),
+          profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
           initialUrl: Uri.parse('about:blank'),
           policy: const BrowsewellPolicy(),
         ),

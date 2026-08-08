@@ -3,3 +3,6 @@
 * Add the initial Windows, macOS, and Linux native browser contract.
 * Add persistent profiles, snapshots, capture, logs, and automation commands.
 * Add one cross-platform desktop conformance suite.
+* Replace consumer-owned profile directories with backend-owned logical profile
+  IDs and process-wide profile binding.
+* Add the cross-origin frame capability to the desktop contract.

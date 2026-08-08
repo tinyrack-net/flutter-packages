@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:browsewell/browsewell.dart';
 import 'package:browsewell_example/main.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,15 +7,11 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('creates and displays a native browser', (tester) async {
-    final profileDirectory = await Directory.systemTemp.createTemp(
-      'browsewell-integration-',
-    );
     final controller = await BrowsewellController.create(
-      profile: BrowsewellProfile(directory: profileDirectory.path),
+      profile: const BrowsewellProfile(id: 'net.tinyrack.browsewell.example'),
     );
     addTearDown(() async {
       await controller.dispose();
-      await profileDirectory.delete(recursive: true);
     });
 
     await tester.pumpWidget(BrowsewellExample(controller: controller));

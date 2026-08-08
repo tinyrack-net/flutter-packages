@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 
 import 'package:browsewell/browsewell_platform_interface.dart';
 import 'package:browsewell/src/browsewell_models.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -13,8 +14,16 @@ import 'package:webview_all/webview_all.dart';
 /// Native-webview implementation shared by Browsewell's desktop targets.
 final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
   /// Creates the desktop backend.
-  WebviewAllBrowsewellPlatform({bool? captureFlutterTexture})
-    : _captureFlutterTexture = captureFlutterTexture ?? Platform.isWindows;
+  WebviewAllBrowsewellPlatform({
+    bool? captureFlutterTexture,
+    bool? useFlutterPointerInput,
+    void Function(PointerEvent event)? pointerDispatcher,
+  }) : _captureFlutterTexture = captureFlutterTexture ?? Platform.isWindows,
+       _input = _BrowsewellInputAdapter(
+         useFlutterPointerInput: useFlutterPointerInput ?? Platform.isWindows,
+         pointerDispatcher:
+             pointerDispatcher ?? GestureBinding.instance.handlePointerEvent,
+       );
 
   static const _automation = MethodChannel(
     'net.tinyrack.browsewell/automation',
@@ -22,10 +31,20 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
 
   final Map<String, _Browser> _browsers = <String, _Browser>{};
   final bool _captureFlutterTexture;
+  final _BrowsewellInputAdapter _input;
+  String? _boundProfileId;
   var _nextId = 1;
 
   @override
   Future<BrowsewellCreateResult> create(BrowsewellCreateRequest request) async {
+    final boundProfileId = _boundProfileId;
+    if (boundProfileId != null && boundProfileId != request.profile.id) {
+      throw const BrowsewellException(
+        BrowsewellErrorCode.busy,
+        'A different logical profile is already bound to this process.',
+      );
+    }
+    _boundProfileId ??= request.profile.id;
     final id = 'browsewell-${_nextId++}';
     final events = StreamController<BrowsewellEvent>.broadcast();
     void addEvent(BrowsewellEvent event) {
@@ -248,12 +267,19 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       case 'click':
       case 'hover':
         _ensureCurrentRef(browser, arguments['ref']! as String);
-        await _automation.invokeMethod<void>(
-          command.name,
-          _nativeArguments(id, browser, <String, Object?>{
-            'rect': await _rect(browser, arguments['ref']! as String),
-          }),
-        );
+        final rect = await _rect(browser, arguments['ref']! as String);
+        if (_input.useFlutterPointerInput) {
+          await _input.pointer(
+            command.name,
+            viewport: browser.viewportRect,
+            rect: rect,
+          );
+        } else {
+          await _automation.invokeMethod<void>(
+            command.name,
+            _nativeArguments(id, browser, <String, Object?>{'rect': rect}),
+          );
+        }
       case 'fill':
         _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
@@ -289,13 +315,29 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       case 'drag':
         _ensureCurrentRef(browser, arguments['sourceRef']! as String);
         _ensureCurrentRef(browser, arguments['targetRef']! as String);
-        await _automation.invokeMethod<void>(
-          'drag',
-          _nativeArguments(id, browser, <String, Object?>{
-            'source': await _rect(browser, arguments['sourceRef']! as String),
-            'target': await _rect(browser, arguments['targetRef']! as String),
-          }),
+        final source = await _rect(
+          browser,
+          arguments['sourceRef']! as String,
         );
+        final target = await _rect(
+          browser,
+          arguments['targetRef']! as String,
+        );
+        if (_input.useFlutterPointerInput) {
+          await _input.drag(
+            viewport: browser.viewportRect,
+            source: source,
+            target: target,
+          );
+        } else {
+          await _automation.invokeMethod<void>(
+            'drag',
+            _nativeArguments(id, browser, <String, Object?>{
+              'source': source,
+              'target': target,
+            }),
+          );
+        }
       case 'upload':
         _ensureCurrentRef(browser, arguments['ref']! as String);
         await _focus(browser, arguments['ref']! as String);
@@ -308,10 +350,21 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
       case 'scroll':
         final ref = arguments['ref'] as String?;
         if (ref != null) _ensureCurrentRef(browser, ref);
-        await _automation.invokeMethod<void>(
-          'scroll',
-          _nativeArguments(id, browser, arguments),
-        );
+        if (_input.useFlutterPointerInput) {
+          await _input.scroll(
+            viewport: browser.viewportRect,
+            rect: ref == null ? null : await _rect(browser, ref),
+            delta: Offset(
+              (arguments['deltaX']! as num).toDouble(),
+              (arguments['deltaY']! as num).toDouble(),
+            ),
+          );
+        } else {
+          await _automation.invokeMethod<void>(
+            'scroll',
+            _nativeArguments(id, browser, arguments),
+          );
+        }
       case 'evaluate':
         final ref = arguments['ref'] as String?;
         final target = ref == null
@@ -374,7 +427,14 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
           .toList(growable: false);
 
   Future<void> _focus(_Browser browser, String ref) async {
-    await _rect(browser, ref);
+    final rect = await _rect(browser, ref);
+    if (_input.useFlutterPointerInput) {
+      await _input.pointer(
+        'click',
+        viewport: browser.viewportRect,
+        rect: rect,
+      );
+    }
     final status = await _run(
       browser,
       '(() => { const element = window.__browsewellRefs?.['
@@ -569,6 +629,126 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
     }
     return data.buffer.asUint8List();
   }
+}
+
+final class _BrowsewellInputAdapter {
+  _BrowsewellInputAdapter({
+    required this.useFlutterPointerInput,
+    required this._pointerDispatcher,
+  });
+
+  final bool useFlutterPointerInput;
+  final void Function(PointerEvent event) _pointerDispatcher;
+  static const _device = 0x62726f77;
+  static const _pointer = 1;
+
+  Future<void> pointer(
+    String action, {
+    required Rect viewport,
+    required Map<String, Object?> rect,
+  }) async {
+    final position = _center(viewport, rect);
+    if (action == 'hover') {
+      _pointerDispatcher(
+        PointerHoverEvent(
+          device: _device,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+        ),
+      );
+    } else {
+      _pointerDispatcher(
+        PointerHoverEvent(
+          device: _device,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+        ),
+      );
+      _pointerDispatcher(
+        PointerDownEvent(
+          pointer: _pointer,
+          device: _device,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+        ),
+      );
+      _pointerDispatcher(
+        PointerUpEvent(
+          pointer: _pointer,
+          device: _device,
+          kind: PointerDeviceKind.mouse,
+          position: position,
+        ),
+      );
+    }
+    await Future<void>.delayed(Duration.zero);
+  }
+
+  Future<void> drag({
+    required Rect viewport,
+    required Map<String, Object?> source,
+    required Map<String, Object?> target,
+  }) async {
+    final start = _center(viewport, source);
+    final end = _center(viewport, target);
+    _pointerDispatcher(
+      PointerHoverEvent(
+        device: _device,
+        kind: PointerDeviceKind.mouse,
+        position: start,
+      ),
+    );
+    _pointerDispatcher(
+      PointerDownEvent(
+        pointer: _pointer,
+        device: _device,
+        kind: PointerDeviceKind.mouse,
+        position: start,
+      ),
+    );
+    for (var step = 1; step <= 8; step += 1) {
+      _pointerDispatcher(
+        PointerMoveEvent(
+          pointer: _pointer,
+          device: _device,
+          kind: PointerDeviceKind.mouse,
+          position: Offset.lerp(start, end, step / 8)!,
+        ),
+      );
+    }
+    _pointerDispatcher(
+      PointerUpEvent(
+        pointer: _pointer,
+        device: _device,
+        position: end,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+  }
+
+  Future<void> scroll({
+    required Rect viewport,
+    required Map<String, Object?>? rect,
+    required Offset delta,
+  }) async {
+    _pointerDispatcher(
+      PointerScrollEvent(
+        device: _device,
+        position: rect == null ? viewport.center : _center(viewport, rect),
+        scrollDelta: delta,
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+  }
+
+  Offset _center(Rect viewport, Map<String, Object?> rect) => Offset(
+    viewport.left +
+        (rect['left']! as num).toDouble() +
+        (rect['width']! as num).toDouble() / 2,
+    viewport.top +
+        (rect['top']! as num).toDouble() +
+        (rect['height']! as num).toDouble() / 2,
+  );
 }
 
 void _appendLog(

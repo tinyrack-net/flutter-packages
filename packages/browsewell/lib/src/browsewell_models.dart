@@ -3,14 +3,14 @@ import 'package:flutter/foundation.dart';
 /// Persistent browser profile supplied by a consumer.
 @immutable
 final class BrowsewellProfile {
-  /// Creates a profile rooted at [directory].
-  const BrowsewellProfile({required this.directory});
+  /// Creates a profile identified by the consumer-owned logical [id].
+  const BrowsewellProfile({required this.id});
 
-  /// Consumer-owned persistent storage directory.
-  final String directory;
+  /// Stable logical identifier, including the consumer namespace.
+  final String id;
 
   /// Encodes this profile.
-  Map<String, Object?> toJson() => <String, Object?>{'directory': directory};
+  Map<String, Object?> toJson() => <String, Object?>{'id': id};
 }
 
 /// Browser safety and result-size policy.
@@ -55,6 +55,7 @@ final class BrowsewellCapabilities {
     required this.fileUpload,
     required this.multipleInstances,
     required this.persistentProfile,
+    required this.crossOriginFrames,
   });
 
   /// Decodes capabilities.
@@ -65,6 +66,7 @@ final class BrowsewellCapabilities {
         fileUpload: json['fileUpload'] == true,
         multipleInstances: json['multipleInstances'] == true,
         persistentProfile: json['persistentProfile'] == true,
+        crossOriginFrames: json['crossOriginFrames'] == true,
       );
 
   /// Complete desktop contract required by Browsewell.
@@ -74,6 +76,7 @@ final class BrowsewellCapabilities {
     fileUpload: true,
     multipleInstances: true,
     persistentProfile: true,
+    crossOriginFrames: true,
   );
 
   /// Whether input reaches pages as trusted native input.
@@ -91,6 +94,9 @@ final class BrowsewellCapabilities {
   /// Whether cookies and site data persist in a supplied profile.
   final bool persistentProfile;
 
+  /// Whether snapshots and trusted input include cross-origin child frames.
+  final bool crossOriginFrames;
+
   /// Encodes capabilities.
   Map<String, Object?> toJson() => <String, Object?>{
     'trustedInput': trustedInput,
@@ -98,6 +104,7 @@ final class BrowsewellCapabilities {
     'fileUpload': fileUpload,
     'multipleInstances': multipleInstances,
     'persistentProfile': persistentProfile,
+    'crossOriginFrames': crossOriginFrames,
   };
 }
 

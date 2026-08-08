@@ -16,6 +16,11 @@ void main() {
     expect(capabilities.fileUpload, isTrue);
     expect(capabilities.multipleInstances, isTrue);
     expect(capabilities.persistentProfile, isTrue);
+    expect(capabilities.crossOriginFrames, isTrue);
+    expect(
+      const BrowsewellProfile(id: 'net.tinyrack.coder.default').toJson(),
+      <String, Object?>{'id': 'net.tinyrack.coder.default'},
+    );
 
     final create = BrowsewellCreateResult.fromJson(<String, Object?>{
       'id': 'browser',
@@ -94,7 +99,7 @@ void main() {
   test('platform defaults fail explicitly', () {
     final platform = _BarePlatform();
     final request = BrowsewellCreateRequest(
-      profile: const BrowsewellProfile(directory: '/profile'),
+      profile: const BrowsewellProfile(id: 'net.tinyrack.test'),
       initialUrl: Uri.parse('about:blank'),
       policy: const BrowsewellPolicy(),
     );
