@@ -247,16 +247,7 @@ final class _ImeHarness {
     await tester.pumpAndSettle();
   }
 
-  Future<void> toggleLanguage() async {
-    await _releaseModifiers();
-    await _run('xdotool', <String>[
-      'key',
-      '--clearmodifiers',
-      'Shift+space',
-    ]);
-    await _releaseModifiers();
-    await tester.pumpAndSettle();
-  }
+  Future<void> toggleLanguage() => keys(<String>['Hangul']);
 
   Future<void> _releaseModifiers() => _run('xdotool', <String>[
     'keyup',
