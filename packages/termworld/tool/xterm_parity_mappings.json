@@ -291,6 +291,14 @@
       "implementation": ["lib/src/core/apc_parser.dart"],
       "tests": ["test/upstream_apc_parser_parity_test.dart"]
     },
+    "src/common/parser/DcsParser.ts": {
+      "implementation": ["lib/src/core/dcs_parser.dart"],
+      "tests": ["test/upstream_dcs_parser_parity_test.dart"]
+    },
+    "src/common/parser/DcsParser.test.ts": {
+      "implementation": ["lib/src/core/dcs_parser.dart"],
+      "tests": ["test/upstream_dcs_parser_parity_test.dart"]
+    },
     "src/common/parser/Params.ts": {
       "implementation": ["lib/src/core/params.dart"],
       "tests": ["test/upstream_params_parity_test.dart"]
@@ -1064,6 +1072,118 @@
     "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests reset should abort active handlers with end(false) when reset during payload": {
       "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
       "dartTestName": "should abort active handlers with end(false) when reset during payload",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser handler registration setDcsHandler": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "setDcsHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser handler registration clearDcsHandler": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "clearDcsHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser handler registration addDcsHandler": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "addDcsHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser handler registration addDcsHandler with return false": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "addDcsHandler with return false",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser handler registration dispose handlers": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "dispose handlers",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser DcsHandlerFactory should be called once on end(true)": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should be called once on end(true)",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser/DcsHandlerFactory/should be called once on end(true)"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser DcsHandlerFactory should not be called on end(false)": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should not be called on end(false)",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser/DcsHandlerFactory/should not be called on end(false)"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser DcsHandlerFactory should be disposable": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should be disposable",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser/DcsHandlerFactory/should be disposable"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser DcsHandlerFactory should respect return false": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should respect return false",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser/DcsHandlerFactory/should respect return false"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser DcsHandlerFactory should work up to payload limit": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should work up to payload limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser DcsHandlerFactory should abort for payload limit +1": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should abort for payload limit +1",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed sync | async | sync first should run, cleanup action for others": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "first should run, cleanup action for others",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/sync | async | sync/first should run, cleanup action for others"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed sync | async | sync all should run": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "all should run",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/sync | async | sync/all should run"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed async | sync | async first should run, cleanup action for others": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "first should run, cleanup action for others",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/async | sync | async/first should run, cleanup action for others"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed async | sync | async all should run": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "all should run",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/async | sync | async/all should run"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed DcsHandlerFactory should be called once on end(true)": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should be called once on end(true)",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/DcsHandlerFactory/should be called once on end(true)"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed DcsHandlerFactory should not be called on end(false)": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should not be called on end(false)",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/DcsHandlerFactory/should not be called on end(false)"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed DcsHandlerFactory should be disposable": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should be disposable",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/DcsHandlerFactory/should be disposable"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests sync and async mixed DcsHandlerFactory should respect return false": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should respect return false",
+      "dartTestKind": "test",
+      "dartTestPath": "DcsParser - async tests/sync and async mixed/DcsHandlerFactory/should respect return false"
+    },
+    "unit:src/common/parser/DcsParser.test.ts:DcsParser - async tests reset should abort active handlers with unhook(false) when reset during payload": {
+      "dartTestFile": "test/upstream_dcs_parser_parity_test.dart",
+      "dartTestName": "should abort active handlers with unhook(false) when reset during payload",
       "dartTestKind": "test"
     },
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
