@@ -114,7 +114,62 @@ void main() {
     failures.add('expected $expectedFixtures fixtures, found $actualFixtures');
   }
   _checkFixtureHashes(package, snapshot, failures);
+  _checkPinnedLigatureFonts(package, failures);
   _finish(failures);
+}
+
+void _checkPinnedLigatureFonts(Directory package, List<String> failures) {
+  const expected = <String, String>{
+    'FiraCode-Regular.otf.gz.b64': 'e7a9fda69dad82c508e6374a053e6d3f1b82f6c0',
+    'Monoid-Regular.ttf.gz.b64': 'a09e9faff2c39c9dc56f6a0101a300851922e78d',
+    'UbuntuMono-Regular.ttf.gz.b64': 'fdd309d716629f4e5339d5e5508225ed857a3ede',
+    'iosevka-regular.ttf.gz.b64': '963cbe2a654a8e5ab284a622575c57464e8f1b35',
+  };
+  final directory = Directory(
+    '${package.path}/test/fixtures/xterm_ligatures',
+  );
+  final temporary = Directory.systemTemp.createTempSync(
+    'termworld-ligature-hash-',
+  );
+  try {
+    for (final entry in expected.entries) {
+      final encoded = File('${directory.path}/${entry.key}');
+      if (!encoded.existsSync()) {
+        failures.add('pinned ligature font is missing: ${entry.key}');
+        continue;
+      }
+      final decoded = gzip.decode(
+        base64.decode(encoded.readAsStringSync().replaceAll(RegExp(r'\s'), '')),
+      );
+      final target = File('${temporary.path}/${entry.key}')
+        ..writeAsBytesSync(decoded);
+      final result = Process.runSync('git', <String>[
+        'hash-object',
+        '--no-filters',
+        target.path,
+      ]);
+      if (result.exitCode != 0 ||
+          (result.stdout as String).trim() != entry.value) {
+        failures.add('pinned ligature font hash changed: ${entry.key}');
+      }
+    }
+  } on Object catch (error) {
+    failures.add('could not verify pinned ligature fonts: $error');
+  } finally {
+    temporary.deleteSync(recursive: true);
+  }
+  final casesFile = File('${directory.path}/index_cases.json');
+  if (!casesFile.existsSync()) {
+    failures.add('ligature corpus cases are missing');
+    return;
+  }
+  final cases = jsonDecode(casesFile.readAsStringSync());
+  if (cases is! Map<String, Object?> ||
+      cases['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb' ||
+      cases['cases'] is! List<Object?> ||
+      (cases['cases']! as List<Object?>).length != 216) {
+    failures.add('ligature corpus identity changed');
+  }
 }
 
 void _checkSnapshotIdentity(File snapshot, List<String> failures) {
