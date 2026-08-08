@@ -1,3 +1,6 @@
+import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/event.dart';
+
 part 'unicode11_tables.g.dart';
 
 /// Supplies character width and grapheme continuation properties.
@@ -13,7 +16,7 @@ abstract interface class TerminalUnicodeProvider {
 }
 
 /// Registry for selectable Unicode width providers.
-final class TerminalUnicodeHandling {
+final class TerminalUnicodeHandling implements Disposable {
   /// xterm-compatible `TerminalUnicodeHandling` API.
   TerminalUnicodeHandling() {
     register(const Unicode6TerminalProvider());
@@ -22,17 +25,15 @@ final class TerminalUnicodeHandling {
   final Map<String, TerminalUnicodeProvider> _providers =
       <String, TerminalUnicodeProvider>{};
   String _activeVersion = '6';
+  final TerminalEventEmitter<String> _onChange = TerminalEventEmitter<String>();
+
+  /// Fires synchronously whenever [activeVersion] is assigned.
+  TerminalEvent<String> get onChange => _onChange.event;
 
   /// xterm-compatible `register` API.
   void register(TerminalUnicodeProvider provider) {
-    if (_providers.containsKey(provider.version)) {
-      throw ArgumentError.value(
-        provider.version,
-        'provider.version',
-        'has already been registered',
-      );
-    }
     _providers[provider.version] = provider;
+    if (_activeVersion.isEmpty) activeVersion = provider.version;
   }
 
   /// xterm-compatible `unmodifiable` API.
@@ -47,10 +48,48 @@ final class TerminalUnicodeHandling {
       throw ArgumentError.value(value, 'activeVersion', 'is not registered');
     }
     _activeVersion = value;
+    _onChange.fire(value);
   }
 
   /// xterm-compatible `active` API.
   TerminalUnicodeProvider get active => _providers[_activeVersion]!;
+
+  /// Returns the terminal cell width of a UTF-16 [value].
+  int getStringCellWidth(String value) {
+    var result = 0;
+    var precedingProperties = 0;
+    final units = value.codeUnits;
+    for (var index = 0; index < units.length; index++) {
+      var codePoint = units[index];
+      if (codePoint >= 0xd800 && codePoint <= 0xdbff) {
+        index++;
+        if (index >= units.length) return result + active.width(codePoint);
+        final second = units[index];
+        if (second >= 0xdc00 && second <= 0xdfff) {
+          codePoint = (codePoint - 0xd800) * 0x400 + second - 0xdc00 + 0x10000;
+        } else {
+          result += active.width(second);
+        }
+      }
+      final properties = active.charProperties(
+        codePoint,
+        precedingProperties,
+      );
+      var width = extractWidth(properties);
+      if (extractShouldJoin(properties)) {
+        width -= extractWidth(precedingProperties);
+      }
+      result += width;
+      precedingProperties = properties;
+    }
+    return result;
+  }
+
+  @override
+  bool get isDisposed => _onChange.isDisposed;
+
+  @override
+  void dispose() => _onChange.dispose();
 
   /// Extracts whether a property joins the preceding cell.
   static bool extractShouldJoin(int value) => value & 1 != 0;

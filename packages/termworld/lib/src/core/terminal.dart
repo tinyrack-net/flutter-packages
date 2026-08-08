@@ -1294,6 +1294,7 @@ final class Terminal extends DisposableStore {
     if (isDisposed) return;
     _isDisposing = true;
     _addonManager.dispose();
+    unicode.dispose();
     for (final decoration in List<TerminalDecoration>.of(_decorations)) {
       decoration.dispose();
     }

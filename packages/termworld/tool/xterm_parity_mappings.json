@@ -287,6 +287,14 @@
       "implementation": ["lib/src/core/osc_link_service.dart"],
       "tests": ["test/upstream_osc_link_service_parity_test.dart"]
     },
+    "src/common/services/UnicodeService.ts": {
+      "implementation": ["lib/src/core/unicode.dart"],
+      "tests": ["test/upstream_unicode_service_parity_test.dart"]
+    },
+    "src/common/services/UnicodeService.test.ts": {
+      "implementation": ["lib/src/core/unicode.dart"],
+      "tests": ["test/upstream_unicode_service_parity_test.dart"]
+    },
     "src/common/services/CharsetService.ts": {
       "implementation": ["lib/src/core/charset_service.dart"],
       "tests": ["test/upstream_charset_service_parity_test.dart"]
@@ -954,6 +962,31 @@
     "unit:src/common/services/CharsetService.test.ts:CharsetService should reset glevel, charsets, and active charset": {
       "dartTestFile": "test/upstream_charset_service_parity_test.dart",
       "dartTestName": "should reset glevel, charsets, and active charset",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/UnicodeService.test.ts:unicode provider default to V6": {
+      "dartTestFile": "test/upstream_unicode_service_parity_test.dart",
+      "dartTestName": "default to V6",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/UnicodeService.test.ts:unicode provider activate should throw for unknown version": {
+      "dartTestFile": "test/upstream_unicode_service_parity_test.dart",
+      "dartTestName": "activate should throw for unknown version",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/UnicodeService.test.ts:unicode provider should notify about version change": {
+      "dartTestFile": "test/upstream_unicode_service_parity_test.dart",
+      "dartTestName": "should notify about version change",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/UnicodeService.test.ts:unicode provider correctly changes provider impl": {
+      "dartTestFile": "test/upstream_unicode_service_parity_test.dart",
+      "dartTestName": "correctly changes provider impl",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/UnicodeService.test.ts:unicode provider wcwidth V6 emoji test": {
+      "dartTestFile": "test/upstream_unicode_service_parity_test.dart",
+      "dartTestName": "wcwidth V6 emoji test",
       "dartTestKind": "test"
     },
     "unit:src/common/services/OscLinkService.test.ts:OscLinkService constructor link IDs are created and fetched consistently": {

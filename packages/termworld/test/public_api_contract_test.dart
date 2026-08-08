@@ -210,7 +210,8 @@ void main() {
     // opt into newer emoji widths through an official Unicode addon.
     expect(provider.width(0x1f600), 1);
     expect(provider.charProperties(0xac00, 0), 4);
-    expect(() => unicode.register(provider), throwsArgumentError);
+    unicode.register(provider);
+    expect(unicode.active, same(provider));
     expect(() => unicode.activeVersion = 'missing', throwsArgumentError);
     unicode
       ..register(const _UnicodeProvider())
