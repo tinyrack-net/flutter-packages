@@ -33,10 +33,12 @@ final class _TerminalCoreEngine {
     this.onA11yChar,
     this.onA11yTab,
     this.onLineFeed,
+    this.onTrim,
   }) : buffer = TerminalBufferNamespace(
          columns: columns,
          rows: rows,
          scrollback: scrollback,
+         onTrim: onTrim,
        ),
        _columns = columns,
        _rows = rows {
@@ -53,6 +55,7 @@ final class _TerminalCoreEngine {
   void Function(String character)? onA11yChar;
   void Function(int spaceCount)? onA11yTab;
   void Function()? onLineFeed;
+  void Function(int amount)? onTrim;
   int _columns;
   int _rows;
   int marginTop = 0;

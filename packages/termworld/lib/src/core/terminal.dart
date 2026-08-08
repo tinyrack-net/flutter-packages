@@ -14,6 +14,7 @@ import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/mouse_state_service.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
+import 'package:termworld/src/core/selection_model.dart';
 import 'package:termworld/src/core/text_decoder.dart';
 import 'package:termworld/src/core/unicode.dart';
 import 'package:termworld/src/core/version.dart';
@@ -554,8 +555,18 @@ final class Terminal extends DisposableStore {
       onA11yChar: _onA11yChar.fire,
       onA11yTab: _onA11yTab.fire,
       onLineFeed: () => _onLineFeed.fire(TerminalVoid.value),
+      onTrim: (amount) {
+        if (_selectionModel.handleTrim(amount)) {
+          _onSelectionChange.fire(TerminalVoid.value);
+        }
+      },
     );
     buffer = _engine.buffer;
+    _selectionModel = SelectionModel(
+      columns: () => cols,
+      rows: () => rows,
+      bufferBaseY: () => buffer.active.baseY,
+    );
     _decorationService = add(DecorationService(buffer));
     parser = add(
       TerminalParser((identifier, parameters) {
@@ -717,7 +728,7 @@ final class Terminal extends DisposableStore {
   final StringToUtf32 _stringDecoder = StringToUtf32();
   bool _writeContinuationPending = false;
   int _viewportY = 0;
-  TerminalBufferRange? _selection;
+  late final SelectionModel _selectionModel;
   bool _selectionColumnMode = false;
   TerminalRenderDimensions? _dimensions;
   late final DecorationService _decorationService;
@@ -1160,13 +1171,13 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `hasSelection` API.
   bool hasSelection() {
-    final selection = _selection;
+    final selection = _selectionRange;
     return selection != null && selection.start != selection.end;
   }
 
   /// xterm-compatible `getSelection` API.
   String getSelection() {
-    final selection = _selection;
+    final selection = _selectionRange;
     if (selection == null || selection.start == selection.end) return '';
     if (_selectionColumnMode) {
       if (selection.start.x == selection.end.x) return '';
@@ -1209,40 +1220,32 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `getSelectionPosition` API.
   TerminalBufferRange? getSelectionPosition() =>
-      hasSelection() ? _selection : null;
+      hasSelection() ? _selectionRange : null;
+
+  TerminalBufferRange? get _selectionRange {
+    final start = _selectionModel.finalSelectionStart;
+    final end = _selectionModel.finalSelectionEnd;
+    if (start == null || end == null) return null;
+    return TerminalBufferRange(start: start, end: end);
+  }
 
   /// Whether the active pointer selection is rectangular.
   bool get selectionColumnMode => _selectionColumnMode;
 
   /// xterm-compatible `clearSelection` API.
   void clearSelection() {
-    if (_selection == null) return;
-    _selection = null;
+    if (_selectionModel.finalSelectionStart == null) return;
+    _selectionModel.clearSelection();
     _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
   /// xterm-compatible `select` API.
   void select(int column, int row, int length) {
-    final startPlusLength = column + length;
-    late final int endColumn;
-    late final int endRow;
-    if (startPlusLength > cols) {
-      if (startPlusLength % cols == 0) {
-        endColumn = cols;
-        endRow = row + startPlusLength ~/ cols - 1;
-      } else {
-        endColumn = startPlusLength % cols;
-        endRow = row + startPlusLength ~/ cols;
-      }
-    } else {
-      endColumn = startPlusLength;
-      endRow = row;
-    }
-    _selection = TerminalBufferRange(
-      start: TerminalBufferPosition(column, row),
-      end: TerminalBufferPosition(endColumn, endRow),
-    );
+    _selectionModel
+      ..clearSelection()
+      ..selectionStart = TerminalBufferPosition(column, row)
+      ..selectionStartLength = length;
     _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
@@ -1255,20 +1258,26 @@ final class Terminal extends DisposableStore {
     int endRow,
   ) {
     final reversed = startRow > endRow;
-    _selection = TerminalBufferRange(
-      start: reversed
+    _selectionModel
+      ..clearSelection()
+      ..selectionStart = reversed
           ? TerminalBufferPosition(endColumn, endRow)
-          : TerminalBufferPosition(startColumn, startRow),
-      end: reversed
+          : TerminalBufferPosition(startColumn, startRow)
+      ..selectionEnd = reversed
           ? TerminalBufferPosition(startColumn, startRow)
-          : TerminalBufferPosition(endColumn, endRow),
-    );
+          : TerminalBufferPosition(endColumn, endRow);
     _selectionColumnMode = true;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
   /// xterm-compatible `selectAll` API.
-  void selectAll() => select(0, 0, buffer.active.length * cols);
+  void selectAll() {
+    _selectionModel
+      ..clearSelection()
+      ..isSelectAllActive = true;
+    _selectionColumnMode = false;
+    _onSelectionChange.fire(TerminalVoid.value);
+  }
 
   /// xterm-compatible `selectLines` API.
   void selectLines(int start, int end) {
@@ -1276,14 +1285,14 @@ final class Terminal extends DisposableStore {
     final lastLine = buffer.active.length - 1;
     final endRow = end > lastLine ? lastLine : end;
     final reversed = startRow > endRow;
-    _selection = TerminalBufferRange(
-      start: reversed
+    _selectionModel
+      ..clearSelection()
+      ..selectionStart = reversed
           ? TerminalBufferPosition(cols, endRow)
-          : TerminalBufferPosition(0, startRow),
-      end: reversed
+          : TerminalBufferPosition(0, startRow)
+      ..selectionEnd = reversed
           ? TerminalBufferPosition(0, startRow)
-          : TerminalBufferPosition(cols, endRow),
-    );
+          : TerminalBufferPosition(cols, endRow);
     _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
