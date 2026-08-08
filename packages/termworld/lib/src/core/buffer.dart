@@ -619,7 +619,7 @@ final class TerminalBuffer {
     _trim();
     cursorX = cursorX.clamp(0, columns - 1);
     cursorY = (absoluteCursor - baseY).clamp(0, rows - 1);
-    savedCursorY = savedCursorY.clamp(0, rows - 1);
+    savedCursorY = savedCursorY.clamp(0, _lines.length - 1);
   }
 
   /// Replaces all content with an empty viewport.
@@ -923,6 +923,7 @@ final class TerminalBuffer {
     if (_lines.length > maximum) {
       final amount = _lines.length - maximum;
       _lines.removeRange(0, amount);
+      savedCursorY = (savedCursorY - amount).clamp(0, _lines.length - 1);
       _onTrim?.call(amount);
     }
   }

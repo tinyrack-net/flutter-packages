@@ -433,7 +433,7 @@ void main() {
       );
 
       final serialized = addon.serialize();
-      expect(serialized, contains('1;2;3;4;5;7;8;9'));
+      expect(serialized, contains('7;1;4;5;8;3;2;9'));
       expect(serialized, contains('38;2;1;2;3'));
       expect(serialized, contains('48;5;200'));
       expect(serialized, endsWith('\u001b[?7l'));

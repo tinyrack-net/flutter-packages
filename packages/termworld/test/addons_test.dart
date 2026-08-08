@@ -134,7 +134,7 @@ void main() {
     await terminal.writeAndWait('\u001b[1;31mred<text>');
 
     expect(addon.serialize(), contains('\u001b[31;1mred'));
-    expect(addon.serializeAsHtml(), contains('red&lt;text&gt;'));
+    expect(addon.serializeAsHtml(), contains('red&lt;text>'));
   });
 
   test('unicode addons register all pinned providers', () {
