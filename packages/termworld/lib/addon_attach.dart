@@ -80,6 +80,7 @@ final class AttachAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     unawaited(_subscription?.cancel());
     _subscription = null;
     super.dispose();

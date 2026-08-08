@@ -1,10 +1,8 @@
 import 'package:termworld/src/core/addon.dart';
-import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/terminal.dart';
 
 /// Common one-shot activation and disposal behavior for official addons.
-abstract class ManagedTerminalAddon extends DisposableStore
-    implements TerminalAddon {
+abstract class ManagedTerminalAddon extends TerminalAddon {
   Terminal? _terminal;
 
   /// The terminal after activation.
@@ -28,6 +26,7 @@ abstract class ManagedTerminalAddon extends DisposableStore
 
   @override
   void dispose() {
+    if (isDisposed) return;
     _terminal = null;
     super.dispose();
   }

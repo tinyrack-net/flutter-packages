@@ -137,6 +137,7 @@ final class WebglAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     final atlas = _textureAtlas;
     if (atlas != null) _onRemoveTextureAtlas.fire(atlas);
     final canvas = _canvas;

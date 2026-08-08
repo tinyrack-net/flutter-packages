@@ -135,6 +135,7 @@ final class UnicodeGraphemesAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     final previous = _previous;
     if (previous != null && isActive) terminal.unicode.activeVersion = previous;
     _previous = null;

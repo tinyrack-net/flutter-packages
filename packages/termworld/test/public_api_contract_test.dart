@@ -479,17 +479,9 @@ final class _LinkProvider implements TerminalLinkProvider {
   List<TerminalLink> provideLinks(int bufferLineNumber) => <TerminalLink>[];
 }
 
-final class _Addon implements TerminalAddon {
-  bool _isDisposed = false;
-
-  @override
-  bool get isDisposed => _isDisposed;
-
+final class _Addon extends TerminalAddon {
   @override
   void activate(Terminal terminal) {}
-
-  @override
-  void dispose() => _isDisposed = true;
 }
 
 final class _FakeSocket extends StreamChannelMixin<Object?>

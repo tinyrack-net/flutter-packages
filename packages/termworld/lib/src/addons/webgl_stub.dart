@@ -74,6 +74,7 @@ final class WebglAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     _atlasEvents.dispose();
     _contextEvents.dispose();
     super.dispose();

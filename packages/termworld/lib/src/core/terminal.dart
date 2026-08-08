@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:termworld/src/core/addon.dart';
+import 'package:termworld/src/core/addon_manager.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
@@ -649,7 +650,7 @@ final class Terminal extends DisposableStore {
   final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
   bool _isDisposing = false;
   final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
-  final List<TerminalAddon> _addons = <TerminalAddon>[];
+  final AddonManager _addonManager = AddonManager();
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
   final Map<int, TerminalCharacterJoiner> _characterJoiners =
       <int, TerminalCharacterJoiner>{};
@@ -1270,18 +1271,7 @@ final class Terminal extends DisposableStore {
   }
 
   /// xterm-compatible `loadAddon` API.
-  void loadAddon(TerminalAddon addon) {
-    if (_addons.contains(addon)) {
-      throw StateError('Addon is already loaded');
-    }
-    _addons.add(addon);
-    try {
-      addon.activate(this);
-    } catch (_) {
-      _addons.remove(addon);
-      rethrow;
-    }
-  }
+  void loadAddon(TerminalAddon addon) => _addonManager.loadAddon(this, addon);
 
   /// Called by the Flutter view after measuring its render surface.
   void updateDimensions(TerminalRenderDimensions value) {
@@ -1303,9 +1293,7 @@ final class Terminal extends DisposableStore {
   void dispose() {
     if (isDisposed) return;
     _isDisposing = true;
-    for (final addon in _addons.reversed) {
-      addon.dispose();
-    }
+    _addonManager.dispose();
     for (final decoration in List<TerminalDecoration>.of(_decorations)) {
       decoration.dispose();
     }

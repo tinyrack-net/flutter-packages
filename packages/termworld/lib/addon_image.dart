@@ -835,6 +835,7 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     reset();
     _onImageAdded.dispose();
     super.dispose();

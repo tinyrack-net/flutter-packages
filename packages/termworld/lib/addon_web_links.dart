@@ -65,6 +65,7 @@ final class WebLinksAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     _registration?.dispose();
     _registration = null;
     super.dispose();

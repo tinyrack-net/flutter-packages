@@ -48,6 +48,7 @@ final class LigaturesAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     final joinerId = _joinerId;
     if (joinerId != null && isActive) {
       terminal.deregisterCharacterJoiner(joinerId);

@@ -445,6 +445,7 @@ final class SearchAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     _refreshTimer?.cancel();
     clearDecorations();
     _onBeforeSearch.dispose();

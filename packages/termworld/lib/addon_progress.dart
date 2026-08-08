@@ -108,6 +108,7 @@ final class ProgressAddon extends ManagedTerminalAddon {
 
   @override
   void dispose() {
+    if (isDisposed) return;
     _onChange.dispose();
     super.dispose();
   }

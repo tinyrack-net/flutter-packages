@@ -315,6 +315,22 @@
       "implementation": ["lib/src/core/params.dart"],
       "tests": ["test/upstream_params_parity_test.dart"]
     },
+    "src/common/public/AddonManager.ts": {
+      "implementation": [
+        "lib/src/core/addon.dart",
+        "lib/src/core/addon_manager.dart",
+        "lib/src/core/terminal.dart"
+      ],
+      "tests": ["test/upstream_addon_manager_parity_test.dart"]
+    },
+    "src/common/public/AddonManager.test.ts": {
+      "implementation": [
+        "lib/src/core/addon.dart",
+        "lib/src/core/addon_manager.dart",
+        "lib/src/core/terminal.dart"
+      ],
+      "tests": ["test/upstream_addon_manager_parity_test.dart"]
+    },
     "src/common/SortedList.ts": {
       "implementation": ["lib/src/core/sorted_list.dart"],
       "tests": ["test/upstream_sorted_list_parity_test.dart"]
@@ -1319,6 +1335,16 @@
     "unit:src/common/parser/OscParser.test.ts:OscParser - async tests reset should abort active handlers with end(false) when reset during payload": {
       "dartTestFile": "test/upstream_osc_parser_parity_test.dart",
       "dartTestName": "should abort active handlers with end(false) when reset during payload",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/public/AddonManager.test.ts:AddonManager loadAddon should call addon constructor": {
+      "dartTestFile": "test/upstream_addon_manager_parity_test.dart",
+      "dartTestName": "should call addon constructor",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/public/AddonManager.test.ts:AddonManager dispose should dispose all loaded addons": {
+      "dartTestFile": "test/upstream_addon_manager_parity_test.dart",
+      "dartTestName": "should dispose all loaded addons",
       "dartTestKind": "test"
     },
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
