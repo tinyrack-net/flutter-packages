@@ -599,7 +599,9 @@ void main() {
       ..dispose();
     expect(disposed, <String>['render', 'decoration', 'marker']);
     expect(marker.line, -1);
-    expect(factory.create(0).id, 2);
+    final finalMarker = factory.create(0);
+    expect(finalMarker.id, marker.id + 2);
+    finalMarker.dispose();
     expect(
       () => TerminalDecoration(marker: marker, x: -1),
       throwsArgumentError,
