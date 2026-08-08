@@ -271,6 +271,10 @@
       "implementation": ["lib/src/core/buffer_line_string_cache.dart"],
       "tests": ["test/upstream_buffer_set_parity_test.dart"]
     },
+    "src/common/buffer/Marker.ts": {
+      "implementation": ["lib/src/core/marker.dart"],
+      "tests": ["test/xterm_core_parity_test.dart"]
+    },
     "src/common/buffer/CellData.ts": {
       "implementation": ["lib/src/core/buffer.dart"],
       "tests": ["test/upstream_cell_data_parity_test.dart"]

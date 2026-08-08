@@ -980,6 +980,17 @@ void main() {
       expect(decoration, isNotNull);
       terminal.select(0, 0, 5);
       expect(terminal.getSelection(), 'hello');
+      var ownedDisposableWasDisposed = false;
+      marker
+        ..register(
+          toDisposable(() {
+            ownedDisposableWasDisposed = true;
+          }),
+        )
+        ..dispose();
+      expect(marker.line, -1);
+      expect(ownedDisposableWasDisposed, isTrue);
+      expect(terminal.markers, isEmpty);
 
       await terminal.writeAndWait('\u001b[?1;45;1004;2004h\u001b[?1049hALT');
 

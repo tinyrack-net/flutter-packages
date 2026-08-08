@@ -3,13 +3,16 @@ import 'package:termworld/src/core/event.dart';
 
 /// A tracked location in the normal buffer.
 final class TerminalMarker implements Disposable {
-  TerminalMarker._(this.id, this._line);
+  TerminalMarker._(this._line) : id = _nextId++;
+
+  static int _nextId = 1;
 
   /// xterm-compatible `id` API.
   final int id;
   int _line;
   final TerminalEventEmitter<TerminalVoid> _onDispose =
       TerminalEventEmitter<TerminalVoid>();
+  final List<Disposable> _disposables = <Disposable>[];
   bool _isDisposed = false;
 
   /// xterm-compatible `line` API.
@@ -21,13 +24,23 @@ final class TerminalMarker implements Disposable {
   @override
   bool get isDisposed => _isDisposed;
 
+  /// Owns [disposable] for the rest of this marker's lifetime.
+  T register<T extends Disposable>(T disposable) {
+    _disposables.add(disposable);
+    return disposable;
+  }
+
   @override
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
-    _onDispose
-      ..fire(TerminalVoid.value)
-      ..dispose();
+    _line = -1;
+    _onDispose.fire(TerminalVoid.value);
+    for (final disposable in List<Disposable>.of(_disposables)) {
+      disposable.dispose();
+    }
+    _disposables.clear();
+    _onDispose.dispose();
   }
 
   /// Moves this marker when buffer lines are inserted or removed.
@@ -140,8 +153,6 @@ final class TerminalDecoration implements Disposable {
 
 /// Creates markers while keeping their identifiers monotonic per terminal.
 final class TerminalMarkerFactory {
-  int _nextId = 1;
-
   /// xterm-compatible `create` API.
-  TerminalMarker create(int line) => TerminalMarker._(_nextId++, line);
+  TerminalMarker create(int line) => TerminalMarker._(line);
 }
