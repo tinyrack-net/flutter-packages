@@ -373,6 +373,14 @@
       "implementation": ["lib/src/core/charset_service.dart"],
       "tests": ["test/upstream_charset_service_parity_test.dart"]
     },
+    "src/common/services/BufferService.ts": {
+      "implementation": ["lib/src/core/buffer_service.dart"],
+      "tests": ["test/upstream_buffer_service_parity_test.dart"]
+    },
+    "src/common/services/BufferService.test.ts": {
+      "implementation": ["lib/src/core/buffer_service.dart"],
+      "tests": ["test/upstream_buffer_service_parity_test.dart"]
+    },
     "src/common/input/UnicodeV6.ts": {
       "implementation": [
         "lib/src/core/unicode.dart",
@@ -1745,6 +1753,13 @@
       "dartTestKind": "test",
       "dartTestPath": "MouseStateService/restrictMouseEvent/encodeMouseEvent"
     },
+    "unit:src/common/services/BufferService.test.ts:BufferService scroll should decrement ydisp when the buffer is full and the user has scrolled up": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should decrement ydisp when the buffer is full and the user has scrolled up","dartTestKind":"test","dartTestPath":"BufferService/scroll/should decrement ydisp when the buffer is full and the user has scrolled up"},
+    "unit:src/common/services/BufferService.test.ts:BufferService scroll should not advance ydisp with ybase while the user has scrolled up and the buffer is not full": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should not advance ydisp with ybase while the user has scrolled up and the buffer is not full","dartTestKind":"test","dartTestPath":"BufferService/scroll/should not advance ydisp with ybase while the user has scrolled up and the buffer is not full"},
+    "unit:src/common/services/BufferService.test.ts:BufferService scroll should follow ybase with ydisp when the user is not scrolling": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should follow ybase with ydisp when the user is not scrolling","dartTestKind":"test","dartTestPath":"BufferService/scroll/should follow ybase with ydisp when the user is not scrolling"},
+    "unit:src/common/services/BufferService.test.ts:BufferService scroll should scroll within DECSTBM margins without affecting lines outside the region": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should scroll within DECSTBM margins without affecting lines outside the region","dartTestKind":"test","dartTestPath":"BufferService/scroll/should scroll within DECSTBM margins without affecting lines outside the region"},
+    "unit:src/common/services/BufferService.test.ts:BufferService scrollLines should move ydisp and set isUserScrolling when scrolling up": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should move ydisp and set isUserScrolling when scrolling up","dartTestKind":"test","dartTestPath":"BufferService/scrollLines/should move ydisp and set isUserScrolling when scrolling up"},
+    "unit:src/common/services/BufferService.test.ts:BufferService scrollLines should not scroll above the top of the buffer": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should not scroll above the top of the buffer","dartTestKind":"test","dartTestPath":"BufferService/scrollLines/should not scroll above the top of the buffer"},
+    "unit:src/common/services/BufferService.test.ts:BufferService scrollLines should clear isUserScrolling when scrolling to the bottom": {"dartTestFile":"test/upstream_buffer_service_parity_test.dart","dartTestName":"should clear isUserScrolling when scrolling to the bottom","dartTestKind":"test","dartTestPath":"BufferService/scrollLines/should clear isUserScrolling when scrolling to the bottom"},
     "unit:src/common/services/OptionsService.test.ts:OptionsService constructor uses default value if invalid constructor option values passed for cols/rows": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"uses default value if invalid constructor option values passed for cols/rows","dartTestKind":"test","dartTestPath":"OptionsService/constructor/uses default value if invalid constructor option values passed for cols/rows"},
     "unit:src/common/services/OptionsService.test.ts:OptionsService constructor uses values from constructor option values if correctly passed": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"uses values from constructor option values if correctly passed","dartTestKind":"test","dartTestPath":"OptionsService/constructor/uses values from constructor option values if correctly passed"},
     "unit:src/common/services/OptionsService.test.ts:OptionsService constructor uses default value if invalid constructor option value passed": {"dartTestFile":"test/upstream_options_service_parity_test.dart","dartTestName":"uses default value if invalid constructor option value passed","dartTestKind":"test","dartTestPath":"OptionsService/constructor/uses default value if invalid constructor option value passed"},
