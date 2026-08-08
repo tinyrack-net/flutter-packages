@@ -365,8 +365,10 @@ final class _TerminalCoreEngine {
         );
       case 'A':
         _moveY(-amount);
-      case 'B' || 'e':
+      case 'B':
         _moveY(amount);
+      case 'e':
+        _moveYUnrestricted(amount);
       case 'C' || 'a':
         _moveX(amount);
       case 'D':
@@ -397,8 +399,10 @@ final class _TerminalCoreEngine {
           buffer.active.insertLines(
             buffer.active.cursorY,
             amount,
+            _eraseAttributes,
             bottom: marginBottom,
           );
+          buffer.active.cursorX = 0;
         }
       case 'M':
         _restrictCursor();
@@ -406,8 +410,10 @@ final class _TerminalCoreEngine {
           buffer.active.deleteLines(
             buffer.active.cursorY,
             amount,
+            _eraseAttributes,
             bottom: marginBottom,
           );
+          buffer.active.cursorX = 0;
         }
       case 'P':
         _restrictCursor();
@@ -566,25 +572,8 @@ final class _TerminalCoreEngine {
   }
 
   String _mapCharset(String value) {
-    if (_charset != '0' || value.length != 1) return value;
-    return const <String, String>{
-          '`': '◆',
-          'a': '▒',
-          'f': '°',
-          'g': '±',
-          'j': '┘',
-          'k': '┐',
-          'l': '┌',
-          'm': '└',
-          'n': '┼',
-          'q': '─',
-          't': '├',
-          'u': '┤',
-          'v': '┴',
-          'w': '┬',
-          'x': '│',
-        }[value] ??
-        value;
+    if (value.length != 1) return value;
+    return _terminalCharsets[_charset]?[value] ?? value;
   }
 
   void _designateCharset(String slot, String charset) {
@@ -610,6 +599,194 @@ final class _TerminalCoreEngine {
       _charset = charset;
     }
   }
+
+  static const Map<String, Map<String, String>> _terminalCharsets =
+      <String, Map<String, String>>{
+        '0': <String, String>{
+          '`': '◆',
+          'a': '▒',
+          'b': '␉',
+          'c': '␌',
+          'd': '␍',
+          'e': '␊',
+          'f': '°',
+          'g': '±',
+          'h': '␤',
+          'i': '␋',
+          'j': '┘',
+          'k': '┐',
+          'l': '┌',
+          'm': '└',
+          'n': '┼',
+          'o': '⎺',
+          'p': '⎻',
+          'q': '─',
+          'r': '⎼',
+          's': '⎽',
+          't': '├',
+          'u': '┤',
+          'v': '┴',
+          'w': '┬',
+          'x': '│',
+          'y': '≤',
+          'z': '≥',
+          '{': 'π',
+          '|': '≠',
+          '}': '£',
+          '~': '·',
+        },
+        'A': <String, String>{'#': '£'},
+        '4': <String, String>{
+          '#': '£',
+          '@': '¾',
+          '[': 'ij',
+          r'\': '½',
+          ']': '|',
+          '{': '¨',
+          '|': 'f',
+          '}': '¼',
+          '~': '´',
+        },
+        'C': <String, String>{
+          '[': 'Ä',
+          r'\': 'Ö',
+          ']': 'Å',
+          '^': 'Ü',
+          '`': 'é',
+          '{': 'ä',
+          '|': 'ö',
+          '}': 'å',
+          '~': 'ü',
+        },
+        '5': <String, String>{
+          '[': 'Ä',
+          r'\': 'Ö',
+          ']': 'Å',
+          '^': 'Ü',
+          '`': 'é',
+          '{': 'ä',
+          '|': 'ö',
+          '}': 'å',
+          '~': 'ü',
+        },
+        'R': <String, String>{
+          '#': '£',
+          '@': 'à',
+          '[': '°',
+          r'\': 'ç',
+          ']': '§',
+          '{': 'é',
+          '|': 'ù',
+          '}': 'è',
+          '~': '¨',
+        },
+        'Q': <String, String>{
+          '@': 'à',
+          '[': 'â',
+          r'\': 'ç',
+          ']': 'ê',
+          '^': 'î',
+          '`': 'ô',
+          '{': 'é',
+          '|': 'ù',
+          '}': 'è',
+          '~': 'û',
+        },
+        'K': <String, String>{
+          '@': '§',
+          '[': 'Ä',
+          r'\': 'Ö',
+          ']': 'Ü',
+          '{': 'ä',
+          '|': 'ö',
+          '}': 'ü',
+          '~': 'ß',
+        },
+        'Y': <String, String>{
+          '#': '£',
+          '@': '§',
+          '[': '°',
+          r'\': 'ç',
+          ']': 'é',
+          '`': 'ù',
+          '{': 'à',
+          '|': 'ò',
+          '}': 'è',
+          '~': 'ì',
+        },
+        'E': <String, String>{
+          '@': 'Ä',
+          '[': 'Æ',
+          r'\': 'Ø',
+          ']': 'Å',
+          '^': 'Ü',
+          '`': 'ä',
+          '{': 'æ',
+          '|': 'ø',
+          '}': 'å',
+          '~': 'ü',
+        },
+        '6': <String, String>{
+          '@': 'Ä',
+          '[': 'Æ',
+          r'\': 'Ø',
+          ']': 'Å',
+          '^': 'Ü',
+          '`': 'ä',
+          '{': 'æ',
+          '|': 'ø',
+          '}': 'å',
+          '~': 'ü',
+        },
+        'Z': <String, String>{
+          '#': '£',
+          '@': '§',
+          '[': '¡',
+          r'\': 'Ñ',
+          ']': '¿',
+          '{': '°',
+          '|': 'ñ',
+          '}': 'ç',
+        },
+        'H': <String, String>{
+          '@': 'É',
+          '[': 'Ä',
+          r'\': 'Ö',
+          ']': 'Å',
+          '^': 'Ü',
+          '`': 'é',
+          '{': 'ä',
+          '|': 'ö',
+          '}': 'å',
+          '~': 'ü',
+        },
+        '7': <String, String>{
+          '@': 'É',
+          '[': 'Ä',
+          r'\': 'Ö',
+          ']': 'Å',
+          '^': 'Ü',
+          '`': 'é',
+          '{': 'ä',
+          '|': 'ö',
+          '}': 'å',
+          '~': 'ü',
+        },
+        '=': <String, String>{
+          '#': 'ù',
+          '@': 'à',
+          '[': 'é',
+          r'\': 'ç',
+          ']': 'ê',
+          '^': 'î',
+          '_': 'è',
+          '`': 'ô',
+          '{': 'ä',
+          '|': 'ö',
+          '}': 'ü',
+          '~': 'û',
+        },
+      };
 
   void _backspace() {
     buffer.active.cursorX = buffer.active.cursorX.clamp(
@@ -658,6 +835,7 @@ final class _TerminalCoreEngine {
 
   void _index() {
     _pendingWrap = false;
+    _restrictCursor();
     if (buffer.active.cursorY == marginBottom) {
       buffer.active.scroll(
         _eraseAttributes,
@@ -667,10 +845,12 @@ final class _TerminalCoreEngine {
     } else if (buffer.active.cursorY < _rows - 1) {
       buffer.active.cursorY++;
     }
+    _restrictCursor();
   }
 
   void _reverseIndex() {
     _pendingWrap = false;
+    _restrictCursor();
     if (buffer.active.cursorY == marginTop) {
       buffer.active.reverseScroll(
         _eraseAttributes,
@@ -680,6 +860,7 @@ final class _TerminalCoreEngine {
     } else if (buffer.active.cursorY > 0) {
       buffer.active.cursorY--;
     }
+    _restrictCursor();
   }
 
   bool get _inMargins =>
@@ -705,6 +886,14 @@ final class _TerminalCoreEngine {
     buffer.active.cursorY = (buffer.active.cursorY + amount).clamp(
       minimum,
       maximum,
+    );
+  }
+
+  void _moveYUnrestricted(int amount) {
+    _restrictCursor();
+    buffer.active.cursorY = (buffer.active.cursorY + amount).clamp(
+      originMode ? marginTop : 0,
+      originMode ? marginBottom : _rows - 1,
     );
   }
 

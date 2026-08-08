@@ -321,8 +321,14 @@ final class TerminalCell {
 /// One mutable line in a terminal buffer.
 final class TerminalBufferLine {
   /// Creates an empty line containing [length] cells.
-  TerminalBufferLine(int length, {this.isWrapped = false})
-    : _cells = List<_CellData>.generate(length, (_) => _CellData());
+  TerminalBufferLine(
+    int length, {
+    this.isWrapped = false,
+    TerminalCellAttributes? attributes,
+  }) : _cells = List<_CellData>.generate(
+         length,
+         (_) => _CellData(attributes: attributes),
+       );
 
   TerminalBufferLine._(this._cells, {required this.isWrapped});
 
@@ -561,14 +567,14 @@ final class TerminalBuffer {
       _lines.addAll(
         List<TerminalBufferLine>.generate(
           rows - _rows,
-          (_) => TerminalBufferLine(columns),
+          (_) => TerminalBufferLine(columns, attributes: eraseAttributes),
         ),
       );
     }
     _columns = columns;
     _rows = rows;
     while (_lines.length < rows) {
-      _lines.add(TerminalBufferLine(columns));
+      _lines.add(TerminalBufferLine(columns, attributes: eraseAttributes));
     }
     _trim();
     cursorX = cursorX.clamp(0, columns - 1);
@@ -582,7 +588,7 @@ final class TerminalBuffer {
       ..addAll(
         List<TerminalBufferLine>.generate(
           _rows,
-          (_) => TerminalBufferLine(_columns),
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
         ),
       );
     cursorX = 0;
@@ -603,7 +609,7 @@ final class TerminalBuffer {
   }) {
     final last = bottom ?? _rows - 1;
     if (top == 0 && last == _rows - 1 && type == TerminalBufferType.normal) {
-      _lines.add(TerminalBufferLine(_columns));
+      _lines.add(TerminalBufferLine(_columns, attributes: eraseAttributes));
       _trim();
       return;
     }
@@ -611,7 +617,7 @@ final class TerminalBuffer {
     final end = baseY + last;
     _lines
       ..removeAt(start)
-      ..insert(end, TerminalBufferLine(_columns));
+      ..insert(end, TerminalBufferLine(_columns, attributes: eraseAttributes));
   }
 
   /// Scrolls the inclusive region from [top] through [bottom] downward.
@@ -625,11 +631,19 @@ final class TerminalBuffer {
     final end = baseY + last;
     _lines
       ..removeAt(end)
-      ..insert(start, TerminalBufferLine(_columns));
+      ..insert(
+        start,
+        TerminalBufferLine(_columns, attributes: eraseAttributes),
+      );
   }
 
   /// Inserts [count] blank lines at viewport-relative [row].
-  void insertLines(int row, int count, {int? bottom}) {
+  void insertLines(
+    int row,
+    int count,
+    TerminalCellAttributes eraseAttributes, {
+    int? bottom,
+  }) {
     final last = bottom ?? _rows - 1;
     final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
@@ -639,14 +653,19 @@ final class TerminalBuffer {
         start,
         List<TerminalBufferLine>.generate(
           amount,
-          (_) => TerminalBufferLine(_columns),
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
         ),
       )
       ..removeRange(end, end + amount);
   }
 
   /// Deletes [count] lines at viewport-relative [row].
-  void deleteLines(int row, int count, {int? bottom}) {
+  void deleteLines(
+    int row,
+    int count,
+    TerminalCellAttributes eraseAttributes, {
+    int? bottom,
+  }) {
     final last = bottom ?? _rows - 1;
     final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
@@ -657,7 +676,7 @@ final class TerminalBuffer {
         insertion,
         List<TerminalBufferLine>.generate(
           amount,
-          (_) => TerminalBufferLine(_columns),
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
         ),
       );
   }
