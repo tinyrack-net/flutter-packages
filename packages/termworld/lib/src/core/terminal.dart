@@ -18,8 +18,11 @@ import 'package:termworld/src/core/text_decoder.dart';
 import 'package:termworld/src/core/unicode.dart';
 import 'package:termworld/src/core/version.dart';
 import 'package:termworld/src/core/windows_mode.dart';
+import 'package:termworld/src/core/write_buffer.dart';
 
 part 'engine.dart';
+
+bool _hasWriteSyncWarningHappened = false;
 
 /// Terminal viewport size.
 final class TerminalResizeEvent {
@@ -534,6 +537,12 @@ final class Terminal extends DisposableStore {
       }),
     );
     modes = TerminalModes._(this);
+    _writeBuffer = add(WriteBuffer(_processWrite));
+    add(
+      _writeBuffer.onWriteParsed.listen(
+        (_) => _onWriteParsed.fire(TerminalVoid.value),
+      ),
+    );
     _linkProviders.add(_OscLinkProvider(this));
     add(this.options.onChange.listen(_handleOptionChange));
   }
@@ -662,11 +671,10 @@ final class Terminal extends DisposableStore {
   /// Flutter text-input client accepting composed input, when attached.
   Object? get textarea => _textarea;
 
-  final List<_WriteRequest> _writeQueue = <_WriteRequest>[];
+  late final WriteBuffer _writeBuffer;
   final Utf8ToUtf32 _decoder = Utf8ToUtf32();
   final StringToUtf32 _stringDecoder = StringToUtf32();
-  bool _writeScheduled = false;
-  bool _draining = false;
+  bool _writeContinuationPending = false;
   int _viewportY = 0;
   TerminalBufferRange? _selection;
   bool _selectionColumnMode = false;
@@ -706,8 +714,7 @@ final class Terminal extends DisposableStore {
   void write(Object data, {void Function()? onParsed}) {
     _checkData(data);
     if (isDisposed) throw StateError('Terminal has been disposed');
-    _writeQueue.add(_WriteRequest(data, onParsed, null));
-    _scheduleDrain();
+    _writeBuffer.write(data, onParsed);
   }
 
   /// Queues text followed by CRLF.
@@ -722,11 +729,22 @@ final class Terminal extends DisposableStore {
     _checkData(data);
     if (isDisposed) throw StateError('Terminal has been disposed');
     final completer = Completer<void>();
-    _writeQueue.add(
-      _WriteRequest(data, completer.complete, completer.completeError),
-    );
-    _scheduleDrain();
+    _writeBuffer.write(data, completer.complete);
     return completer.future;
+  }
+
+  /// Immediately parses [data] with xterm's deprecated synchronous contract.
+  void writeSync(Object data, [int? maxSubsequentCalls]) {
+    _checkData(data);
+    if (isDisposed) return;
+    if (!_hasWriteSyncWarningHappened &&
+        options.logLevel.index <= TerminalLogLevel.warning.index) {
+      options.logger?.warn(
+        'writeSync is unreliable and will be removed soon.',
+      );
+      _hasWriteSyncWarningHappened = true;
+    }
+    _writeBuffer.writeSync(data, maxSubsequentCalls);
   }
 
   static void _checkData(Object data) {
@@ -735,37 +753,17 @@ final class Terminal extends DisposableStore {
     }
   }
 
-  void _scheduleDrain() {
-    if (_writeScheduled) return;
-    _writeScheduled = true;
-    scheduleMicrotask(_drainWrites);
-  }
-
-  Future<void> _drainWrites() async {
-    if (_draining || isDisposed) return;
-    _writeScheduled = false;
-    _draining = true;
-    while (_writeQueue.isNotEmpty && !isDisposed) {
-      final request = _writeQueue.removeAt(0);
-      try {
-        final text = request.data is String
-            ? _decodeString(request.data as String)
-            : _decodeUtf8(request.data as Uint8List);
-        await _parse(text);
-        request.onParsed?.call();
-        // Every parser failure must reach the queued write error callback.
-        // ignore: avoid_catches_without_on_clauses
-      } catch (error, stackTrace) {
-        options.logger?.error('write failed', <Object?>[error]);
-        request.onError?.call(error, stackTrace);
-      }
+  Object? _processWrite(Object data, [bool? promiseResult]) {
+    if (promiseResult != null && _writeContinuationPending) {
+      _writeContinuationPending = false;
+      return null;
     }
-    try {
-      _onWriteParsed.fire(TerminalVoid.value);
-    } finally {
-      _draining = false;
-      if (_writeQueue.isNotEmpty) _scheduleDrain();
-    }
+    final text = data is String
+        ? _decodeString(data)
+        : _decodeUtf8(data as Uint8List);
+    final result = _parse(text);
+    if (promiseResult != null) _writeContinuationPending = true;
+    return result.then((_) => true);
   }
 
   String _decodeString(String input) {
@@ -804,6 +802,7 @@ final class Terminal extends DisposableStore {
   /// Sends application-side input exactly as typed input would.
   void input(String data, {bool wasUserInput = true}) {
     if (options.disableStdin || isDisposed) return;
+    if (wasUserInput) _writeBuffer.handleUserInput();
     if (wasUserInput && options.scrollOnUserInput) scrollToBottom();
     _triggerData(data);
   }
@@ -825,6 +824,7 @@ final class Terminal extends DisposableStore {
 
   /// Resizes both normal and alternate buffers.
   void resize(int columns, int rowCount) {
+    _writeBuffer.flushSync();
     if (columns == cols && rowCount == rows) return;
     final nextColumns = columns < 2 ? 2 : columns;
     final nextRows = rowCount < 1 ? 1 : rowCount;
@@ -1348,7 +1348,6 @@ final class Terminal extends DisposableStore {
     ]) {
       emitter.dispose();
     }
-    _writeQueue.clear();
     super.dispose();
   }
 }
@@ -1480,12 +1479,4 @@ final class _OscLinkProvider implements TerminalLinkProvider {
     }
     return result;
   }
-}
-
-final class _WriteRequest {
-  const _WriteRequest(this.data, this.onParsed, this.onError);
-
-  final Object data;
-  final void Function()? onParsed;
-  final void Function(Object error, StackTrace stackTrace)? onError;
 }

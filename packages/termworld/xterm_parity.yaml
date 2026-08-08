@@ -12,8 +12,10 @@ contracts:
       - lib/src/core/buffer.dart
       - lib/src/core/parser.dart
       - lib/src/core/options.dart
+      - lib/src/core/write_buffer.dart
     tests:
       - test/xterm_core_parity_test.dart
+      - test/upstream_write_buffer_parity_test.dart
   flutter:
     entrypoint: lib/termworld.dart
     implementation:
@@ -82,6 +84,7 @@ required_terminal_api:
   - scrollToLine
   - clear
   - write
+  - writeSync
   - writeln
   - paste
   - refresh
