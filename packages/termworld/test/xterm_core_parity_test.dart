@@ -17,6 +17,7 @@ void main() {
       expect(options.cursorStyle, TerminalCursorStyle.block);
       expect(options.tabStopWidth, 8);
       expect(options.wordSeparator, ' ()[]{}\',"`');
+      expect(options.rightClickSelectsWord, Platform.isMacOS);
     });
 
     test('matches option validation and clamping', () {

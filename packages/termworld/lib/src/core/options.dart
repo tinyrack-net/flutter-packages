@@ -1,5 +1,6 @@
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/event.dart';
+import 'package:termworld/src/core/platform_defaults.dart';
 
 /// Terminal log levels in increasing severity order.
 /// xterm-compatible `TerminalLogLevel` API.
@@ -434,7 +435,7 @@ final class TerminalOptions {
     this.quirks = const TerminalQuirks(),
     this.reflowCursorLine = false,
     this.rescaleOverlappingGlyphs = false,
-    this.rightClickSelectsWord = false,
+    bool? rightClickSelectsWord,
     this.screenReaderMode = false,
     int scrollback = 1000,
     this.scrollOnEraseInDisplay = false,
@@ -465,6 +466,7 @@ final class TerminalOptions {
            : fastScrollSensitivity,
        _lineHeight = lineHeight <= 0 ? 1 : lineHeight,
        _minimumContrastRatio = _contrastRatio(minimumContrastRatio),
+       rightClickSelectsWord = rightClickSelectsWord ?? terminalHostIsMac,
        _scrollback = scrollback < 0 ? 1000 : scrollback.clamp(0, 0xffffffff),
        _scrollSensitivity = scrollSensitivity <= 0 ? 1 : scrollSensitivity,
        _tabStopWidth = tabStopWidth < 1 ? 8 : tabStopWidth;
