@@ -374,9 +374,19 @@ void main() {
       final terminal = Terminal();
       final addon = AttachAddon(socket);
       addTearDown(terminal.dispose);
-      terminal
-        ..loadAddon(addon)
-        ..input('out');
+      terminal.loadAddon(addon);
+      expect(
+        () => terminal.input('too-early'),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Attach addon was loaded before socket was open',
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      terminal.input('out');
       expect(socket.sent, <Object?>['out']);
       socket
         ..addIncoming('one')

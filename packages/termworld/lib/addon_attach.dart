@@ -21,14 +21,30 @@ final class AttachAddon extends ManagedTerminalAddon {
   final bool bidirectional;
 
   StreamSubscription<Object?>? _subscription;
+  _AttachSocketState _socketState = _AttachSocketState.connecting;
 
   @override
   void onActivate(Terminal terminal) {
+    unawaited(
+      socket.ready.then(
+        (_) {
+          if (!isDisposed) _socketState = _AttachSocketState.open;
+        },
+        onError: (Object _) {
+          _socketState = _AttachSocketState.closed;
+          dispose();
+        },
+      ),
+    );
     if (bidirectional) {
-      own(terminal.onData.listen(socket.sink.add));
+      own(terminal.onData.listen(_send));
       own(
         terminal.onBinary.listen((data) {
-          socket.sink.add(Uint8List.fromList(data.codeUnits));
+          _send(
+            Uint8List.fromList(
+              data.codeUnits.map((value) => value & 0xff).toList(),
+            ),
+          );
         }),
       );
     }
@@ -40,9 +56,26 @@ final class AttachAddon extends ManagedTerminalAddon {
           terminal.write(Uint8List.fromList(event));
         }
       },
-      onError: (_) => dispose(),
-      onDone: dispose,
+      onError: (_) {
+        _socketState = _AttachSocketState.closed;
+        dispose();
+      },
+      onDone: () {
+        _socketState = _AttachSocketState.closed;
+        dispose();
+      },
     );
+  }
+
+  void _send(Object data) {
+    switch (_socketState) {
+      case _AttachSocketState.open:
+        socket.sink.add(data);
+      case _AttachSocketState.connecting:
+        throw StateError('Attach addon was loaded before socket was open');
+      case _AttachSocketState.closed:
+        throw StateError('Attach addon socket is closed');
+    }
   }
 
   @override
@@ -52,3 +85,5 @@ final class AttachAddon extends ManagedTerminalAddon {
     super.dispose();
   }
 }
+
+enum _AttachSocketState { connecting, open, closed }
