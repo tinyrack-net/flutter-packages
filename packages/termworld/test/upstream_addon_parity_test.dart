@@ -178,6 +178,69 @@ void main() {
         expect(addon.storageUsage, 0);
       },
     );
+
+    test('DA1 and XTSMGRAPHICS reports match xterm image addon', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final data = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(data.add);
+      terminal.updateDimensions(
+        const TerminalRenderDimensions(
+          width: 100,
+          height: 50,
+          cellWidth: 10,
+          cellHeight: 10,
+          devicePixelRatio: 1,
+        ),
+      );
+
+      await terminal.writeAndWait(
+        '\u001b[c'
+        '\u001b[?1;1S'
+        '\u001b[?1;3;256S'
+        '\u001b[?1;1S'
+        '\u001b[?1;3;4097S'
+        '\u001b[?1;4S'
+        '\u001b[?2;1S'
+        '\u001b[?2;4S'
+        '\u001b[?2;3S'
+        '\u001b[?3;1S',
+      );
+      expect(
+        data,
+        <String>[
+          '\u001b[?62;4;9;22c',
+          '\u001b[?1;0;4096S',
+          '\u001b[?1;0;256S',
+          '\u001b[?1;0;256S',
+          '\u001b[?1;2S',
+          '\u001b[?1;0;4096S',
+          '\u001b[?2;0;100;50S',
+          '\u001b[?2;0;4096;4096S',
+          '\u001b[?2;2S',
+          '\u001b[?3;1S',
+        ],
+      );
+      expect(terminal.options.windowOptions.getWinSizePixels, isTrue);
+      expect(terminal.options.windowOptions.getCellSizePixels, isTrue);
+      expect(terminal.options.windowOptions.getWinSizeChars, isTrue);
+    });
+
+    test('DECSET 80 controls sixel scrolling and reset restores it', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+
+      await terminal.writeAndWait('\u001b[?80h\u001bPqA\u001b\\');
+      expect(addon.images.single.scrolls, isFalse);
+      await terminal.writeAndWait('\u001b[!p\u001bPqB\u001b\\');
+      expect(addon.images.single.scrolls, isTrue);
+      await terminal.writeAndWait('\u001b[?80h\u001bc\u001bPqC\u001b\\');
+      expect(addon.images.single.scrolls, isTrue);
+    });
   });
 
   test('addon-unicode-graphemes wcwidth V15 emoji test', () {

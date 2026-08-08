@@ -2,10 +2,12 @@
 library;
 
 import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/event.dart';
+import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/terminal.dart';
 
@@ -30,6 +32,7 @@ final class TerminalImage {
     required this.data,
     required this.column,
     required this.row,
+    required this.scrolls,
   });
 
   /// xterm-compatible `protocol` API.
@@ -43,6 +46,9 @@ final class TerminalImage {
 
   /// xterm-compatible `row` API.
   final int row;
+
+  /// Whether the protocol advances the terminal cursor after display.
+  final bool scrolls;
 }
 
 /// Image protocol limits and feature flags.
@@ -134,12 +140,16 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   /// xterm-compatible `showPlaceholder` API.
   bool showPlaceholder;
+  late bool _sixelScrolling;
+  late int _sixelPaletteLimit;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalImage> get images => List<TerminalImage>.unmodifiable(_images);
 
   @override
   void onActivate(Terminal terminal) {
+    _sixelScrolling = options.sixelScrolling;
+    _sixelPaletteLimit = options.sixelPaletteLimit;
     if (_configuredStorageLimit >= 0.5 && _configuredStorageLimit <= 1000) {
       _setStorageLimit(_configuredStorageLimit);
     } else {
@@ -147,6 +157,81 @@ final class ImageAddon extends ManagedTerminalAddon {
       // its 10 MB fallback rather than failing addon activation.
       _effectiveStorageLimit = 10;
     }
+    if (options.enableSizeReports) {
+      final current = terminal.options.windowOptions;
+      terminal.options.windowOptions = TerminalWindowOptions(
+        restoreWin: current.restoreWin,
+        minimizeWin: current.minimizeWin,
+        setWinPosition: current.setWinPosition,
+        setWinSizePixels: current.setWinSizePixels,
+        raiseWin: current.raiseWin,
+        lowerWin: current.lowerWin,
+        refreshWin: current.refreshWin,
+        setWinSizeChars: current.setWinSizeChars,
+        maximizeWin: current.maximizeWin,
+        fullscreenWin: current.fullscreenWin,
+        getWinState: current.getWinState,
+        getWinPosition: current.getWinPosition,
+        getWinSizePixels: true,
+        getScreenSizePixels: current.getScreenSizePixels,
+        getCellSizePixels: true,
+        getWinSizeChars: true,
+        getScreenSizeChars: current.getScreenSizeChars,
+        getIconTitle: current.getIconTitle,
+        getWinTitle: current.getWinTitle,
+        pushTitle: current.pushTitle,
+        popTitle: current.popTitle,
+        setWinLines: current.setWinLines,
+      );
+    }
+    own(
+      terminal.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(prefix: '?', finalByte: 'h'),
+        (parameters) {
+          if (parameters.contains(80)) _sixelScrolling = false;
+          return false;
+        },
+      ),
+    );
+    own(
+      terminal.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(prefix: '?', finalByte: 'l'),
+        (parameters) {
+          if (parameters.contains(80)) _sixelScrolling = true;
+          return false;
+        },
+      ),
+    );
+    own(
+      terminal.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(finalByte: 'c'),
+        (parameters) {
+          if (_parameter(parameters, 0) != 0 || !options.sixelSupport) {
+            return false;
+          }
+          terminal.input('\u001b[?62;4;9;22c', wasUserInput: false);
+          return true;
+        },
+      ),
+    );
+    own(
+      terminal.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(prefix: '?', finalByte: 'S'),
+        _graphicsAttributes,
+      ),
+    );
+    own(
+      terminal.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(intermediates: '!', finalByte: 'p'),
+        (_) => reset(),
+      ),
+    );
+    own(
+      terminal.parser.registerEscHandler(
+        const TerminalFunctionIdentifier(finalByte: 'c'),
+        reset,
+      ),
+    );
     if (options.sixelSupport) {
       own(
         terminal.parser.registerDcsHandler(
@@ -200,6 +285,62 @@ final class ImageAddon extends ManagedTerminalAddon {
     }
   }
 
+  int _parameter(List<TerminalParameter> parameters, int index) {
+    if (index >= parameters.length) return 0;
+    final value = parameters[index];
+    return value is int ? value : 0;
+  }
+
+  bool _graphicsAttributes(List<TerminalParameter> parameters) {
+    if (parameters.length < 2) return true;
+    final item = _parameter(parameters, 0);
+    final action = _parameter(parameters, 1);
+    if (item == 1) {
+      switch (action) {
+        case 1:
+          _reportGraphics(item, 0, _sixelPaletteLimit);
+        case 2:
+          _sixelPaletteLimit = options.sixelPaletteLimit;
+          _reportGraphics(item, 0, _sixelPaletteLimit);
+        case 3:
+          final requested = _parameter(parameters, 2);
+          if (parameters.length > 2 && requested <= 4096) {
+            _sixelPaletteLimit = requested;
+            _reportGraphics(item, 0, _sixelPaletteLimit);
+          } else {
+            _reportGraphics(item, 2);
+          }
+        case 4:
+          _reportGraphics(item, 0, 4096);
+        default:
+          _reportGraphics(item, 2);
+      }
+      return true;
+    }
+    if (item == 2) {
+      if (action == 1 || action == 4) {
+        var width = terminal.dimensions?.width ?? terminal.cols * 7;
+        var height = terminal.dimensions?.height ?? terminal.rows * 14;
+        if (action == 4 || width * height >= options.pixelLimit) {
+          final side = math.sqrt(options.pixelLimit).floorToDouble();
+          width = side;
+          height = side;
+        }
+        _reportGraphics(item, 0, width.round(), height.round());
+      } else {
+        _reportGraphics(item, 2);
+      }
+      return true;
+    }
+    _reportGraphics(item, 1);
+    return true;
+  }
+
+  void _reportGraphics(int item, int status, [int? first, int? second]) {
+    final values = <int>[item, status, ?first, ?second].join(';');
+    terminal.input('\u001b[?${values}S', wasUserInput: false);
+  }
+
   void _addBase64(TerminalImageProtocol protocol, String payload, int limit) {
     try {
       _add(protocol, base64.decode(payload), limit);
@@ -215,6 +356,7 @@ final class ImageAddon extends ManagedTerminalAddon {
       data: Uint8List.fromList(bytes),
       column: terminal.buffer.active.cursorX,
       row: terminal.buffer.active.baseY + terminal.buffer.active.cursorY,
+      scrolls: protocol != TerminalImageProtocol.sixel || _sixelScrolling,
     );
     _images.add(image);
     _storageBytes += image.data.length;
@@ -258,6 +400,8 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   /// Removes all retained image payloads.
   bool reset() {
+    _sixelScrolling = options.sixelScrolling;
+    _sixelPaletteLimit = options.sixelPaletteLimit;
     _images.clear();
     _storageBytes = 0;
     return false;
