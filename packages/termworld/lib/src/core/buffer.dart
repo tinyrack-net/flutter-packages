@@ -86,6 +86,18 @@ final class TerminalBufferRange {
   int get hashCode => Object.hash(start, end);
 }
 
+/// A structural change to the buffer's logical line collection.
+final class TerminalBufferLineChange {
+  /// Creates a line change at [index] affecting [amount] lines.
+  const TerminalBufferLineChange({required this.index, required this.amount});
+
+  /// Absolute buffer line where the change begins.
+  final int index;
+
+  /// Number of inserted or deleted lines.
+  final int amount;
+}
+
 /// A color encoded exactly as xterm's default, indexed or RGB color.
 @immutable
 final class TerminalCellColor {
@@ -608,7 +620,23 @@ final class TerminalBuffer implements Disposable {
   final void Function(int index, int amount)? _onDelete;
   final List<TerminalMarker> _markers = <TerminalMarker>[];
   final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
+  final TerminalEventEmitter<int> _onTrimEmitter = TerminalEventEmitter<int>();
+  final TerminalEventEmitter<TerminalBufferLineChange> _onInsertEmitter =
+      TerminalEventEmitter<TerminalBufferLineChange>();
+  final TerminalEventEmitter<TerminalBufferLineChange> _onDeleteEmitter =
+      TerminalEventEmitter<TerminalBufferLineChange>();
   bool _isDisposed = false;
+
+  /// Fires after lines are trimmed from the start of the buffer.
+  TerminalEvent<int> get onTrim => _onTrimEmitter.event;
+
+  /// Fires after logical lines are inserted.
+  TerminalEvent<TerminalBufferLineChange> get onInsert =>
+      _onInsertEmitter.event;
+
+  /// Fires after logical lines are deleted.
+  TerminalEvent<TerminalBufferLineChange> get onDelete =>
+      _onDeleteEmitter.event;
 
   /// Markers currently anchored in this buffer.
   List<TerminalMarker> get markers =>
@@ -1079,6 +1107,7 @@ final class TerminalBuffer implements Disposable {
       marker.move(-amount);
     }
     _onTrim?.call(amount);
+    _onTrimEmitter.fire(amount);
   }
 
   void _insertLines(int index, int amount) {
@@ -1086,6 +1115,9 @@ final class TerminalBuffer implements Disposable {
       if (marker.line >= index) marker.move(amount);
     }
     _onInsert?.call(index, amount);
+    _onInsertEmitter.fire(
+      TerminalBufferLineChange(index: index, amount: amount),
+    );
   }
 
   void _deleteLines(int index, int amount) {
@@ -1098,6 +1130,9 @@ final class TerminalBuffer implements Disposable {
       }
     }
     _onDelete?.call(index, amount);
+    _onDeleteEmitter.fire(
+      TerminalBufferLineChange(index: index, amount: amount),
+    );
   }
 
   @override
@@ -1106,6 +1141,9 @@ final class TerminalBuffer implements Disposable {
     _isDisposed = true;
     clearAllMarkers();
     _stringCache.dispose();
+    _onTrimEmitter.dispose();
+    _onInsertEmitter.dispose();
+    _onDeleteEmitter.dispose();
     _lines.clear();
   }
 

@@ -137,6 +137,24 @@
     }
   },
   "sources": {
+    "src/common/services/DecorationService.ts": {
+      "implementation": [
+        "lib/src/core/decoration_service.dart",
+        "lib/src/core/terminal.dart"
+      ],
+      "tests": [
+        "test/upstream_decoration_service_parity_test.dart"
+      ]
+    },
+    "src/common/services/DecorationService.test.ts": {
+      "implementation": [
+        "lib/src/core/decoration_service.dart",
+        "lib/src/core/buffer.dart"
+      ],
+      "tests": [
+        "test/upstream_decoration_service_parity_test.dart"
+      ]
+    },
     "addons/addon-attach/typings/addon-attach.d.ts": {
       "implementation": ["lib/addon_attach.dart"],
       "tests": ["test/public_api_contract_test.dart"]
@@ -554,6 +572,56 @@
     }
   },
   "tests": {
+    "unit:src/common/services/DecorationService.test.ts:DecorationService DecorationLineCache should return undefined for lines with no indexed decorations": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should return undefined for lines with no indexed decorations",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService forEachDecorationAtCell should find decoration at its marker line": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should find decoration at its marker line",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService forEachDecorationAtCell should find decoration with height > 1 on subsequent lines": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should find decoration with height > 1 on subsequent lines",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService forEachDecorationAtCell should find multi-line decoration when single-line decorations exist on other lines": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should find multi-line decoration when single-line decorations exist on other lines",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService forEachDecorationAtCell should not find decoration outside its x range": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should not find decoration outside its x range",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService getDecorationsAtCell should find decoration with height > 1 on subsequent lines": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "getDecorationsAtCell finds height > 1 on subsequent lines",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService line index maintenance should keep lookups correct after buffer trim": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should keep lookups correct after buffer trim",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService line index maintenance should keep multi-line decoration indexed after line insert": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should keep multi-line decoration indexed after line insert",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService line index maintenance should remove decoration from line index when marker is trimmed off buffer": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should remove decoration from line index when marker is trimmed off buffer",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/DecorationService.test.ts:DecorationService should set isDisposed to true after dispose": {
+      "dartTestFile": "test/upstream_decoration_service_parity_test.dart",
+      "dartTestName": "should set isDisposed to true after dispose",
+      "dartTestKind": "test"
+    },
     "playwright:7f3b9553b1778fc0311e-0a11a3f7eb7b6d1df06c": {
       "dartTestFile": "test/public_api_contract_test.dart",
       "dartTestName": "string",

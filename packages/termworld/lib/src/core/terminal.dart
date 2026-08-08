@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:termworld/src/core/addon.dart';
 import 'package:termworld/src/core/addon_manager.dart';
 import 'package:termworld/src/core/buffer.dart';
+import 'package:termworld/src/core/decoration_service.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/marker.dart';
@@ -505,6 +506,7 @@ final class Terminal extends DisposableStore {
       onLineFeed: () => _onLineFeed.fire(TerminalVoid.value),
     );
     buffer = _engine.buffer;
+    _decorationService = add(DecorationService(buffer));
     parser = add(
       TerminalParser((identifier, parameters) {
         if (identifier.prefix.isNotEmpty ||
@@ -642,7 +644,7 @@ final class Terminal extends DisposableStore {
   TerminalBufferRange? _selection;
   bool _selectionColumnMode = false;
   TerminalRenderDimensions? _dimensions;
-  final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
+  late final DecorationService _decorationService;
   bool _isDisposing = false;
   final AddonManager _addonManager = AddonManager();
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
@@ -1029,12 +1031,8 @@ final class Terminal extends DisposableStore {
       overviewRulerColor: overviewRulerColor,
       layer: layer,
     );
-    _decorations.add(decoration);
-    late final Disposable markerListener;
-    markerListener = marker.onDispose.listen((_) => decoration.dispose());
+    _decorationService.registerDecoration(decoration);
     decoration.onDispose.listen((_) {
-      markerListener.dispose();
-      _decorations.remove(decoration);
       if (!_isDisposing) refresh(0, rows - 1);
     });
     refresh(0, rows - 1);
@@ -1043,7 +1041,7 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `decorations` API.
   List<TerminalDecoration> get decorations =>
-      List<TerminalDecoration>.unmodifiable(_decorations);
+      List<TerminalDecoration>.unmodifiable(_decorationService.decorations);
 
   /// xterm-compatible `hasSelection` API.
   bool hasSelection() {
@@ -1256,9 +1254,6 @@ final class Terminal extends DisposableStore {
     _addonManager.dispose();
     _mouseStateService.dispose();
     unicode.dispose();
-    for (final decoration in List<TerminalDecoration>.of(_decorations)) {
-      decoration.dispose();
-    }
     buffer.dispose();
     for (final emitter in <Disposable>[
       _onBell,
