@@ -243,6 +243,14 @@
       "implementation": ["lib/src/core/event.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
     },
+    "src/common/data/EscapeSequences.ts": {
+      "implementation": ["lib/src/core/escape_sequences.dart"],
+      "tests": [
+        "test/upstream_apc_parser_parity_test.dart",
+        "test/upstream_dcs_parser_parity_test.dart",
+        "test/upstream_osc_parser_parity_test.dart"
+      ]
+    },
     "src/common/CircularList.ts": {
       "implementation": ["lib/src/core/circular_list.dart"],
       "tests": ["test/upstream_circular_list_parity_test.dart"]
