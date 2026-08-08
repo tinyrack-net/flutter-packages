@@ -18,6 +18,124 @@ const int terminalWebglExtendedOffset = 3;
 /// Flag marking a model entry as a combined-character string reference.
 const int terminalWebglCombinedCharacterMask = 0x80000000;
 
+/// Whether a custom vector shape is filled or stroked.
+enum TerminalCustomGlyphVectorType {
+  /// Fill the vector path.
+  fill,
+
+  /// Stroke the vector path.
+  stroke,
+}
+
+/// Storage/drawing representation used by a custom terminal glyph.
+enum TerminalCustomGlyphDefinitionType {
+  /// Solid cell octants.
+  solidOctantBlockVector,
+
+  /// Repeated bitmap pattern.
+  blockPattern,
+
+  /// Parameterized path factory.
+  pathFunction,
+
+  /// Literal path.
+  path,
+
+  /// Literal path subtracted from the cell.
+  pathNegative,
+
+  /// Fill or stroke vector shape.
+  vectorShape,
+
+  /// Braille dot mask.
+  braille,
+}
+
+/// Coordinate system used to scale custom glyph geometry.
+enum TerminalCustomGlyphScaleType {
+  /// Scale to the full cell including letter spacing and line height.
+  cell,
+
+  /// Scale to the character area only.
+  character,
+}
+
+/// One rectangular octant fragment of a custom block glyph.
+@immutable
+final class TerminalCustomGlyphSolidOctant {
+  /// Creates an octant fragment in normalized eighth-cell units.
+  const TerminalCustomGlyphSolidOctant({
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+  });
+
+  /// Horizontal origin.
+  final int x;
+
+  /// Vertical origin.
+  final int y;
+
+  /// Horizontal extent.
+  final int width;
+
+  /// Vertical extent.
+  final int height;
+}
+
+/// A custom glyph vector path and its paint operation.
+@immutable
+final class TerminalCustomGlyphVectorShape {
+  /// Creates a custom vector shape.
+  const TerminalCustomGlyphVectorShape({
+    required this.path,
+    required this.type,
+    this.leftPadding,
+    this.rightPadding,
+  });
+
+  /// SVG-compatible path data normalized to the cell.
+  final String path;
+
+  /// Fill or stroke operation.
+  final TerminalCustomGlyphVectorType type;
+
+  /// Optional normalized left padding.
+  final double? leftPadding;
+
+  /// Optional normalized right padding.
+  final double? rightPadding;
+}
+
+/// One normalized custom glyph drawing part.
+@immutable
+final class TerminalCustomGlyphPart {
+  /// Creates a custom glyph part.
+  const TerminalCustomGlyphPart({
+    required this.type,
+    required this.data,
+    this.clipPath,
+    this.strokeWidth = 1,
+    this.scaleType = TerminalCustomGlyphScaleType.cell,
+  });
+
+  /// Drawing representation.
+  final TerminalCustomGlyphDefinitionType type;
+
+  /// Representation-specific immutable data.
+  final Object data;
+
+  /// Optional normalized clipping path.
+  final String? clipPath;
+
+  /// Stroke width used by path-based definitions.
+  final double strokeWidth;
+
+  /// Geometry scaling coordinate system.
+  final TerminalCustomGlyphScaleType scaleType;
+}
+
 /// Cursor information captured for a WebGL render frame.
 final class TerminalWebglCursorModel {
   /// Creates a cursor snapshot.

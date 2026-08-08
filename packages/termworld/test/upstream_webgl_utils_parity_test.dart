@@ -165,6 +165,27 @@ void main() {
       ],
     );
   });
+
+  test('custom glyph types preserve vector and scaling metadata', () {
+    const shape = TerminalCustomGlyphVectorShape(
+      path: 'M0,0 L1,1',
+      type: TerminalCustomGlyphVectorType.stroke,
+      leftPadding: 0.1,
+      rightPadding: 0.2,
+    );
+    const part = TerminalCustomGlyphPart(
+      type: TerminalCustomGlyphDefinitionType.vectorShape,
+      data: shape,
+      clipPath: 'M0,0 L1,0 L1,1 Z',
+      strokeWidth: 3,
+      scaleType: TerminalCustomGlyphScaleType.character,
+    );
+    expect(part.data, same(shape));
+    expect(shape.path, 'M0,0 L1,1');
+    expect(shape.type, TerminalCustomGlyphVectorType.stroke);
+    expect(part.strokeWidth, 3);
+    expect(part.scaleType, TerminalCustomGlyphScaleType.character);
+  });
 }
 
 void _expectTypedSlices<T extends List<num>>(T values, int largeStart) {
