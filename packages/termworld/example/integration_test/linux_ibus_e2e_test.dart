@@ -233,6 +233,7 @@ final class _ImeHarness {
   Future<void> keys(List<String> keys) async {
     final filtered = keys.where((key) => key.isNotEmpty).toList();
     if (filtered.isEmpty) return;
+    await _releaseModifiers();
     for (final key in filtered) {
       await _run('xdotool', <String>[
         'keydown',
@@ -263,8 +264,24 @@ final class _ImeHarness {
       'keyup',
       'Shift_L',
     ]);
+    await _releaseModifiers();
     await tester.pumpAndSettle();
   }
+
+  Future<void> _releaseModifiers() => _run('xdotool', <String>[
+    'keyup',
+    'Shift_L',
+    'keyup',
+    'Shift_R',
+    'keyup',
+    'Control_L',
+    'keyup',
+    'Control_R',
+    'keyup',
+    'Alt_L',
+    'keyup',
+    'Alt_R',
+  ]);
 
   Future<void> chord(List<String> modifiers, String key) async {
     final arguments = <String>['keydown', '--clearmodifiers'];
