@@ -28,6 +28,10 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
   Future<BrowsewellCreateResult> create(BrowsewellCreateRequest request) async {
     final id = 'browsewell-${_nextId++}';
     final events = StreamController<BrowsewellEvent>.broadcast();
+    void addEvent(BrowsewellEvent event) {
+      if (!events.isClosed) events.add(event);
+    }
+
     final logs = <BrowsewellLogEntry>[];
     final controller = WebViewController();
     await controller.setJavaScriptMode(JavaScriptMode.unrestricted);
@@ -85,7 +89,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
             )
             ? NavigationDecision.navigate
             : NavigationDecision.prevent,
-        onPageStarted: (url) => events.add(
+        onPageStarted: (url) => addEvent(
           BrowsewellEvent(
             id: id,
             type: 'loadStart',
@@ -93,7 +97,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
           ),
         ),
         onPageFinished: (url) async {
-          events.add(
+          addEvent(
             BrowsewellEvent(
               id: id,
               type: 'loadEnd',
@@ -102,7 +106,7 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
             ),
           );
         },
-        onWebResourceError: (error) => events.add(
+        onWebResourceError: (error) => addEvent(
           BrowsewellEvent(
             id: id,
             type: 'loadError',

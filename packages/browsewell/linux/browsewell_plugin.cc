@@ -135,13 +135,20 @@ void SendPointer(WebKitWebView* webview, GdkEventType type, double x, double y,
   GdkDisplay* display = gtk_widget_get_display(widget);
   GdkDevice* device =
       gdk_seat_get_pointer(gdk_display_get_default_seat(display));
+  gint root_x = 0;
+  gint root_y = 0;
+  gdk_window_get_root_coords(window, static_cast<gint>(x),
+                             static_cast<gint>(y), &root_x, &root_y);
   if (type == GDK_MOTION_NOTIFY) {
     event->motion.window = GDK_WINDOW(g_object_ref(window));
     event->motion.send_event = FALSE;
     event->motion.time = GDK_CURRENT_TIME;
     event->motion.x = x;
     event->motion.y = y;
+    event->motion.x_root = root_x;
+    event->motion.y_root = root_y;
     event->motion.state = state;
+    event->motion.is_hint = FALSE;
     event->motion.device = device;
   } else {
     event->button.window = GDK_WINDOW(g_object_ref(window));
@@ -149,6 +156,8 @@ void SendPointer(WebKitWebView* webview, GdkEventType type, double x, double y,
     event->button.time = GDK_CURRENT_TIME;
     event->button.x = x;
     event->button.y = y;
+    event->button.x_root = root_x;
+    event->button.y_root = root_y;
     event->button.state = state;
     event->button.button = button;
     event->button.device = device;

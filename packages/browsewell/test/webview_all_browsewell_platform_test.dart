@@ -260,6 +260,21 @@ void main() {
     },
   );
 
+  test('ignores navigation callbacks that arrive after disposal', () async {
+    final created = await platform.create(
+      BrowsewellCreateRequest(
+        profile: const BrowsewellProfile(directory: '/profile'),
+        initialUrl: Uri.parse('about:blank'),
+        policy: const BrowsewellPolicy(),
+      ),
+    );
+
+    await platform.disposeBrowser(created.id);
+    webviews.delegate.onPageStarted?.call('https://example.test/start');
+    webviews.delegate.onPageFinished?.call('https://example.test/end');
+    await Future<void>.delayed(Duration.zero);
+  });
+
   test('rejects stale refs and policy-sized results', () async {
     final created = await platform.create(
       BrowsewellCreateRequest(
