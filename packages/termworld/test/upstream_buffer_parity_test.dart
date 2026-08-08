@@ -40,6 +40,9 @@ void main() {
     expect(wide.underlineColor, const TerminalCellColor.palette(7));
     expect(wide.isUnderline, isTrue);
     expect(wide.isProtected, isTrue);
+    final destination = TerminalBufferLine(1).getCell(0)!;
+    expect(line.getCell(1, destination), same(destination));
+    expect(destination.chars, '界́');
 
     final copy = line.copy();
     expect(copy.isWrapped, line.isWrapped);

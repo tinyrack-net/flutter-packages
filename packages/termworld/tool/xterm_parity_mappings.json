@@ -467,6 +467,26 @@
         "test/upstream_osc_parser_parity_test.dart"
       ]
     },
+    "src/common/public/UnicodeApi.ts": {
+      "implementation": ["lib/src/core/unicode.dart"],
+      "tests": ["test/upstream_unicode_service_parity_test.dart"]
+    },
+    "src/common/public/BufferLineApiView.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_buffer_parity_test.dart"]
+    },
+    "src/common/public/BufferApiView.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_buffer_parity_test.dart"]
+    },
+    "src/common/public/BufferNamespaceApi.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_buffer_set_parity_test.dart"]
+    },
+    "src/common/public/ParserApi.ts": {
+      "implementation": ["lib/src/core/parser.dart"],
+      "tests": ["test/xterm_core_parity_test.dart"]
+    },
     "src/common/parser/Params.ts": {
       "implementation": ["lib/src/core/params.dart"],
       "tests": ["test/upstream_params_parity_test.dart"]

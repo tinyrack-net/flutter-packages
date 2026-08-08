@@ -59,6 +59,7 @@ final class TerminalBufferService extends DisposableStore {
     add(
       buffers.onBufferActivate.listen((event) {
         displayY = event.activeBuffer.baseY;
+        event.activeBuffer.displayY = displayY;
         _onScroll.fire(displayY);
       }),
     );
@@ -108,6 +109,7 @@ final class TerminalBufferService extends DisposableStore {
     scrollBottom = newRows - 1;
     buffers.resize(newColumns, newRows, TerminalCellAttributes());
     displayY = displayY.clamp(0, buffer.baseY);
+    buffer.displayY = displayY;
     _onResize.fire(
       BufferServiceResizeEvent(
         columns: newColumns,
@@ -123,6 +125,7 @@ final class TerminalBufferService extends DisposableStore {
     buffers.reset();
     isUserScrolling = false;
     displayY = 0;
+    buffer.displayY = 0;
     scrollTop = 0;
     scrollBottom = rows - 1;
   }
@@ -150,6 +153,7 @@ final class TerminalBufferService extends DisposableStore {
       }
     }
     if (!isUserScrolling) displayY = active.baseY;
+    active.displayY = displayY;
     _onScroll.fire(displayY);
   }
 
@@ -164,7 +168,11 @@ final class TerminalBufferService extends DisposableStore {
     }
     final oldDisplayY = displayY;
     displayY = (displayY + amount).clamp(0, active.baseY);
-    if (displayY == oldDisplayY) return;
+    if (displayY == oldDisplayY) {
+      active.displayY = displayY;
+      return;
+    }
+    active.displayY = displayY;
     if (!suppressScrollEvent) _onScroll.fire(displayY);
   }
 }

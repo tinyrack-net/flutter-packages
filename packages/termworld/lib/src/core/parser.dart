@@ -80,11 +80,23 @@ final class TerminalParser implements Disposable {
     TerminalCsiHandler handler,
   ) => _register(_csi, _validate(identifier, csiOrDcs: true).key, handler);
 
+  /// Deprecated xterm alias for [registerCsiHandler].
+  Disposable addCsiHandler(
+    TerminalFunctionIdentifier identifier,
+    TerminalCsiHandler handler,
+  ) => registerCsiHandler(identifier, handler);
+
   /// xterm-compatible `registerDcsHandler` API.
   Disposable registerDcsHandler(
     TerminalFunctionIdentifier identifier,
     TerminalDcsHandler handler,
   ) => _register(_dcs, _validate(identifier, csiOrDcs: true).key, handler);
+
+  /// Deprecated xterm alias for [registerDcsHandler].
+  Disposable addDcsHandler(
+    TerminalFunctionIdentifier identifier,
+    TerminalDcsHandler handler,
+  ) => registerDcsHandler(identifier, handler);
 
   /// xterm-compatible `registerEscHandler` API.
   Disposable registerEscHandler(
@@ -92,9 +104,19 @@ final class TerminalParser implements Disposable {
     TerminalEscHandler handler,
   ) => _register(_esc, _validate(identifier).key, handler);
 
+  /// Deprecated xterm alias for [registerEscHandler].
+  Disposable addEscHandler(
+    TerminalFunctionIdentifier identifier,
+    TerminalEscHandler handler,
+  ) => registerEscHandler(identifier, handler);
+
   /// xterm-compatible `registerOscHandler` API.
   Disposable registerOscHandler(int identifier, TerminalOscHandler handler) =>
       _register(_osc, identifier, handler);
+
+  /// Deprecated xterm alias for [registerOscHandler].
+  Disposable addOscHandler(int identifier, TerminalOscHandler handler) =>
+      registerOscHandler(identifier, handler);
 
   /// xterm-compatible `registerApcHandler` API.
   Disposable registerApcHandler(

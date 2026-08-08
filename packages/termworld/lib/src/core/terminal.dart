@@ -664,6 +664,7 @@ final class Terminal extends DisposableStore {
       _viewportY = nextViewport;
       _onScroll.fire(_viewportY);
     }
+    buffer.active.displayY = _viewportY;
     _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
   }
 
@@ -744,6 +745,7 @@ final class Terminal extends DisposableStore {
     _viewportY = wasAtBottom
         ? buffer.active.baseY
         : _viewportY.clamp(0, buffer.active.baseY);
+    buffer.active.displayY = _viewportY;
     if (_viewportY != oldViewport) _onScroll.fire(_viewportY);
     if (buffer.active.cursorX != cursorX || buffer.active.cursorY != cursorY) {
       _onCursorMove.fire(TerminalVoid.value);
@@ -783,6 +785,7 @@ final class Terminal extends DisposableStore {
     _engine.resize(nextColumns, nextRows);
     _onResize.fire(TerminalResizeEvent(cols: nextColumns, rows: nextRows));
     _viewportY = _viewportY.clamp(0, buffer.active.baseY);
+    buffer.active.displayY = _viewportY;
   }
 
   /// xterm-compatible `focus` API.
@@ -1189,6 +1192,7 @@ final class Terminal extends DisposableStore {
     final next = line.clamp(0, buffer.active.baseY);
     if (next == _viewportY) return;
     _viewportY = next;
+    buffer.active.displayY = next;
     _onScroll.fire(next);
   }
 
@@ -1199,6 +1203,7 @@ final class Terminal extends DisposableStore {
   void clear() {
     buffer.active.clearKeepingCursorLine();
     _viewportY = 0;
+    buffer.active.displayY = 0;
     _onScroll.fire(0);
     refresh(0, rows - 1);
   }
@@ -1220,6 +1225,7 @@ final class Terminal extends DisposableStore {
     _mouseStateService.reset();
     _lastMouseEvent = null;
     _viewportY = 0;
+    buffer.active.displayY = 0;
     clearSelection();
     refresh(0, rows - 1);
   }

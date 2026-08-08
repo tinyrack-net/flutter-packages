@@ -385,8 +385,16 @@ final class TerminalBufferLine {
   int get length => _cells.length;
 
   /// Returns the cell at [index], or `null` when out of range.
-  TerminalCell? getCell(int index) =>
-      index < 0 || index >= length ? null : TerminalCell._(_cells[index]);
+  TerminalCell? getCell(int index, [TerminalCell? destination]) {
+    if (index < 0 || index >= length) return null;
+    final source = _cells[index];
+    if (destination == null) return TerminalCell._(source);
+    destination._cell
+      ..chars = source.chars
+      ..width = source.width
+      ..attributes = source.attributes.copy();
+    return destination;
+  }
 
   /// Converts a cell range into its textual representation.
   String translateToString({
@@ -646,8 +654,11 @@ final class TerminalBuffer implements Disposable {
   /// Active saved ISO-2022 character-set level.
   int savedCharsetLevel = 0;
 
-  /// Absolute row at the top of the live viewport.
-  int get viewportY => baseY;
+  /// Absolute row currently displayed at the top of the viewport.
+  int get viewportY => displayY;
+
+  /// Mutable display offset managed by the owning terminal or buffer service.
+  int displayY = 0;
 
   /// Number of retained rows before the live viewport.
   int get baseY => type == TerminalBufferType.alternate
@@ -742,6 +753,7 @@ final class TerminalBuffer implements Disposable {
     cursorX = cursorX.clamp(0, columns - 1);
     cursorY = (absoluteCursor - baseY).clamp(0, rows - 1);
     savedCursorY = savedCursorY.clamp(0, rows - 1);
+    displayY = displayY.clamp(0, baseY);
   }
 
   /// Replaces all content with an empty viewport.
@@ -758,6 +770,7 @@ final class TerminalBuffer implements Disposable {
       );
     cursorX = 0;
     cursorY = 0;
+    displayY = 0;
   }
 
   /// Discards history while retaining the cursor line as the first line.
@@ -778,6 +791,7 @@ final class TerminalBuffer implements Disposable {
         ),
       );
     cursorY = 0;
+    displayY = 0;
   }
 
   /// Removes retained scrollback without changing the visible viewport.
@@ -786,6 +800,7 @@ final class TerminalBuffer implements Disposable {
     if (retained > 0) {
       _lines.removeRange(0, retained);
       _trimLines(retained);
+      displayY = 0;
     }
   }
 
