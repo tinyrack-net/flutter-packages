@@ -67,6 +67,7 @@ final class _TerminalCoreEngine {
   bool applicationEscapeMode = false;
   TerminalMouseTrackingMode mouseMode = TerminalMouseTrackingMode.none;
   bool sgrMouseMode = false;
+  bool sgrPixelsMouseMode = false;
   bool utf8MouseMode = false;
   bool urxvtMouseMode = false;
   bool alternateScrollMode = false;
@@ -995,11 +996,17 @@ final class _TerminalCoreEngine {
           reportFocusMode = enabled;
           if (enabled) onRequestSendFocus?.call();
         case 1005:
-        // Removed by xterm.js; consume without changing mouse encoding.
+          // Removed by xterm.js; consume without changing mouse encoding.
+          continue;
         case 1006:
           sgrMouseMode = enabled;
+          sgrPixelsMouseMode = false;
         case 1015:
-        // Removed by xterm.js; consume without changing mouse encoding.
+          // Removed by xterm.js; consume without changing mouse encoding.
+          continue;
+        case 1016:
+          sgrPixelsMouseMode = enabled;
+          sgrMouseMode = false;
         case 1007:
           alternateScrollMode = enabled;
         case 1048:
@@ -1038,38 +1045,61 @@ final class _TerminalCoreEngine {
 
   void _requestMode(String prefix, List<List<int>> params) {
     final private = prefix == '?';
-    for (final group in params) {
-      final mode = group[0];
-      final active = private ? _privateMode(mode) : _ansiMode(mode);
-      onData?.call(
-        '\u001b[${private ? '?' : ''}$mode;${active ? 1 : 2}\u0024y',
-      );
-    }
+    final mode = params[0][0];
+    final state = private ? _privateModeState(mode) : _ansiModeState(mode);
+    onData?.call(
+      '\u001b[${private ? '?' : ''}$mode;$state\u0024y',
+    );
   }
 
-  bool _ansiMode(int mode) => switch (mode) {
-    4 => insertMode,
-    20 => lineFeedMode,
-    _ => false,
+  int _ansiModeState(int mode) => switch (mode) {
+    2 => 4,
+    4 => insertMode ? 1 : 2,
+    12 => 3,
+    20 => options.convertEol ? 1 : 2,
+    _ => 0,
   };
 
-  bool _privateMode(int mode) => switch (mode) {
-    1 => cursorKeysMode,
-    6 => originMode,
-    7 => autoWrapMode,
-    25 => cursorVisibleMode,
-    45 => reverseWraparoundMode,
-    1004 => reportFocusMode,
-    2004 => bracketedPasteMode,
-    2026 => synchronizedOutputMode,
-    9001 => win32InputMode,
-    _ => false,
+  int _privateModeState(int mode) => switch (mode) {
+    1 => cursorKeysMode ? 1 : 2,
+    3 when options.windowOptions.setWinLines => switch (_columns) {
+      80 => 2,
+      132 => 1,
+      _ => 0,
+    },
+    6 => originMode ? 1 : 2,
+    7 => autoWrapMode ? 1 : 2,
+    8 => 3,
+    9 => mouseMode == TerminalMouseTrackingMode.x10 ? 1 : 2,
+    12 => options.cursorBlink ? 1 : 2,
+    25 => cursorVisibleMode ? 1 : 2,
+    45 => reverseWraparoundMode ? 1 : 2,
+    66 => appKeypadMode ? 1 : 2,
+    67 => 4,
+    1000 => mouseMode == TerminalMouseTrackingMode.vt200 ? 1 : 2,
+    1002 => mouseMode == TerminalMouseTrackingMode.drag ? 1 : 2,
+    1003 => mouseMode == TerminalMouseTrackingMode.any ? 1 : 2,
+    1004 => reportFocusMode ? 1 : 2,
+    1005 || 1015 => 4,
+    1006 => sgrMouseMode ? 1 : 2,
+    1016 => sgrPixelsMouseMode ? 1 : 2,
+    1048 => 1,
+    47 ||
+    1047 ||
+    1049 => buffer.active.type == TerminalBufferType.alternate ? 1 : 2,
+    2004 => bracketedPasteMode ? 1 : 2,
+    2026 => synchronizedOutputMode ? 1 : 2,
+    9001 when options.vtExtensions.win32InputMode => win32InputMode ? 1 : 2,
+    _ => 0,
   };
 
   void _setMargins(List<List<int>> params) {
     final top = _param(params, 0) - 1;
-    final bottom = params.length > 1 ? _param(params, 1) - 1 : _rows - 1;
-    if (top < 0 || bottom <= top || bottom >= _rows) return;
+    final requestedBottom = params.length > 1 ? params[1][0] : 0;
+    final bottom = requestedBottom == 0 || requestedBottom > _rows
+        ? _rows - 1
+        : requestedBottom - 1;
+    if (bottom <= top) return;
     marginTop = top;
     marginBottom = bottom;
     _setPosition(0, 0);
