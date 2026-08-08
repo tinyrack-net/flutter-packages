@@ -573,7 +573,10 @@ void main() {
     final disposed = <String>[];
     marker.onDispose.listen((_) => disposed.add('marker'));
     marker.move(3);
-    expect((marker.id, marker.line), (1, 5));
+    expect(marker.line, 5);
+    final nextMarker = factory.create(0);
+    expect(nextMarker.id, marker.id + 1);
+    nextMarker.dispose();
     TerminalDecoration(
         marker: marker,
         anchor: TerminalDecorationAnchor.right,
