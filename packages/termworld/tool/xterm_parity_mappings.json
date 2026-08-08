@@ -325,6 +325,14 @@
       ],
       "tests": ["test/upstream_unicode_v6_parity_test.dart"]
     },
+    "src/common/input/XParseColor.ts": {
+      "implementation": ["lib/src/core/x_parse_color.dart"],
+      "tests": ["test/upstream_x_parse_color_parity_test.dart"]
+    },
+    "src/common/input/XParseColor.test.ts": {
+      "implementation": ["lib/src/core/x_parse_color.dart"],
+      "tests": ["test/upstream_x_parse_color_parity_test.dart"]
+    },
     "src/common/Lifecycle.ts": {
       "implementation": ["lib/src/core/disposable.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
@@ -1050,6 +1058,43 @@
     "unit:src/common/services/CoreService.test.ts:CoreService reset should not affect isCursorInitialized": {
       "dartTestFile": "test/upstream_core_service_parity_test.dart",
       "dartTestName": "should not affect isCursorInitialized",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor parseColor rgb:<r>/<g>/<b> scheme in 4/8/12/16 bit": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "rgb:<r>/<g>/<b> scheme in 4/8/12/16 bit",
+      "dartTestKind": "test",
+      "dartTestPath": "XParseColor/parseColor/rgb:<r>/<g>/<b> scheme in 4/8/12/16 bit"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor parseColor #RGB scheme in 4/8/12/16 bit": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "#RGB scheme in 4/8/12/16 bit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor parseColor supports upper case": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "supports upper case",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor parseColor does not parse illegal combinations": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "does not parse illegal combinations",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor toXColorRgb rgb:<r>/<g>/<b> scheme in 4/8/12/16 bit": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "rgb:<r>/<g>/<b> scheme in 4/8/12/16 bit",
+      "dartTestKind": "test",
+      "dartTestPath": "XParseColor/toXColorRgb/rgb:<r>/<g>/<b> scheme in 4/8/12/16 bit"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor toXColorRgb defaults to 16 bit output": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "defaults to 16 bit output",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/XParseColor.test.ts:XParseColor toXColorRgb reduces colors to 8 bit resolution": {
+      "dartTestFile": "test/upstream_x_parse_color_parity_test.dart",
+      "dartTestName": "reduces colors to 8 bit resolution",
       "dartTestKind": "test"
     },
     "unit:src/common/input/UnicodeV6.test.ts:wcwidth should match all values from the old implementation": {
