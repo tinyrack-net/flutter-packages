@@ -452,7 +452,7 @@ final class _TerminalCoreEngine {
       _attributes.protected = params[0][0] == 1;
       return;
     }
-    if (finalByte == 'u' && '=?><'.contains(prefix)) {
+    if (finalByte == 'u' && prefix.isNotEmpty && '=?><'.contains(prefix)) {
       _kittyKeyboard(prefix, params);
       return;
     }
