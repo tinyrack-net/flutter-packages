@@ -59,14 +59,20 @@ void main() {
       ..cursorWidth = 3
       ..fastScrollSensitivity = 3
       ..lineHeight = 3
-      ..minimumContrastRatio = 99
+      ..minimumContrastRatio = 1.26
       ..scrollback = 20
       ..scrollSensitivity = 3
       ..tabStopWidth = 2
-      ..tabStopWidth = 2;
+      ..tabStopWidth = 2
+      ..fontWeight = 'invalid'
+      ..fontWeightBold = 750
+      ..wordSeparator = '';
 
-    expect(changes, hasLength(8));
-    expect(options.minimumContrastRatio, 21);
+    expect(changes, hasLength(11));
+    expect(options.minimumContrastRatio, 1.3);
+    expect(options.fontWeight, 'normal');
+    expect(options.fontWeightBold, 750);
+    expect(options.wordSeparator, ' ()[]{}\',"`');
     expect(() => options.blinkIntervalDuration = -1, throwsArgumentError);
     expect(() => options.cursorWidth = 0, throwsArgumentError);
     expect(() => options.fastScrollSensitivity = 0, throwsArgumentError);

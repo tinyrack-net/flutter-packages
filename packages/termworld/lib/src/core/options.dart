@@ -446,13 +446,14 @@ final class TerminalOptions {
     this.theme = const TerminalColorTheme(),
     this.vtExtensions = const TerminalVtExtensions(),
     this.windowsPty = const TerminalWindowsPtyOptions(),
-    this.wordSeparator = ' ()[]{}\',"`',
+    String wordSeparator = ' ()[]{}\',"`',
     this.windowOptions = const TerminalWindowOptions(),
     int cols = 80,
     int rows = 24,
     this.showCursorImmediately = false,
-  }) : fontWeight = _constructorFontWeight(fontWeight, 'normal'),
-       fontWeightBold = _constructorFontWeight(fontWeightBold, 'bold'),
+  }) : _fontWeight = _constructorFontWeight(fontWeight, 'normal'),
+       _fontWeightBold = _constructorFontWeight(fontWeightBold, 'bold'),
+       _wordSeparator = wordSeparator.isEmpty ? ' ()[]{}\',"`' : wordSeparator,
        cols = cols < 0 ? 80 : cols,
        rows = rows < 0 ? 24 : rows,
        _blinkIntervalDuration = blinkIntervalDuration < 0
@@ -463,7 +464,7 @@ final class TerminalOptions {
            ? 5
            : fastScrollSensitivity,
        _lineHeight = lineHeight <= 0 ? 1 : lineHeight,
-       _minimumContrastRatio = minimumContrastRatio.clamp(1, 21),
+       _minimumContrastRatio = _contrastRatio(minimumContrastRatio),
        _scrollback = scrollback < 0 ? 1000 : scrollback.clamp(0, 0xffffffff),
        _scrollSensitivity = scrollSensitivity <= 0 ? 1 : scrollSensitivity,
        _tabStopWidth = tabStopWidth < 1 ? 8 : tabStopWidth;
@@ -510,10 +511,10 @@ final class TerminalOptions {
   String fontFamily;
 
   /// xterm-compatible `fontWeight` API.
-  Object fontWeight;
+  Object _fontWeight;
 
   /// xterm-compatible `fontWeightBold` API.
-  Object fontWeightBold;
+  Object _fontWeightBold;
 
   /// xterm-compatible `ignoreBracketedPasteMode` API.
   bool ignoreBracketedPasteMode;
@@ -581,7 +582,7 @@ final class TerminalOptions {
   TerminalWindowsPtyOptions windowsPty;
 
   /// xterm-compatible `wordSeparator` API.
-  String wordSeparator;
+  String _wordSeparator;
 
   /// xterm-compatible `windowOptions` API.
   TerminalWindowOptions windowOptions;
@@ -646,8 +647,41 @@ final class TerminalOptions {
   set minimumContrastRatio(double value) => _set(
     'minimumContrastRatio',
     _minimumContrastRatio,
-    value.clamp(1, 21),
-    (next) => _minimumContrastRatio = next.toDouble(),
+    _contrastRatio(value),
+    (next) => _minimumContrastRatio = next,
+  );
+
+  /// xterm-compatible `fontWeight` API.
+  Object get fontWeight => _fontWeight;
+
+  /// xterm-compatible `fontWeight` API.
+  set fontWeight(Object value) => _set(
+    'fontWeight',
+    _fontWeight,
+    _constructorFontWeight(value, 'normal'),
+    (next) => _fontWeight = next,
+  );
+
+  /// xterm-compatible `fontWeightBold` API.
+  Object get fontWeightBold => _fontWeightBold;
+
+  /// xterm-compatible `fontWeightBold` API.
+  set fontWeightBold(Object value) => _set(
+    'fontWeightBold',
+    _fontWeightBold,
+    _constructorFontWeight(value, 'bold'),
+    (next) => _fontWeightBold = next,
+  );
+
+  /// xterm-compatible `wordSeparator` API.
+  String get wordSeparator => _wordSeparator;
+
+  /// xterm-compatible `wordSeparator` API.
+  set wordSeparator(String value) => _set(
+    'wordSeparator',
+    _wordSeparator,
+    value.isEmpty ? ' ()[]{}\',"`' : value,
+    (next) => _wordSeparator = next,
   );
 
   /// xterm-compatible `scrollback` API.
@@ -742,4 +776,7 @@ final class TerminalOptions {
   static Object _constructorFontWeight(Object value, Object fallback) {
     return _isValidFontWeight(value) ? value : fallback;
   }
+
+  static double _contrastRatio(double value) =>
+      (value.clamp(1, 21) * 10).round() / 10;
 }
