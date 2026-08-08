@@ -680,12 +680,15 @@ final class Terminal extends DisposableStore {
       List<TerminalDecoration>.unmodifiable(_decorations);
 
   /// xterm-compatible `hasSelection` API.
-  bool hasSelection() => _selection != null;
+  bool hasSelection() {
+    final selection = _selection;
+    return selection != null && selection.start != selection.end;
+  }
 
   /// xterm-compatible `getSelection` API.
   String getSelection() {
     final selection = _selection;
-    if (selection == null) return '';
+    if (selection == null || selection.start == selection.end) return '';
     final output = StringBuffer();
     for (var y = selection.start.y; y <= selection.end.y; y++) {
       final line = buffer.active.getLine(y);
@@ -708,7 +711,8 @@ final class Terminal extends DisposableStore {
   }
 
   /// xterm-compatible `getSelectionPosition` API.
-  TerminalBufferRange? getSelectionPosition() => _selection;
+  TerminalBufferRange? getSelectionPosition() =>
+      hasSelection() ? _selection : null;
 
   /// xterm-compatible `clearSelection` API.
   void clearSelection() {
@@ -719,20 +723,24 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `select` API.
   void select(int column, int row, int length) {
-    if (column < 0 || row < 0 || length < 0) {
-      throw ArgumentError('column, row and length cannot be negative');
-    }
-    final lastLine = buffer.active.length - 1;
-    if (row > lastLine) throw RangeError.range(row, 0, lastLine, 'row');
-    var endRow = row;
-    var endColumn = column + length;
-    while (endColumn > cols && endRow < lastLine) {
-      endColumn -= cols;
-      endRow++;
+    final startPlusLength = column + length;
+    late final int endColumn;
+    late final int endRow;
+    if (startPlusLength > cols) {
+      if (startPlusLength % cols == 0) {
+        endColumn = cols;
+        endRow = row + startPlusLength ~/ cols - 1;
+      } else {
+        endColumn = startPlusLength % cols;
+        endRow = row + startPlusLength ~/ cols;
+      }
+    } else {
+      endColumn = startPlusLength;
+      endRow = row;
     }
     _selection = TerminalBufferRange(
-      start: TerminalBufferPosition(column.clamp(0, cols), row),
-      end: TerminalBufferPosition(endColumn.clamp(0, cols), endRow),
+      start: TerminalBufferPosition(column, row),
+      end: TerminalBufferPosition(endColumn, endRow),
     );
     _onSelectionChange.fire(TerminalVoid.value);
   }
@@ -742,12 +750,17 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `selectLines` API.
   void selectLines(int start, int end) {
-    if (start < 0 || end < start || end >= buffer.active.length) {
-      throw RangeError('Invalid selection line range');
-    }
+    final startRow = start < 0 ? 0 : start;
+    final lastLine = buffer.active.length - 1;
+    final endRow = end > lastLine ? lastLine : end;
+    final reversed = startRow > endRow;
     _selection = TerminalBufferRange(
-      start: TerminalBufferPosition(0, start),
-      end: TerminalBufferPosition(cols, end),
+      start: reversed
+          ? TerminalBufferPosition(cols, endRow)
+          : TerminalBufferPosition(0, startRow),
+      end: reversed
+          ? TerminalBufferPosition(0, startRow)
+          : TerminalBufferPosition(cols, endRow),
     );
     _onSelectionChange.fire(TerminalVoid.value);
   }

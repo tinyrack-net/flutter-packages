@@ -465,6 +465,37 @@ void main() {
   });
 
   group('terminal public behavior', () {
+    test('selection endpoints and line clamping match xterm', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 5, rows: 5));
+      addTearDown(terminal.dispose);
+      await terminal.writeAndWait('\n\nfoo\n\n\rbar\n\n\rbaz');
+
+      terminal.selectAll();
+      expect(terminal.hasSelection(), isTrue);
+      expect(
+        terminal.getSelectionPosition(),
+        const TerminalBufferRange(
+          start: TerminalBufferPosition(0, 0),
+          end: TerminalBufferPosition(5, 6),
+        ),
+      );
+      expect(terminal.getSelection(), '\n\nfoo\n\nbar\n\nbaz');
+
+      terminal.selectLines(-1, 999);
+      expect(
+        terminal.getSelectionPosition(),
+        const TerminalBufferRange(
+          start: TerminalBufferPosition(0, 0),
+          end: TerminalBufferPosition(5, 6),
+        ),
+      );
+      terminal.select(1, 2, 2);
+      expect(terminal.getSelection(), 'oo');
+      terminal.select(0, 0, 0);
+      expect(terminal.hasSelection(), isFalse);
+      expect(terminal.getSelectionPosition(), isNull);
+    });
+
     test('tracks buffers, modes, marker, decoration, and selection', () async {
       final terminal = Terminal(options: TerminalOptions(cols: 5, rows: 2));
       addTearDown(terminal.dispose);

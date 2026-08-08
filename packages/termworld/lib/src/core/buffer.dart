@@ -74,6 +74,13 @@ final class TerminalBufferRange {
 
   /// Last selected cell.
   final TerminalBufferPosition end;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerminalBufferRange && other.start == start && other.end == end;
+
+  @override
+  int get hashCode => Object.hash(start, end);
 }
 
 /// A color encoded exactly as xterm's default, indexed or RGB color.

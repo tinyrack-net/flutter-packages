@@ -314,12 +314,17 @@ void main() {
       expect(terminal.getSelectionPosition(), isNotNull);
       terminal
         ..clearSelection()
-        ..clearSelection();
-      expect(() => terminal.select(-1, 0, 1), throwsArgumentError);
-      expect(() => terminal.select(0, 999, 1), throwsRangeError);
-      expect(() => terminal.selectLines(2, 1), throwsRangeError);
+        ..clearSelection()
+        ..select(0, 0, 0);
+      expect(terminal.hasSelection(), isFalse);
+      expect(terminal.getSelectionPosition(), isNull);
+      terminal.select(-1, 0, 1);
+      expect(terminal.hasSelection(), isTrue);
+      expect(terminal.getSelectionPosition()!.start.x, -1);
+      terminal.select(0, 999, 1);
+      expect(terminal.getSelectionPosition()!.start.y, 999);
       terminal
-        ..selectLines(0, 1)
+        ..selectLines(-1, 999)
         ..selectAll()
         ..scrollToTop()
         ..scrollLines(1)
