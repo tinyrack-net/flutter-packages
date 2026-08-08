@@ -251,6 +251,10 @@
       "implementation": ["lib/src/core/circular_list.dart"],
       "tests": ["test/upstream_circular_list_parity_test.dart"]
     },
+    "src/common/Async.ts": {
+      "implementation": ["lib/src/core/async.dart"],
+      "tests": ["test/upstream_async_parity_test.dart"]
+    },
     "src/common/Color.ts": {
       "implementation": ["lib/src/core/color.dart"],
       "tests": ["test/upstream_color_parity_test.dart"]
