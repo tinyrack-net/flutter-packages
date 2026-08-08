@@ -43,6 +43,10 @@ Future<void> main(List<String> arguments) async {
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.ts')),
+    ...Directory('${root.path}/test')
+        .listSync(recursive: true)
+        .whereType<File>()
+        .where((file) => file.path.endsWith('.ts')),
   ]..sort((left, right) => left.path.compareTo(right.path));
 
   final declarations = <Map<String, Object>>[];
@@ -63,28 +67,7 @@ Future<void> main(List<String> arguments) async {
     }
   }
 
-  final tests = <Map<String, Object>>[];
-  final testPattern = RegExp(
-    r'''\b(test|it|describe)\s*\(\s*['"`]([^'"`]+)['"`]''',
-  );
-  for (final file in sourceFiles.where(
-    (file) => file.path.endsWith('.test.ts'),
-  )) {
-    final contents = file.readAsStringSync();
-    final relative = _relative(root, file);
-    for (final match in testPattern.allMatches(contents)) {
-      final line =
-          '\n'.allMatches(contents.substring(0, match.start)).length + 1;
-      final kind = match.group(1)!;
-      tests.add(<String, Object>{
-        'id': '$relative:$line:$kind',
-        'file': relative,
-        'line': line,
-        'kind': kind,
-        'name': match.group(2)!,
-      });
-    }
-  }
+  final tests = await _discoverTests(root);
 
   final hashes = <String, String>{};
   for (final file in <File>[...typings, ...sourceFiles]) {
@@ -111,7 +94,7 @@ Future<void> main(List<String> arguments) async {
   }
 
   final snapshot = <String, Object>{
-    'schemaVersion': 2,
+    'schemaVersion': 3,
     'repository': 'https://github.com/xtermjs/xterm.js',
     'revision': revision,
     'packageVersion': '6.0.0',
@@ -126,9 +109,147 @@ Future<void> main(List<String> arguments) async {
   const encoder = JsonEncoder.withIndent('  ');
   output.writeAsStringSync('${encoder.convert(snapshot)}\n');
   stdout.writeln(
-    'Wrote ${declarations.length} declarations, ${tests.length} test names, '
+    'Wrote ${declarations.length} declarations, '
+    '${tests.length} expanded tests, '
     '${hashes.length} source hashes, and ${fixtures.length} fixtures.',
   );
+}
+
+Future<List<Map<String, Object>>> _discoverTests(Directory root) async {
+  final tests = <Map<String, Object>>[];
+  final unit = await _run(
+    root,
+    'node',
+    <String>['bin/test_unit.js', '--dry-run', '--reporter=json'],
+  );
+  final unitJson = jsonDecode(unit) as Map<String, Object?>;
+  final occurrences = <String, int>{};
+  for (final item
+      in (unitJson['tests']! as List<Object?>).cast<Map<String, Object?>>()) {
+    final file = _unitSourcePath(root, item['file']! as String);
+    final title = item['title']! as String;
+    final fullTitle = item['fullTitle']! as String;
+    final baseId = 'unit:$file:$fullTitle';
+    final occurrence = occurrences.update(
+      baseId,
+      (value) => value + 1,
+      ifAbsent: () => 1,
+    );
+    tests.add(<String, Object>{
+      'id': occurrence == 1 ? baseId : '$baseId#$occurrence',
+      'runner': 'unit',
+      'file': file,
+      'name': title,
+      'fullName': fullTitle,
+    });
+  }
+
+  final integration = await _run(
+    root,
+    'node',
+    <String>[
+      'bin/test_integration.js',
+      '--list',
+      '--project=Chromium',
+      '--reporter=json',
+    ],
+  );
+  for (final document in _playwrightDocuments(integration)) {
+    final config = document['config']! as Map<String, Object?>;
+    final rootDirectory = Directory(config['rootDir']! as String);
+    _collectPlaywrightTests(
+      root,
+      rootDirectory,
+      document['suites']! as List<Object?>,
+      const <String>[],
+      tests,
+    );
+  }
+  tests.sort(
+    (left, right) => (left['id']! as String).compareTo(
+      right['id']! as String,
+    ),
+  );
+  return tests;
+}
+
+String _unitSourcePath(Directory root, String compiledPath) {
+  var relative = compiledPath.substring(root.path.length + 1);
+  if (relative.startsWith('out-esbuild/')) {
+    relative = 'src/${relative.substring('out-esbuild/'.length)}';
+  } else {
+    relative = relative.replaceFirst('/out-esbuild/', '/src/');
+  }
+  return relative.replaceFirst(RegExp(r'\.js$'), '.ts');
+}
+
+Iterable<Map<String, Object?>> _playwrightDocuments(String output) sync* {
+  const marker = '{\n  "config"';
+  var start = output.indexOf(marker);
+  while (start != -1) {
+    final next = output.indexOf('\nRunning suite ', start);
+    final json = output.substring(start, next == -1 ? output.length : next);
+    yield jsonDecode(json.trim()) as Map<String, Object?>;
+    if (next == -1) return;
+    start = output.indexOf(marker, next);
+  }
+}
+
+void _collectPlaywrightTests(
+  Directory root,
+  Directory rootDirectory,
+  List<Object?> suites,
+  List<String> parents,
+  List<Map<String, Object>> output,
+) {
+  for (final suite in suites.cast<Map<String, Object?>>()) {
+    final title = suite['title']! as String;
+    final nextParents = <String>[...parents, title];
+    for (final spec
+        in (suite['specs']! as List<Object?>).cast<Map<String, Object?>>()) {
+      final specTitle = spec['title']! as String;
+      final source = File.fromUri(
+        rootDirectory.uri.resolve(spec['file']! as String),
+      );
+      final relative = _relative(root, source);
+      output.add(<String, Object>{
+        'id': 'playwright:${spec['id']}',
+        'runner': 'playwright',
+        'file': relative,
+        'line': spec['line']! as int,
+        'name': specTitle,
+        'fullName': <String>[...nextParents, specTitle].join(' '),
+      });
+    }
+    _collectPlaywrightTests(
+      root,
+      rootDirectory,
+      suite['suites'] as List<Object?>? ?? const <Object?>[],
+      nextParents,
+      output,
+    );
+  }
+}
+
+Future<String> _run(
+  Directory root,
+  String executable,
+  List<String> arguments,
+) async {
+  final result = await Process.run(
+    executable,
+    arguments,
+    workingDirectory: root.path,
+  );
+  if (result.exitCode != 0) {
+    throw ProcessException(
+      executable,
+      arguments,
+      result.stderr as String,
+      result.exitCode,
+    );
+  }
+  return result.stdout as String;
 }
 
 bool _isContractLine(String line) {

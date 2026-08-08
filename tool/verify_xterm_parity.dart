@@ -32,7 +32,7 @@ void main() {
   if (snapshot['revision'] != revision) {
     failures.add('snapshot revision is not the approved xterm SHA');
   }
-  if (snapshot['schemaVersion'] != 2 || snapshot['license'] != 'MIT') {
+  if (snapshot['schemaVersion'] != 3 || snapshot['license'] != 'MIT') {
     failures.add('snapshot schema or license metadata changed');
   }
   _checkSnapshotIdentity(snapshotFile, failures);
@@ -51,8 +51,8 @@ void main() {
     }
   }
   _checkCount(snapshot, 'declarations', 695, failures);
-  _checkCount(snapshot, 'tests', 2381, failures);
-  _checkCount(snapshot, 'sourceBlobHashes', 308, failures);
+  _checkCount(snapshot, 'tests', 3771, failures);
+  _checkCount(snapshot, 'sourceBlobHashes', 321, failures);
   _checkCount(snapshot, 'fixtureBlobHashes', 162, failures);
   _checkMappings(package, snapshot, mappingsFile, failures);
 
@@ -118,7 +118,7 @@ void main() {
 }
 
 void _checkSnapshotIdentity(File snapshot, List<String> failures) {
-  const expectedBlob = '0ac74446c6677cd6b49269bcf327d0b9a02cce13';
+  const expectedBlob = 'b486a976f736f0ac4d164d72f62cb68ecd45d77f';
   final result = Process.runSync('git', <String>[
     'hash-object',
     '--no-filters',
