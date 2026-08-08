@@ -337,6 +337,14 @@
       "implementation": ["lib/src/core/mouse_state_service.dart"],
       "tests": ["test/upstream_mouse_state_service_parity_test.dart"]
     },
+    "src/common/services/ServiceRegistry.ts": {
+      "implementation": ["lib/src/core/instantiation_service.dart"],
+      "tests": ["test/upstream_instantiation_service_parity_test.dart"]
+    },
+    "src/common/services/InstantiationService.ts": {
+      "implementation": ["lib/src/core/instantiation_service.dart"],
+      "tests": ["test/upstream_instantiation_service_parity_test.dart"]
+    },
     "src/common/services/MouseStateService.test.ts": {
       "implementation": ["lib/src/core/mouse_state_service.dart"],
       "tests": ["test/upstream_mouse_state_service_parity_test.dart"]
