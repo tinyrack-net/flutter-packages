@@ -24,6 +24,23 @@ List<String> parseTerminalFontFamilies(String input) {
   return families;
 }
 
+/// Whether [family] is one of the CSS Fonts level 4 generic families used by
+/// xterm's local-font resolver as a resolution boundary.
+bool isTerminalGenericFontFamily(String family) =>
+    _genericFontFamilies.contains(family);
+
+const Set<String> _genericFontFamilies = <String>{
+  'serif',
+  'sans-serif',
+  'cursive',
+  'fantasy',
+  'monospace',
+  'system-ui',
+  'emoji',
+  'math',
+  'fangsong',
+};
+
 final class _FontFamilyParseContext {
   _FontFamilyParseContext(this.input);
 

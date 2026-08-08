@@ -43,7 +43,7 @@ Future<TerminalLigatureFont?> loadTerminalLigatureFont(
 ) async {
   final fonts = await (_fontMetadata ??= _queryFonts());
   for (final family in parseTerminalFontFamilies(fontFamily)) {
-    if (_genericFontFamilies.contains(family)) return null;
+    if (isTerminalGenericFontFamily(family)) return null;
     final metadata = fonts[family];
     if (metadata == null || metadata.isEmpty) continue;
     final blob = await metadata.first.blob().toDart;
@@ -92,15 +92,3 @@ Future<Map<String, List<_FontMetadata>>> _queryFonts() async {
   }
   return result;
 }
-
-const Set<String> _genericFontFamilies = <String>{
-  'serif',
-  'sans-serif',
-  'cursive',
-  'fantasy',
-  'monospace',
-  'system-ui',
-  'emoji',
-  'math',
-  'fangsong',
-};
