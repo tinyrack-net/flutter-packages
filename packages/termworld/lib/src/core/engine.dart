@@ -892,7 +892,7 @@ final class _TerminalCoreEngine {
         _deviceStatus(prefix, params[0][0]);
       case 'q':
         if (prefix == '>' && params[0][0] == 0) {
-          onData?.call('\u001bP>|xterm.js(6.0.0)\u001b\\');
+          onData?.call('\u001bP>|xterm.js($xtermVersion)\u001b\\');
         } else if (intermediates == ' ') {
           _setCursorStyle(params[0][0]);
         }

@@ -303,6 +303,13 @@
       "implementation": ["lib/src/core/task_queue.dart"],
       "tests": ["test/upstream_task_queue_parity_test.dart"]
     },
+    "src/common/Version.ts": {
+      "implementation": [
+        "lib/src/core/version.dart",
+        "lib/src/core/engine.dart"
+      ],
+      "tests": ["test/xterm_core_parity_test.dart"]
+    },
     "src/common/WindowsMode.ts": {
       "implementation": [
         "lib/src/core/windows_mode.dart",

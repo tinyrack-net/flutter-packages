@@ -10,6 +10,7 @@ import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/unicode.dart';
+import 'package:termworld/src/core/version.dart';
 import 'package:termworld/src/core/windows_mode.dart';
 
 part 'engine.dart';
