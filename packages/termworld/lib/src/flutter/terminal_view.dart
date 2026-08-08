@@ -88,6 +88,7 @@ final class _TerminalViewState extends State<TerminalView> {
       widget.controller ?? TerminalViewController();
   MethodChannel? _testingChannel;
   Disposable? _renderListener;
+  Disposable? _cursorMoveListener;
   Disposable? _scrollListener;
   Disposable? _selectionListener;
   TerminalLink? _hoveredLink;
@@ -97,7 +98,9 @@ final class _TerminalViewState extends State<TerminalView> {
   int _activeLinkLine = -1;
   int _linkRequestGeneration = 0;
   Timer? _cursorBlinkTimer;
+  Timer? _cursorBlinkIdleTimer;
   bool _cursorVisible = true;
+  bool _cursorBlinkIdle = false;
   TerminalMouseButton _pressedMouseButton = TerminalMouseButton.none;
   TerminalCellOffset? _selectionAnchor;
   double _wheelPartialScroll = 0;
@@ -129,6 +132,7 @@ final class _TerminalViewState extends State<TerminalView> {
         oldWidget.terminal != widget.terminal) {
       _clearLinkCache();
       _renderListener?.dispose();
+      _cursorMoveListener?.dispose();
       _scrollListener?.dispose();
       _selectionListener?.dispose();
       _controller.detach();
@@ -145,6 +149,9 @@ final class _TerminalViewState extends State<TerminalView> {
         _syncCursorBlink();
         setState(() {});
       }
+    });
+    _cursorMoveListener = widget.terminal.onCursorMove.listen((_) {
+      _restartCursorBlinkAnimation();
     });
     _scrollListener = widget.terminal.onScroll.listen((_) {
       if (mounted) setState(() {});
@@ -164,13 +171,26 @@ final class _TerminalViewState extends State<TerminalView> {
   }
 
   void _handleFocusChange() {
-    _syncCursorBlink();
+    if (_focusNode.hasFocus) {
+      _restartCursorBlinkAnimation();
+    } else {
+      _syncCursorBlink();
+    }
     if (mounted) setState(() {});
   }
 
   void _syncCursorBlink() {
     final shouldBlink = _focusNode.hasFocus && _effectiveStyle.cursorBlink;
     if (!shouldBlink) {
+      _cursorBlinkTimer?.cancel();
+      _cursorBlinkTimer = null;
+      _cursorBlinkIdleTimer?.cancel();
+      _cursorBlinkIdleTimer = null;
+      _cursorBlinkIdle = false;
+      _cursorVisible = true;
+      return;
+    }
+    if (_cursorBlinkIdle) {
       _cursorBlinkTimer?.cancel();
       _cursorBlinkTimer = null;
       _cursorVisible = true;
@@ -181,6 +201,28 @@ final class _TerminalViewState extends State<TerminalView> {
     _cursorBlinkTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
       if (!mounted) return;
       _cursorVisible = !_cursorVisible;
+      setState(() {});
+    });
+    _resetCursorBlinkIdleTimer();
+  }
+
+  void _restartCursorBlinkAnimation() {
+    _cursorBlinkIdle = false;
+    _cursorBlinkTimer?.cancel();
+    _cursorBlinkTimer = null;
+    _cursorVisible = true;
+    _syncCursorBlink();
+    if (mounted) setState(() {});
+  }
+
+  void _resetCursorBlinkIdleTimer() {
+    _cursorBlinkIdleTimer?.cancel();
+    _cursorBlinkIdleTimer = Timer(const Duration(minutes: 5), () {
+      if (!mounted) return;
+      _cursorBlinkIdle = true;
+      _cursorBlinkTimer?.cancel();
+      _cursorBlinkTimer = null;
+      _cursorVisible = true;
       setState(() {});
     });
   }
@@ -200,8 +242,10 @@ final class _TerminalViewState extends State<TerminalView> {
   void dispose() {
     _clearLinkCache();
     _cursorBlinkTimer?.cancel();
+    _cursorBlinkIdleTimer?.cancel();
     _focusNode.removeListener(_handleFocusChange);
     _renderListener?.dispose();
+    _cursorMoveListener?.dispose();
     _scrollListener?.dispose();
     _selectionListener?.dispose();
     _testingChannel?.setMethodCallHandler(null);
@@ -378,6 +422,7 @@ final class _TerminalViewState extends State<TerminalView> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    _restartCursorBlinkAnimation();
     final button = _mouseButton(event.buttons);
     _pressedMouseButton = button;
     final cell = _cellAt(event.localPosition);
