@@ -234,6 +234,14 @@
     "addons/addon-unicode-graphemes/test/playwright.config.ts": {
       "implementation": ["lib/addon_unicode_graphemes.dart"],
       "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "src/common/Event.ts": {
+      "implementation": ["lib/src/core/event.dart"],
+      "tests": ["test/lifecycle_parity_test.dart"]
+    },
+    "src/common/Event.test.ts": {
+      "implementation": ["lib/src/core/event.dart"],
+      "tests": ["test/lifecycle_parity_test.dart"]
     }
   },
   "tests": {
@@ -410,6 +418,41 @@
     "playwright:4c8219c54dbc34a74353-884e183f8c649d069f1d": {
       "dartTestFile": "test/upstream_addon_parity_test.dart",
       "dartTestName": "wcwidth V15 emoji test",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should allow disposing a listener": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should allow disposing a listener",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should fire with 0 listeners without error": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should fire with 0 listeners without error",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should fire with 1 listener": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should fire with 1 listener",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should fire with 1 listener using thisArgs": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should fire with 1 listener using thisArgs",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should fire with multiple listeners": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should fire with multiple listeners",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should handle listener removal during fire": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should handle listener removal during fire",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/Event.test.ts:Emitter should not fire after dispose": {
+      "dartTestFile": "test/lifecycle_parity_test.dart",
+      "dartTestName": "should not fire after dispose",
       "dartTestKind": "test"
     }
   }
