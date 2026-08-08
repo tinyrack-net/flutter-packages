@@ -28,6 +28,13 @@ void main() {
   if (snapshot['revision'] != revision) {
     failures.add('snapshot revision is not the approved xterm SHA');
   }
+  if (snapshot['schemaVersion'] != 1 || snapshot['license'] != 'MIT') {
+    failures.add('snapshot schema or license metadata changed');
+  }
+  _checkSnapshotIdentity(snapshotFile, failures);
+  if (manifest.containsKey('upstream_fixture_exclusions')) {
+    failures.add('upstream fixture exclusions are forbidden');
+  }
   for (final key in const <String>[
     'declarations',
     'tests',
@@ -39,6 +46,10 @@ void main() {
       failures.add('snapshot $key is empty');
     }
   }
+  _checkCount(snapshot, 'declarations', 695, failures);
+  _checkCount(snapshot, 'tests', 2381, failures);
+  _checkCount(snapshot, 'sourceBlobHashes', 308, failures);
+  _checkCount(snapshot, 'fixtureBlobHashes', 162, failures);
 
   final contracts = manifest['contracts'] as YamlMap;
   for (final contractName in const <String>['core', 'flutter']) {
@@ -97,7 +108,57 @@ void main() {
   if (actualFixtures != expectedFixtures) {
     failures.add('expected $expectedFixtures fixtures, found $actualFixtures');
   }
+  _checkFixtureHashes(package, snapshot, failures);
   _finish(failures);
+}
+
+void _checkSnapshotIdentity(File snapshot, List<String> failures) {
+  const expectedBlob = '1fae3f671a2f25fbe5b18542de67111f71d1a081';
+  final result = Process.runSync('git', <String>[
+    'hash-object',
+    '--no-filters',
+    snapshot.path,
+  ]);
+  if (result.exitCode != 0 ||
+      (result.stdout as String).trim() != expectedBlob) {
+    failures.add('xterm reference snapshot content does not match its lock');
+  }
+}
+
+void _checkCount(
+  Map<String, Object?> snapshot,
+  String key,
+  int expected,
+  List<String> failures,
+) {
+  final value = snapshot[key]!;
+  final actual = value is Map ? value.length : (value as List<Object?>).length;
+  if (actual != expected) {
+    failures.add('snapshot $key expected $expected entries, found $actual');
+  }
+}
+
+void _checkFixtureHashes(
+  Directory package,
+  Map<String, Object?> snapshot,
+  List<String> failures,
+) {
+  final hashes = snapshot['fixtureBlobHashes']! as Map<String, Object?>;
+  for (final entry in hashes.entries) {
+    final fixture = File(
+      '${package.path}/test/fixtures/xterm/escape_sequence_files/${entry.key}',
+    );
+    if (!fixture.existsSync()) continue;
+    final result = Process.runSync('git', <String>[
+      'hash-object',
+      '--no-filters',
+      fixture.path,
+    ]);
+    if (result.exitCode != 0 ||
+        (result.stdout as String).trim() != entry.value) {
+      failures.add('fixture hash mismatch: ${entry.key}');
+    }
+  }
 }
 
 void _checkPath(Directory package, String path, List<String> failures) {

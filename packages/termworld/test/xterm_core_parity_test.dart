@@ -280,14 +280,6 @@ void main() {
         : 'packages/termworld/test/fixtures/xterm/escape_sequence_files',
   );
   if (fixtureRoot.existsSync()) {
-    // xterm's pinned browser fixture harness excludes these inputs in
-    // src/browser/Terminal2.test.ts. Their behavior is covered above using
-    // the corresponding focused InputHandler tests instead.
-    const upstreamFixtureExclusions = <String>{
-      't0084-CBT',
-      't0103-reverse_wrap',
-      't0504-vim',
-    };
     final inputs =
         fixtureRoot
             .listSync()
@@ -298,7 +290,6 @@ void main() {
     group('xterm VT fixtures', () {
       for (final input in inputs) {
         final name = input.uri.pathSegments.last.replaceAll('.in', '');
-        if (upstreamFixtureExclusions.contains(name)) continue;
         final expected = File('${fixtureRoot.path}/$name.text');
         if (!expected.existsSync()) continue;
         test(name, () async {
