@@ -564,6 +564,40 @@ void main() {
       expect(customCalls, 0);
     });
 
+    test('DECRQSS reports protected, margins, SGR and cursor style', () async {
+      final terminal = Terminal(
+        options: TerminalOptions(
+          cursorStyle: TerminalCursorStyle.underline,
+          cursorBlink: true,
+        ),
+      );
+      addTearDown(terminal.dispose);
+      final reports = <String>[];
+      terminal.onData.listen(reports.add);
+
+      await terminal.writeAndWait(
+        <String>[
+          '\u001b[2;10r',
+          '\u001b[1"q',
+          '\u001bP\u0024q"q\u001b\\',
+          '\u001bP\u0024q"p\u001b\\',
+          '\u001bP\u0024qr\u001b\\',
+          '\u001bP\u0024qm\u001b\\',
+          '\u001bP\u0024q q\u001b\\',
+          '\u001bP\u0024qbad\u001b\\',
+        ].join(),
+      );
+
+      expect(reports, <String>[
+        '\u001bP1\u0024r1"q\u001b\\',
+        '\u001bP1\u0024r61;1"p\u001b\\',
+        '\u001bP1\u0024r2;10r\u001b\\',
+        '\u001bP1\u0024r0m\u001b\\',
+        '\u001bP1\u0024r3 q\u001b\\',
+        '\u001bP0\u0024r\u001b\\',
+      ]);
+    });
+
     test(
       'executes CSI controls before dispatch and honors cancellation',
       () async {

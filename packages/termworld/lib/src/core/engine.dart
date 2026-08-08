@@ -158,7 +158,8 @@ final class _TerminalCoreEngine {
     if (next == 0x5b) return _csi(source, start + 2);
     _precedingCharacter = '';
     if (next == 0x5d) return _osc(source, start + 2);
-    if (next == 0x50 || next == 0x5f || next == 0x5e) {
+    if (next == 0x50) return _dcs(source, start + 2);
+    if (next == 0x5f || next == 0x5e) {
       return _consumeString(source, start + 2);
     }
     var cursor = start + 1;
@@ -255,6 +256,52 @@ final class _TerminalCoreEngine {
       return math.min(source.length, cursor + 2);
     }
     return math.min(source.length, cursor + 1);
+  }
+
+  int _dcs(String source, int start) {
+    final terminator = _stringEnd(source, start);
+    if (terminator == null) return source.length;
+    if (source.startsWith(r'$q', start)) {
+      final data = source.substring(start + 2, terminator.start);
+      _requestStatusString(data);
+    }
+    return terminator.end;
+  }
+
+  ({int start, int end})? _stringEnd(String source, int start) {
+    for (var cursor = start; cursor < source.length; cursor++) {
+      final code = source.codeUnitAt(cursor);
+      if (code == 0x1b &&
+          cursor + 1 < source.length &&
+          source.codeUnitAt(cursor + 1) == 0x5c) {
+        return (start: cursor, end: cursor + 2);
+      }
+    }
+    return null;
+  }
+
+  void _requestStatusString(String data) {
+    late final String response;
+    switch (data) {
+      case '"q':
+        response = 'P1\u0024r${_attributes.protected ? 1 : 0}"q';
+      case '"p':
+        response = 'P1\u0024r61;1"p';
+      case 'r':
+        response = 'P1\u0024r${marginTop + 1};${marginBottom + 1}r';
+      case 'm':
+        response = 'P1\u0024r0m';
+      case ' q':
+        final base = switch (options.cursorStyle) {
+          TerminalCursorStyle.block => 2,
+          TerminalCursorStyle.underline => 4,
+          TerminalCursorStyle.bar => 6,
+        };
+        response = 'P1\u0024r${base - (options.cursorBlink ? 1 : 0)} q';
+      default:
+        response = 'P0\u0024r';
+    }
+    onData?.call('\u001b$response\u001b\\');
   }
 
   int _consumeString(String source, int start) {
