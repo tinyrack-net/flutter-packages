@@ -1354,8 +1354,8 @@
     "src/browser/AccessibilityManager.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart"]},
     "src/browser/CoreBrowserTerminal.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/Dom.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart"]},
-    "src/browser/Linkifier.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_osc_link_provider_parity_test.dart","test/terminal_view_test.dart"]},
-    "src/browser/Linkifier.test.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_osc_link_provider_parity_test.dart","test/terminal_view_test.dart"]},
+    "src/browser/Linkifier.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_linkifier_parity_test.dart","test/terminal_view_test.dart"]},
+    "src/browser/Linkifier.test.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_linkifier_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/LocalizableStrings.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart"]},
     "src/browser/Terminal.test.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/Terminal2.test.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart"]},
@@ -1506,6 +1506,26 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "unit:src/browser/Linkifier.test.ts:Linkifier2 onHideLinkUnderline event range is correct": {
+      "dartTestFile": "test/upstream_linkifier_parity_test.dart",
+      "dartTestName": "xterm Linkifier 00",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/Linkifier.test.ts:Linkifier2 onHideLinkUnderline event range is correct for wrapped links": {
+      "dartTestFile": "test/upstream_linkifier_parity_test.dart",
+      "dartTestName": "xterm Linkifier 01",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/Linkifier.test.ts:Linkifier2 onShowLinkUnderline event range is correct": {
+      "dartTestFile": "test/upstream_linkifier_parity_test.dart",
+      "dartTestName": "xterm Linkifier 02",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/Linkifier.test.ts:Linkifier2 onShowLinkUnderline event range is correct for wrapped links": {
+      "dartTestFile": "test/upstream_linkifier_parity_test.dart",
+      "dartTestName": "xterm Linkifier 03",
+      "dartTestKind": "test"
+    },
     "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert complex characters": {
       "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
       "dartTestName": "xterm CompositionHelper 00",

@@ -1544,28 +1544,25 @@ final class _TerminalPainter extends CustomPainter {
   ) {
     final link = hoveredLink;
     if (link == null || !(link.decorations?.underline ?? true)) return;
-    final firstVisibleLine = terminal.viewportY + 1;
-    final lastVisibleLine = firstVisibleLine + terminal.rows - 1;
-    final startLine = link.range.start.y.clamp(
-      firstVisibleLine,
-      lastVisibleLine,
+    final underline = TerminalLinkUnderlineEvent.fromLink(
+      link,
+      columns: terminal.cols,
+      viewportY: terminal.viewportY,
     );
-    final endLine = link.range.end.y.clamp(firstVisibleLine, lastVisibleLine);
-    if (startLine > endLine) return;
+    final startRow = underline.y1.clamp(0, terminal.rows - 1);
+    final endRow = underline.y2.clamp(0, terminal.rows - 1);
+    if (startRow > endRow ||
+        underline.y2 < 0 ||
+        underline.y1 >= terminal.rows) {
+      return;
+    }
     final paint = Paint()
       ..color = theme.foreground
       ..strokeWidth = 1;
-    for (var line = startLine; line <= endLine; line++) {
-      final startColumn = line == link.range.start.y
-          ? link.range.start.x - 1
-          : 0;
-      final endColumn = line == link.range.end.y
-          ? link.range.end.x
-          : terminal.cols;
-      final y =
-          padding.top +
-          (line - firstVisibleLine + 1) * dimensions.cellHeight -
-          1;
+    for (var row = startRow; row <= endRow; row++) {
+      final startColumn = row == underline.y1 ? underline.x1 : 0;
+      final endColumn = row == underline.y2 ? underline.x2 : underline.columns;
+      final y = padding.top + (row + 1) * dimensions.cellHeight - 1;
       canvas.drawLine(
         Offset(padding.left + startColumn * dimensions.cellWidth, y),
         Offset(padding.left + endColumn * dimensions.cellWidth, y),

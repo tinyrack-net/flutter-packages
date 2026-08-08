@@ -397,6 +397,38 @@ final class TerminalLink {
   final void Function()? dispose;
 }
 
+/// Viewport-relative cell range used to show or hide a link underline.
+final class TerminalLinkUnderlineEvent {
+  /// Converts xterm's 1-based link range into renderer coordinates.
+  TerminalLinkUnderlineEvent.fromLink(
+    TerminalLink link, {
+    required this.columns,
+    int viewportY = 0,
+    this.foreground,
+  }) : x1 = link.range.start.x - 1,
+       y1 = link.range.start.y - viewportY - 1,
+       x2 = link.range.end.x,
+       y2 = link.range.end.y - viewportY - 1;
+
+  /// Inclusive zero-based starting column.
+  final int x1;
+
+  /// Inclusive viewport-relative starting row.
+  final int y1;
+
+  /// Exclusive ending column on the last row.
+  final int x2;
+
+  /// Inclusive viewport-relative ending row.
+  final int y2;
+
+  /// Terminal column count at the time the event was created.
+  final int columns;
+
+  /// Optional palette foreground supplied by a legacy matcher.
+  final int? foreground;
+}
+
 /// Mutable visual state associated with a resolved link.
 final class TerminalLinkDecorations {
   /// Creates link decoration state using xterm's enabled defaults.
