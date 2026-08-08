@@ -502,6 +502,68 @@ void main() {
       expect(reports.skip(3), <String>['\u001b[?6c', '0c']);
     });
 
+    test('window reports and title stacks honor capability gates', () async {
+      final terminal = Terminal(
+        options: TerminalOptions(
+          windowOptions: const TerminalWindowOptions(
+            getWinSizePixels: true,
+            getCellSizePixels: true,
+            getWinSizeChars: true,
+            getIconTitle: true,
+            getWinTitle: true,
+            pushTitle: true,
+            popTitle: true,
+          ),
+        ),
+      );
+      addTearDown(terminal.dispose);
+      terminal.updateDimensions(
+        const TerminalRenderDimensions(
+          width: 800,
+          height: 480,
+          cellWidth: 10,
+          cellHeight: 20,
+          devicePixelRatio: 1,
+        ),
+      );
+      final reports = <String>[];
+      final titles = <String>[];
+      terminal.onData.listen(reports.add);
+      terminal.onTitleChange.listen(titles.add);
+
+      await terminal.writeAndWait(
+        '\u001b]1;icon\u001b\\'
+        '\u001b]2;title\u001b\\'
+        '\u001b[22;0t'
+        '\u001b]1;other-icon\u001b\\'
+        '\u001b]2;other-title\u001b\\'
+        '\u001b[23;0t'
+        '\u001b[14t\u001b[16t\u001b[18t\u001b[20t\u001b[21t',
+      );
+
+      expect(titles, <String>['title', 'other-title', 'title']);
+      expect(reports, <String>[
+        '\u001b[4;480;800t',
+        '\u001b[6;20;10t',
+        '\u001b[8;24;80t',
+        '\u001b]Licon\u001b\\',
+        '\u001b]ltitle\u001b\\',
+      ]);
+
+      final denied = Terminal();
+      addTearDown(denied.dispose);
+      var customCalls = 0;
+      denied.parser.registerCsiHandler(
+        const TerminalFunctionIdentifier(finalByte: 't'),
+        (_) {
+          customCalls++;
+          return true;
+        },
+      );
+      await denied.writeAndWait('\u001b[18t');
+      expect(customCalls, 0);
+    });
+
     test(
       'executes CSI controls before dispatch and honors cancellation',
       () async {

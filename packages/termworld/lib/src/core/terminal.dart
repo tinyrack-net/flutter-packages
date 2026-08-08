@@ -239,7 +239,17 @@ final class Terminal extends DisposableStore {
       onBufferDelete: _handleBufferDelete,
     );
     buffer = _engine.buffer;
-    parser = own(TerminalParser());
+    parser = own(
+      TerminalParser((identifier, parameters) {
+        if (identifier.prefix.isNotEmpty ||
+            identifier.intermediates.isNotEmpty ||
+            identifier.finalByte != 't') {
+          return true;
+        }
+        final operation = parameters.isEmpty ? null : parameters.first;
+        return operation is int && _engine._windowOptionAllowed(operation);
+      }),
+    );
     modes = TerminalModes._(this);
     own(this.options.onChange.listen(_handleOptionChange));
   }
@@ -829,6 +839,7 @@ final class Terminal extends DisposableStore {
   void updateDimensions(TerminalRenderDimensions value) {
     if (_dimensions == value) return;
     _dimensions = value;
+    _engine.renderDimensions = value;
     _onDimensionsChange.fire(value);
   }
 

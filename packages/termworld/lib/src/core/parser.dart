@@ -51,7 +51,16 @@ typedef TerminalApcHandler = FutureOr<bool> Function(String data);
 
 /// Custom parser handler registry with xterm's newest-handler-first ordering.
 final class TerminalParser implements Disposable {
+  /// Creates a parser with an optional security gate for custom CSI handlers.
+  TerminalParser([this._customCsiHandlerAllowed]);
+
   static const int _maximumPayload = 10000000;
+
+  final bool Function(
+    TerminalFunctionIdentifier identifier,
+    List<TerminalParameter> parameters,
+  )?
+  _customCsiHandlerAllowed;
 
   final Map<String, List<TerminalCsiHandler>> _csi =
       <String, List<TerminalCsiHandler>>{};
@@ -274,10 +283,18 @@ final class TerminalParser implements Disposable {
     if (executed.isNotEmpty) await emit(executed.toString());
     final bodyValue = body.toString();
     final identifier = _identifier(bodyValue, source[finalIndex]);
-    final handled = await _callNewest(
-      _csi[identifier.key],
-      (handler) => handler(_parameters(_parameterPart(bodyValue))),
-    );
+    final parameters = _parameters(_parameterPart(bodyValue));
+    final handlers = _csi[identifier.key];
+    late final bool handled;
+    if (handlers != null &&
+        !(_customCsiHandlerAllowed?.call(identifier, parameters) ?? true)) {
+      handled = true;
+    } else {
+      handled = await _callNewest(
+        handlers,
+        (handler) => handler(parameters),
+      );
+    }
     return _ParsedSequence(
       '\u001b[$bodyValue${source[finalIndex]}',
       finalIndex + 1,

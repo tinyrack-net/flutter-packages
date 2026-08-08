@@ -81,6 +81,7 @@ final class _TerminalCoreEngine {
   bool urxvtMouseMode = false;
   bool alternateScrollMode = false;
   bool sendCursorPosition = false;
+  TerminalRenderDimensions? renderDimensions;
   int kittyKeyboardFlags = 0;
   int _kittyMainFlags = 0;
   int _kittyAlternateFlags = 0;
@@ -92,6 +93,10 @@ final class _TerminalCoreEngine {
   bool _savedOriginMode = false;
   bool _savedAutoWrapMode = true;
   final Set<int> _tabStops = <int>{};
+  String _windowTitle = '';
+  String _iconName = '';
+  final List<String> _windowTitleStack = <String>[];
+  final List<String> _iconNameStack = <String>[];
   TerminalCellAttributes _attributes = TerminalCellAttributes();
   TerminalCellAttributes _eraseAttributes = TerminalCellAttributes();
   String _charset = 'B';
@@ -235,7 +240,17 @@ final class _TerminalCoreEngine {
       separator < 0 ? body : body.substring(0, separator),
     );
     final data = separator < 0 ? '' : body.substring(separator + 1);
-    if (command == 0 || command == 1 || command == 2) onTitle?.call(data);
+    switch (command) {
+      case 0:
+        _windowTitle = data;
+        _iconName = data;
+        onTitle?.call(data);
+      case 1:
+        _iconName = data;
+      case 2:
+        _windowTitle = data;
+        onTitle?.call(data);
+    }
     if (cursor < source.length && source.codeUnitAt(cursor) == 0x1b) {
       return math.min(source.length, cursor + 2);
     }
@@ -539,6 +554,8 @@ final class _TerminalCoreEngine {
         if (prefix.isEmpty) _setMargins(params);
       case 's':
         _saveCursor();
+      case 't':
+        _windowOptions(params);
       case 'u':
         _restoreCursor();
     }
@@ -576,6 +593,85 @@ final class _TerminalCoreEngine {
         }
         if (stack.isEmpty && count > 0) kittyKeyboardFlags = 0;
     }
+  }
+
+  void _windowOptions(List<List<int>> params) {
+    final operation = params[0][0];
+    if (!_windowOptionAllowed(operation)) return;
+    final second = params.length > 1 ? params[1][0] : 0;
+    final dimensions = renderDimensions;
+    switch (operation) {
+      case 14:
+        if (second != 2 && dimensions != null) {
+          onData?.call(
+            '\u001b[4;${dimensions.height.round()};'
+            '${dimensions.width.round()}t',
+          );
+        }
+      case 16:
+        if (dimensions != null) {
+          onData?.call(
+            '\u001b[6;${dimensions.cellHeight.round()};'
+            '${dimensions.cellWidth.round()}t',
+          );
+        }
+      case 18:
+        onData?.call('\u001b[8;$_rows;${_columns}t');
+      case 20:
+        onData?.call('\u001b]L$_iconName\u001b\\');
+      case 21:
+        onData?.call('\u001b]l$_windowTitle\u001b\\');
+      case 22:
+        if (second == 0 || second == 2) {
+          _pushTitle(_windowTitleStack, _windowTitle);
+        }
+        if (second == 0 || second == 1) {
+          _pushTitle(_iconNameStack, _iconName);
+        }
+      case 23:
+        if ((second == 0 || second == 2) && _windowTitleStack.isNotEmpty) {
+          _windowTitle = _windowTitleStack.removeLast();
+          onTitle?.call(_windowTitle);
+        }
+        if ((second == 0 || second == 1) && _iconNameStack.isNotEmpty) {
+          _iconName = _iconNameStack.removeLast();
+        }
+    }
+  }
+
+  void _pushTitle(List<String> stack, String value) {
+    stack.add(value);
+    if (stack.length > 10) stack.removeAt(0);
+  }
+
+  bool _windowOptionAllowed(int operation) {
+    final value = options.windowOptions;
+    if (operation > 24) return value.setWinLines;
+    return switch (operation) {
+      1 => value.restoreWin,
+      2 => value.minimizeWin,
+      3 => value.setWinPosition,
+      4 => value.setWinSizePixels,
+      5 => value.raiseWin,
+      6 => value.lowerWin,
+      7 => value.refreshWin,
+      8 => value.setWinSizeChars,
+      9 => value.maximizeWin,
+      10 => value.fullscreenWin,
+      11 => value.getWinState,
+      13 => value.getWinPosition,
+      14 => value.getWinSizePixels,
+      15 => value.getScreenSizePixels,
+      16 => value.getCellSizePixels,
+      18 => value.getWinSizeChars,
+      19 => value.getScreenSizeChars,
+      20 => value.getIconTitle,
+      21 => value.getWinTitle,
+      22 => value.pushTitle,
+      23 => value.popTitle,
+      24 => value.setWinLines,
+      _ => false,
+    };
   }
 
   List<int> get _activeKittyStack =>
