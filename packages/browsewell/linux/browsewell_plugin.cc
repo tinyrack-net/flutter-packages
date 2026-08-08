@@ -89,6 +89,20 @@ void SendKey(WebKitWebView* webview, guint keyval, GdkModifierType state =
                                                   static_cast<GdkModifierType>(0)) {
   GdkWindow* window = gtk_widget_get_window(GTK_WIDGET(webview));
   if (window == nullptr) return;
+  GdkKeymap* keymap = gdk_keymap_get_for_display(gdk_window_get_display(window));
+  GdkKeymapKey* keys = nullptr;
+  gint key_count = 0;
+  guint hardware_keycode = 0;
+  gint group = 0;
+  if (gdk_keymap_get_entries_for_keyval(keymap, keyval, &keys, &key_count) &&
+      key_count > 0) {
+    hardware_keycode = keys[0].keycode;
+    group = keys[0].group;
+    if (keys[0].level == 1) {
+      state = static_cast<GdkModifierType>(state | GDK_SHIFT_MASK);
+    }
+  }
+  g_free(keys);
   for (const auto type : {GDK_KEY_PRESS, GDK_KEY_RELEASE}) {
     GdkEvent* event = gdk_event_new(type);
     event->key.window = GDK_WINDOW(g_object_ref(window));
@@ -96,8 +110,8 @@ void SendKey(WebKitWebView* webview, guint keyval, GdkModifierType state =
     event->key.time = GDK_CURRENT_TIME;
     event->key.state = state;
     event->key.keyval = keyval;
-    event->key.hardware_keycode = 0;
-    event->key.group = 0;
+    event->key.hardware_keycode = hardware_keycode;
+    event->key.group = group;
     event->key.is_modifier = FALSE;
     gtk_main_do_event(event);
     gdk_event_free(event);

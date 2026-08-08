@@ -169,8 +169,10 @@ final class BrowsewellController extends ValueNotifier<BrowsewellState> {
   );
 
   /// Updates the native overlay geometry.
-  Future<void> setViewport(Rect rect, {required bool visible}) =>
-      _platform.setViewport(id, rect: rect, visible: visible);
+  Future<void> setViewport(Rect rect, {required bool visible}) {
+    if (_disposed) return Future<void>.value();
+    return _platform.setViewport(id, rect: rect, visible: visible);
+  }
 
   Future<void> _refCommand(
     String name,

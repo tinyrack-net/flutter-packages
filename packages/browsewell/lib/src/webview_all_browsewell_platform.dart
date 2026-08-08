@@ -454,7 +454,12 @@ final class WebviewAllBrowsewellPlatform extends BrowsewellPlatform {
           ? 'document.body?.innerText.includes('
                 '${jsonEncode(arguments['text'])}) ?? false'
           : 'location.href.includes(${jsonEncode(arguments['url'])})';
-      if (await _run(browser, script) == true) return;
+      try {
+        if (await _run(browser, script) == true) return;
+      } on PlatformException {
+        // WKWebView rejects evaluation briefly while a navigation is
+        // committing. A wait condition spans that transient page state.
+      }
       await Future<void>.delayed(const Duration(milliseconds: 50));
     }
     throw const BrowsewellException(

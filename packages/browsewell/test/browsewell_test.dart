@@ -143,6 +143,17 @@ void main() {
     expect(platform.viewports.single.rect.size, const Size(320, 240));
     expect(platform.viewports.single.visible, isTrue);
   });
+
+  test('ignores late viewport reports after controller disposal', () async {
+    final controller = await BrowsewellController.create(
+      profile: const BrowsewellProfile(directory: '/profiles/coder'),
+    );
+
+    await controller.dispose();
+    await controller.setViewport(Rect.zero, visible: false);
+
+    expect(platform.viewports, isEmpty);
+  });
 }
 
 final class _FakeBrowsewellPlatform extends BrowsewellPlatform

@@ -236,6 +236,30 @@ void main() {
     );
   });
 
+  test(
+    'wait retries while the native page cannot evaluate JavaScript',
+    () async {
+      final created = await platform.create(
+        BrowsewellCreateRequest(
+          profile: const BrowsewellProfile(directory: '/profile'),
+          initialUrl: Uri.parse('about:blank'),
+          policy: const BrowsewellPolicy(),
+        ),
+      );
+      webviews.controller.transientEvaluationFailures = 1;
+
+      await platform.execute(
+        created.id,
+        const BrowsewellCommand('wait', <String, Object?>{
+          'text': 'Ready',
+          'timeoutMs': 500,
+        }),
+      );
+
+      expect(webviews.controller.transientEvaluationFailures, 0);
+    },
+  );
+
   test('rejects stale refs and policy-sized results', () async {
     final created = await platform.create(
       BrowsewellCreateRequest(
@@ -370,6 +394,7 @@ final class _FakeController extends PlatformWebViewController {
   Future<bool> Function(JavaScriptConfirmDialogRequest request)? confirm;
   Future<String> Function(JavaScriptTextInputDialogRequest request)? prompt;
   bool waitMatches = true;
+  int transientEvaluationFailures = 0;
   int snapshotGeneration = 0;
 
   @override
@@ -417,6 +442,10 @@ final class _FakeController extends PlatformWebViewController {
 
   @override
   Future<Object> runJavaScriptReturningResult(String javaScript) async {
+    if (transientEvaluationFailures > 0 && javaScript.contains('includes(')) {
+      transientEvaluationFailures -= 1;
+      throw PlatformException(code: 'page-not-ready');
+    }
     if (javaScript.contains('__browsewellGeneration')) {
       snapshotGeneration += 1;
       return '{"generation":$snapshotGeneration,'
