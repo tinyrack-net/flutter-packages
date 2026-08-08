@@ -298,6 +298,44 @@ void main() {
     );
 
     test(
+      'Kitty keyboard set, query, push, pop and buffer state match xterm',
+      () async {
+        final terminal = Terminal(
+          options: TerminalOptions(
+            vtExtensions: const TerminalVtExtensions(kittyKeyboard: true),
+          ),
+        );
+        addTearDown(terminal.dispose);
+        final reports = <String>[];
+        terminal.onData.listen(reports.add);
+
+        await terminal.writeAndWait(
+          '\u001b[=3u'
+          '\u001b[=4;2u'
+          '\u001b[?u'
+          '\u001b[>2u'
+          '\u001b[?u'
+          '\u001b[<u'
+          '\u001b[?u'
+          '\u001b[>5u'
+          '\u001b[?1049h'
+          '\u001b[?u'
+          '\u001b[>7u'
+          '\u001b[?1049l'
+          '\u001b[?u',
+        );
+
+        expect(reports, <String>[
+          '\u001b[?7u',
+          '\u001b[?2u',
+          '\u001b[?0u',
+          '\u001b[?0u',
+          '\u001b[?5u',
+        ]);
+      },
+    );
+
+    test(
       'accepts the exact parser payload limit and rejects limit + 1',
       () async {
         final terminal = Terminal(options: TerminalOptions(cols: 1, rows: 1));

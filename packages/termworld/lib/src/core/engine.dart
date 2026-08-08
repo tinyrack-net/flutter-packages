@@ -81,6 +81,11 @@ final class _TerminalCoreEngine {
   bool urxvtMouseMode = false;
   bool alternateScrollMode = false;
   bool sendCursorPosition = false;
+  int kittyKeyboardFlags = 0;
+  int _kittyMainFlags = 0;
+  int _kittyAlternateFlags = 0;
+  final List<int> _kittyMainStack = <int>[];
+  final List<int> _kittyAlternateStack = <int>[];
   bool _pendingWrap = false;
   int _savedMarginTop = 0;
   int _savedMarginBottom = 0;
@@ -385,6 +390,10 @@ final class _TerminalCoreEngine {
       _attributes.protected = params[0][0] == 1;
       return;
     }
+    if (finalByte == 'u' && '=?><'.contains(prefix)) {
+      _kittyKeyboard(prefix, params);
+      return;
+    }
     switch (finalByte) {
       case '@':
         _restrictCursor();
@@ -514,6 +523,56 @@ final class _TerminalCoreEngine {
         _saveCursor();
       case 'u':
         _restoreCursor();
+    }
+  }
+
+  void _kittyKeyboard(String prefix, List<List<int>> params) {
+    if (!options.vtExtensions.kittyKeyboard) return;
+    final value = params[0][0];
+    switch (prefix) {
+      case '=':
+        final mode = params.length > 1 && params[1][0] != 0 ? params[1][0] : 1;
+        switch (mode) {
+          case 1:
+            kittyKeyboardFlags = value;
+          case 2:
+            kittyKeyboardFlags |= value;
+          case 3:
+            kittyKeyboardFlags &= ~value;
+        }
+      case '?':
+        onData?.call(
+          '\u001b[?$kittyKeyboardFlags'
+          'u',
+        );
+      case '>':
+        final stack = _activeKittyStack;
+        if (stack.length >= 16) stack.removeAt(0);
+        stack.add(kittyKeyboardFlags);
+        kittyKeyboardFlags = value;
+      case '<':
+        final count = math.max(1, value == 0 ? 1 : value);
+        final stack = _activeKittyStack;
+        for (var index = 0; index < count && stack.isNotEmpty; index++) {
+          kittyKeyboardFlags = stack.removeLast();
+        }
+        if (stack.isEmpty && count > 0) kittyKeyboardFlags = 0;
+    }
+  }
+
+  List<int> get _activeKittyStack =>
+      buffer.active.type == TerminalBufferType.alternate
+      ? _kittyAlternateStack
+      : _kittyMainStack;
+
+  void _switchKittyKeyboardBuffer({required bool alternate}) {
+    if (!options.vtExtensions.kittyKeyboard) return;
+    if (alternate) {
+      _kittyMainFlags = kittyKeyboardFlags;
+      kittyKeyboardFlags = _kittyAlternateFlags;
+    } else {
+      _kittyAlternateFlags = kittyKeyboardFlags;
+      kittyKeyboardFlags = _kittyMainFlags;
     }
   }
 
@@ -1224,8 +1283,10 @@ final class _TerminalCoreEngine {
           appKeypadMode = enabled;
         case 47 || 1047:
           if (enabled) {
+            _switchKittyKeyboardBuffer(alternate: true);
             buffer.useAlternate(clear: mode == 1047);
           } else {
+            _switchKittyKeyboardBuffer(alternate: false);
             buffer.useNormal();
           }
         case 1000:
@@ -1262,8 +1323,10 @@ final class _TerminalCoreEngine {
         case 1049:
           if (enabled) {
             _saveCursor();
+            _switchKittyKeyboardBuffer(alternate: true);
             buffer.useAlternate();
           } else {
+            _switchKittyKeyboardBuffer(alternate: false);
             buffer.useNormal();
             _restoreCursor();
           }
@@ -1475,6 +1538,11 @@ final class _TerminalCoreEngine {
     _precedingJoinState = 0;
     lineFeedMode = false;
     win32InputMode = false;
+    kittyKeyboardFlags = 0;
+    _kittyMainFlags = 0;
+    _kittyAlternateFlags = 0;
+    _kittyMainStack.clear();
+    _kittyAlternateStack.clear();
     softReset();
     _resetTabStops();
   }
