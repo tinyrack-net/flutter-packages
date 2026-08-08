@@ -102,6 +102,14 @@ final class SerializeAddon extends ManagedTerminalAddon {
       cursorStyle = _serializeLine(normal.getLine(row)!, result, cursorStyle);
       if (row != normalEnd) result.write('\r\n');
     }
+    _restoreCursorAndStyle(
+      result,
+      normal,
+      normalEnd,
+      _serializedLength(normal.getLine(normalEnd)!),
+      cursorStyle,
+      restorePosition: options.range == null,
+    );
     if (!options.excludeAltBuffer &&
         identical(terminal.buffer.active, terminal.buffer.alternate)) {
       result.write('\u001b[?1049h\u001b[H');
@@ -116,9 +124,41 @@ final class SerializeAddon extends ManagedTerminalAddon {
         );
         if (row != alternateEnd) result.write('\r\n');
       }
+      _restoreCursorAndStyle(
+        result,
+        alternate,
+        alternateEnd,
+        _serializedLength(alternate.getLine(alternateEnd)!),
+        cursorStyle,
+        restorePosition: true,
+      );
     }
     if (!options.excludeModes) _serializeModes(result);
     return result.toString();
+  }
+
+  void _restoreCursorAndStyle(
+    StringBuffer result,
+    TerminalBuffer buffer,
+    int lastRow,
+    int lastColumn,
+    TerminalCell cursorStyle, {
+    required bool restorePosition,
+  }) {
+    if (restorePosition) {
+      final rowOffset = buffer.absoluteCursorY - lastRow;
+      final columnOffset = buffer.cursorX - lastColumn;
+      if (rowOffset > 0) result.write('\u001b[${rowOffset}B');
+      if (rowOffset < 0) result.write('\u001b[${-rowOffset}A');
+      if (columnOffset > 0) result.write('\u001b[${columnOffset}C');
+      if (columnOffset < 0) result.write('\u001b[${-columnOffset}D');
+    }
+    final current = TerminalBufferLine(
+      1,
+      attributes: terminal.currentAttributes,
+    ).getCell(0)!;
+    final style = _sgrDiff(current, cursorStyle);
+    if (style.isNotEmpty) result.write('\u001b[${style.join(';')}m');
   }
 
   /// Serializes the active buffer or current selection as safe HTML.
@@ -522,6 +562,9 @@ final class SerializeAddon extends ManagedTerminalAddon {
         result.write('\u001b[?1003h');
       case 'none':
         break;
+    }
+    if (modes.scrollTop != 0 || modes.scrollBottom != terminal.rows - 1) {
+      result.write('\u001b[${modes.scrollTop + 1};${modes.scrollBottom + 1}r');
     }
   }
 }

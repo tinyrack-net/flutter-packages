@@ -158,6 +158,21 @@ void main() {
     expect(addon.serializeAsHtml(), contains('red&lt;text>'));
   });
 
+  test('serialize restores current style, cursor, and scroll region', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 5));
+    final addon = SerializeAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait(
+      '\u001b[32m> \u001b[0m\u001b[2;4r\u001b[4;3H',
+    );
+
+    final serialized = addon.serialize();
+    expect(serialized, startsWith('\u001b[32m> '));
+    expect(serialized, contains('\u001b[2C\u001b[0m'));
+    expect(serialized, endsWith('\u001b[2;4r'));
+  });
+
   test('unicode addons register all pinned providers', () {
     final terminal = Terminal();
     addTearDown(terminal.dispose);

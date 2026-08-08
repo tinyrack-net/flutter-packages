@@ -357,6 +357,12 @@ final class TerminalModes {
   /// xterm-compatible `win32InputMode` API.
   bool get win32InputMode => _terminal._engine.win32InputMode;
 
+  /// Zero-based top margin of the active DECSTBM scroll region.
+  int get scrollTop => _terminal._engine.marginTop;
+
+  /// Zero-based bottom margin of the active DECSTBM scroll region.
+  int get scrollBottom => _terminal._engine.marginBottom;
+
   /// xterm-compatible `switch` API.
   String get mouseTrackingMode => switch (_terminal._engine.mouseMode) {
     TerminalMouseTrackingMode.none => 'none',
@@ -492,6 +498,9 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `cols` API.
   int get cols => _engine.columns;
+
+  /// Current input-handler attributes used for subsequently printed cells.
+  TerminalCellAttributes get currentAttributes => _engine.currentAttributes;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalMarker> get markers => List<TerminalMarker>.unmodifiable(

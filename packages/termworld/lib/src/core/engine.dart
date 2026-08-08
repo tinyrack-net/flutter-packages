@@ -114,6 +114,7 @@ final class _TerminalCoreEngine {
 
   int get columns => _columns;
   int get rows => _rows;
+  TerminalCellAttributes get currentAttributes => _attributes.copy();
 
   void write(String input) {
     var index = 0;
