@@ -1480,6 +1480,7 @@
     "addons/addon-webgl/src/CursorBlinkStateManager.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart"]},
     "addons/addon-webgl/src/DevicePixelObserver.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart"]},
     "addons/addon-webgl/src/WebglUtils.ts": {"implementation":["lib/src/addons/webgl_utils.dart","lib/src/addons/webgl_web.dart"],"tests":["test/upstream_webgl_utils_parity_test.dart","test/termworld_web_test.dart"]},
+    "addons/addon-webgl/src/RenderModel.ts": {"implementation":["lib/src/addons/webgl_utils.dart"],"tests":["test/upstream_webgl_utils_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/tables.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/types.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/coverage.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},

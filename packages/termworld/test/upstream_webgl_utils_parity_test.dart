@@ -104,6 +104,24 @@ void main() {
       });
     });
   });
+
+  test('WebGL render model resizes and clears packed cell data', () {
+    final model = TerminalWebglRenderModel()..resize(2, 3);
+    expect(model.cells, hasLength(24));
+    expect(model.lineLengths, hasLength(3));
+    model.cells[0] = 7;
+    model.lineLengths[0] = 2;
+    model.clear();
+    expect(model.cells.every((value) => value == 0), isTrue);
+    expect(model.lineLengths.every((value) => value == 0), isTrue);
+
+    final cells = model.cells;
+    model.resize(3, 2);
+    expect(identical(model.cells, cells), isTrue);
+    model.resize(4, 2);
+    expect(model.cells, hasLength(32));
+    expect(model.lineLengths, hasLength(2));
+  });
 }
 
 void _expectTypedSlices<T extends List<num>>(T values, int largeStart) {
