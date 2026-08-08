@@ -316,7 +316,7 @@ final class _TerminalViewState extends State<TerminalView> {
     }
     if (_cursorBlinkTimer != null) return;
     _cursorVisible = true;
-    _cursorBlinkTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+    _cursorBlinkTimer = Timer.periodic(const Duration(milliseconds: 600), (_) {
       if (!mounted) return;
       _cursorVisible = !_cursorVisible;
       setState(() {});
