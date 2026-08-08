@@ -1364,8 +1364,8 @@
     "src/browser/Viewport.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/decorations/BufferDecorationRenderer.ts": {"implementation":["lib/src/core/decoration_service.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_decoration_service_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/decorations/OverviewRulerRenderer.ts": {"implementation":["lib/src/core/color_zone_store.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_color_zone_store_parity_test.dart","test/terminal_view_test.dart"]},
-    "src/browser/input/CompositionHelper.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
-    "src/browser/input/CompositionHelper.test.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart","example/integration_test/conformance_test.dart"]},
+    "src/browser/input/CompositionHelper.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_composition_helper_parity_test.dart","example/integration_test/conformance_test.dart"]},
+    "src/browser/input/CompositionHelper.test.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_composition_helper_parity_test.dart","example/integration_test/conformance_test.dart"]},
     "src/browser/public/Terminal.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/public_api_contract_test.dart","test/terminal_view_test.dart"]},
     "src/browser/renderer/dom/DomRenderer.ts": {"implementation":["lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart"]},
     "src/browser/renderer/dom/DomRendererRowFactory.ts": {"implementation":["lib/src/flutter/terminal_view.dart","lib/src/core/width_cache.dart"],"tests":["test/terminal_view_test.dart","test/upstream_width_cache_parity_test.dart"]},
@@ -1506,6 +1506,46 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert complex characters": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 00",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert complex characters that change with following character": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 01",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert middle composition and subsequent input without appending existing trailing text": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 02",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert multi-character compositions that are converted to other characters with different lengths": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 03",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert multi-character compositions that are converted to other characters with the same length": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 04",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert multi-characters compositions": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 05",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert non-composition characters input immediately after composition characters": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 06",
+      "dartTestKind": "testWidgets"
+    },
+    "unit:src/browser/input/CompositionHelper.test.ts:CompositionHelper Input Should insert simple characters": {
+      "dartTestFile": "test/upstream_composition_helper_parity_test.dart",
+      "dartTestName": "xterm CompositionHelper 07",
+      "dartTestKind": "testWidgets"
+    },
     "unit:src/common/buffer/BufferReflow.test.ts:BufferReflow reflowLargerGetLinesToRemove should reflow wrapped blocks when the cursor is outside the block": {
       "dartTestFile": "test/upstream_buffer_reflow_parity_test.dart",
       "dartTestName": "xterm BufferReflow 00",

@@ -1794,6 +1794,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   TextEditingValue _platformEditingValue = TextEditingValue.empty;
   String _committedPrefix = '';
   String _resetEchoPrefix = '';
+  String _compositionSuffix = '';
 
   bool get _isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
@@ -1853,7 +1854,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   void _commitComposition() {
     if (!_isComposing) return;
-    _reconcileCommitted(_editingValue.text);
+    _reconcileCommitted(_textWithoutCompositionSuffix(_editingValue.text));
     _resetEditingState();
     widget.onComposingChanged();
   }
@@ -1863,6 +1864,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _platformEditingValue = TextEditingValue.empty;
     _committedPrefix = '';
     _resetEchoPrefix = '';
+    _compositionSuffix = '';
     _connection?.setEditingState(_editingValue);
   }
 
@@ -1914,14 +1916,44 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   void _accept(TextEditingValue value) {
+    final wasComposing = _isComposing;
+    final previousComposing = _editingValue.composing;
     final normalized = _withoutResetEcho(value);
     _editingValue = normalized;
     final composing = normalized.composing;
-    final committedEnd = composing.isValid && !composing.isCollapsed
-        ? composing.start
-        : normalized.text.length;
-    _reconcileCommitted(normalized.text.substring(0, committedEnd));
+    final isComposing = composing.isValid && !composing.isCollapsed;
+    if (isComposing &&
+        (!wasComposing || composing.start > previousComposing.start)) {
+      // Flutter exposes the post-edit value rather than a separate DOM
+      // compositionstart event. Text outside the composing range therefore
+      // existed before this composition and must not be sent again. Keeping
+      // the suffix also mirrors xterm's screen-reader textarea behavior when
+      // composition happens in the middle of existing text.
+      final prefix = normalized.text.substring(0, composing.start);
+      if (wasComposing) {
+        // A new composition can begin before the platform reports the prior
+        // composition end (notably Korean final-consonant redistribution).
+        // Commit the text preceding the new range before tracking that range.
+        _reconcileCommitted(prefix);
+      } else {
+        _committedPrefix = prefix;
+      }
+      _compositionSuffix = normalized.text.substring(composing.end);
+    }
+    final committedText = isComposing
+        ? normalized.text.substring(0, composing.start)
+        : wasComposing
+        ? _textWithoutCompositionSuffix(normalized.text)
+        : normalized.text;
+    _reconcileCommitted(committedText);
+    if (!isComposing) _compositionSuffix = '';
     widget.onComposingChanged();
+  }
+
+  String _textWithoutCompositionSuffix(String value) {
+    final suffix = _compositionSuffix;
+    if (suffix.isEmpty || !value.endsWith(suffix)) return value;
+    return value.substring(0, value.length - suffix.length);
   }
 
   void _finishCommittedInput() {
