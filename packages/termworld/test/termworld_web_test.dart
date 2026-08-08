@@ -171,7 +171,7 @@ void main() {
 
 web.FontFace _fontFace(String family) => web.FontFace(
   family,
-  'url("assets/fonts/MaterialIcons-Regular.otf") format("opentype")'.toJS,
+  'local("DejaVu Sans")'.toJS,
 );
 
 List<String> _fontStatuses() => <String>[
