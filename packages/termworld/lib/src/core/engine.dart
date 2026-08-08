@@ -106,7 +106,7 @@ final class _TerminalCoreEngine {
         index = _csi(input, index + 1);
         continue;
       }
-      if (code < 0x20 || code == 0x7f) {
+      if (code < 0x20 || code == 0x7f || (code >= 0x80 && code <= 0x9f)) {
         _precedingJoinState = 0;
         _precedingCharacter = '';
         _control(code);
@@ -284,6 +284,13 @@ final class _TerminalCoreEngine {
       case 0x0f:
         _activeCharset = 0;
         _charset = _g0;
+      case 0x84:
+        _index();
+      case 0x85:
+        _index();
+        buffer.active.cursorX = 0;
+      case 0x88:
+        _tabStops.add(buffer.active.cursorX);
     }
   }
 

@@ -222,6 +222,30 @@ void main() {
         'apc:payload',
       ]);
     });
+
+    test('executes C1 IND, NEL, and HTS controls', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+      addTearDown(terminal.dispose);
+
+      await terminal.writeAndWait('ab\u0084c\u0085d');
+      expect(terminal.buffer.active.cursorY, 2);
+      expect(terminal.buffer.active.cursorX, 1);
+      expect(
+        terminal.buffer.active.getLine(1)!.translateToString(trimRight: true),
+        '  c',
+      );
+      expect(
+        terminal.buffer.active.getLine(2)!.translateToString(trimRight: true),
+        'd',
+      );
+
+      terminal.reset();
+      await terminal.writeAndWait('abc\u0088\r\tX');
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        'abcX',
+      );
+    });
   });
 
   group('terminal public behavior', () {
