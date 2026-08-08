@@ -510,6 +510,24 @@ void main() {
     },
   );
 
+  test('addon-serialize includes and excludes the alternate buffer', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+    final addon = SerializeAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait('normal\u001b[?1049h\u001b[Halt');
+
+    expect(addon.serialize(), 'normal\u001b[?1049h\u001b[Halt');
+    expect(
+      addon.serialize(
+        options: const TerminalSerializeOptions(
+          excludeAltBuffer: true,
+        ),
+      ),
+      'normal',
+    );
+  });
+
   test('Marker and decoration lifecycle follows tracked line changes', () {
     final factory = TerminalMarkerFactory();
     final marker = factory.create(2);

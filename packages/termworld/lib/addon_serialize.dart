@@ -83,12 +83,23 @@ final class SerializeAddon extends ManagedTerminalAddon {
   String serialize({
     TerminalSerializeOptions options = const TerminalSerializeOptions(),
   }) {
-    final buffer = terminal.buffer.active;
-    final range = _lineRange(buffer, options.range, options.scrollback);
+    final normal = terminal.buffer.normal;
+    final range = _lineRange(normal, options.range, options.scrollback);
+    final normalEnd = _contentEnd(normal, range.$1, range.$2);
     final result = StringBuffer();
-    for (var row = range.$1; row <= range.$2; row++) {
-      _serializeLine(buffer.getLine(row)!, result);
-      if (row != range.$2) result.write('\r\n');
+    for (var row = range.$1; row <= normalEnd; row++) {
+      _serializeLine(normal.getLine(row)!, result);
+      if (row != normalEnd) result.write('\r\n');
+    }
+    if (!options.excludeAltBuffer &&
+        identical(terminal.buffer.active, terminal.buffer.alternate)) {
+      result.write('\u001b[?1049h\u001b[H');
+      final alternate = terminal.buffer.alternate;
+      final alternateEnd = _contentEnd(alternate, 0, alternate.length - 1);
+      for (var row = 0; row <= alternateEnd; row++) {
+        _serializeLine(alternate.getLine(row)!, result);
+        if (row != alternateEnd) result.write('\r\n');
+      }
     }
     if (!options.excludeModes) _serializeModes(result);
     return result.toString();
@@ -140,9 +151,20 @@ final class SerializeAddon extends ManagedTerminalAddon {
     _ => throw ArgumentError.value(value, 'range', 'must use marker or int'),
   };
 
+  int _contentEnd(TerminalBuffer buffer, int start, int requestedEnd) {
+    for (var row = requestedEnd; row > start; row--) {
+      final line = buffer.getLine(row)!;
+      if (_serializedLength(line) != 0 || row == buffer.absoluteCursorY) {
+        return row;
+      }
+    }
+    return start;
+  }
+
   void _serializeLine(TerminalBufferLine line, StringBuffer result) {
     var attributes = '';
-    for (var column = 0; column < line.length; column++) {
+    final end = _serializedLength(line);
+    for (var column = 0; column < end; column++) {
       final cell = line.getCell(column)!;
       if (cell.width == 0) continue;
       final nextAttributes = _sgr(cell);
@@ -153,6 +175,14 @@ final class SerializeAddon extends ManagedTerminalAddon {
       result.write(cell.chars.isEmpty ? ' ' : cell.chars);
     }
     if (attributes.isNotEmpty) result.write('\u001b[0m');
+  }
+
+  int _serializedLength(TerminalBufferLine line) {
+    for (var column = line.length - 1; column >= 0; column--) {
+      final cell = line.getCell(column)!;
+      if (cell.chars.isNotEmpty || !cell.isAttributeDefault) return column + 1;
+    }
+    return 0;
   }
 
   String _sgr(TerminalCell cell) {
@@ -187,12 +217,26 @@ final class SerializeAddon extends ManagedTerminalAddon {
   void _serializeModes(StringBuffer result) {
     final modes = terminal.modes;
     if (modes.applicationCursorKeysMode) result.write('\u001b[?1h');
-    if (modes.applicationKeypadMode) result.write('\u001b=');
+    if (modes.applicationKeypadMode) result.write('\u001b[?66h');
     if (modes.bracketedPasteMode) result.write('\u001b[?2004h');
     if (modes.insertMode) result.write('\u001b[4h');
     if (modes.originMode) result.write('\u001b[?6h');
+    if (modes.reverseWraparoundMode) result.write('\u001b[?45h');
+    if (modes.sendFocusMode) result.write('\u001b[?1004h');
     if (!modes.showCursor) result.write('\u001b[?25l');
     if (!modes.wraparoundMode) result.write('\u001b[?7l');
+    switch (modes.mouseTrackingMode) {
+      case 'x10':
+        result.write('\u001b[?9h');
+      case 'vt200':
+        result.write('\u001b[?1000h');
+      case 'drag':
+        result.write('\u001b[?1002h');
+      case 'any':
+        result.write('\u001b[?1003h');
+      case 'none':
+        break;
+    }
   }
 
   String _plainRange(
