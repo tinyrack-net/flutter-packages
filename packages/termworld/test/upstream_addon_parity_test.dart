@@ -98,7 +98,9 @@ void main() {
 
   group('Unicode11Addon', () {
     test('wcwidth V11 emoji test', () {
-      final terminal = Terminal();
+      final terminal = Terminal(
+        options: TerminalOptions(allowProposedApi: true),
+      );
       addTearDown(terminal.dispose);
       terminal.loadAddon(Unicode11Addon());
       expect(terminal.unicode.versions, contains('11'));
@@ -397,7 +399,9 @@ void main() {
 
   group('UnicodeGraphemesAddon', () {
     test('wcwidth V15 emoji test', () {
-      final terminal = Terminal();
+      final terminal = Terminal(
+        options: TerminalOptions(allowProposedApi: true),
+      );
       addTearDown(terminal.dispose);
       terminal.loadAddon(UnicodeGraphemesAddon());
       expect(terminal.unicode.versions, <String>['6', '15', '15-graphemes']);

@@ -178,7 +178,9 @@ void main() {
   });
 
   test('unicode addons register all pinned providers', () {
-    final terminal = Terminal();
+    final terminal = Terminal(
+      options: TerminalOptions(allowProposedApi: true),
+    );
     addTearDown(terminal.dispose);
     terminal
       ..loadAddon(Unicode11Addon())

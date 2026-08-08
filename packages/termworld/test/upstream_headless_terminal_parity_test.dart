@@ -296,6 +296,22 @@ void main() {
     await terminal.writeAndWait('\u0007');
     expect(calls, <bool>[true]);
   });
+
+  test('xterm HeadlessTerminal 23', () {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    expect(
+      () => terminal.unicode,
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          'You must set the allowProposedApi option to true '
+              'to use proposed API',
+        ),
+      ),
+    );
+  });
 }
 
 Terminal _terminal({int rows = 24}) {

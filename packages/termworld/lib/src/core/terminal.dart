@@ -538,10 +538,10 @@ final class Terminal extends DisposableStore {
   /// Creates a terminal with xterm.js defaults.
   Terminal({TerminalOptions? options})
     : options = options ?? TerminalOptions() {
-    unicode = TerminalUnicodeHandling();
+    _unicode = TerminalUnicodeHandling();
     _engine = _TerminalCoreEngine(
       options: this.options,
-      unicode: unicode,
+      unicode: _unicode,
       columns: this.options.cols < 2 ? 2 : this.options.cols,
       rows: this.options.rows < 1 ? 1 : this.options.rows,
       scrollback: this.options.scrollback,
@@ -595,7 +595,16 @@ final class Terminal extends DisposableStore {
   late final TerminalParser parser;
 
   /// xterm-compatible `unicode` API.
-  late final TerminalUnicodeHandling unicode;
+  TerminalUnicodeHandling get unicode {
+    if (!options.allowProposedApi) {
+      throw StateError(
+        'You must set the allowProposedApi option to true to use proposed API',
+      );
+    }
+    return _unicode;
+  }
+
+  late final TerminalUnicodeHandling _unicode;
 
   /// xterm-compatible `modes` API.
   late final TerminalModes modes;
@@ -1359,7 +1368,7 @@ final class Terminal extends DisposableStore {
     _isDisposing = true;
     _addonManager.dispose();
     _mouseStateService.dispose();
-    unicode.dispose();
+    _unicode.dispose();
     buffer.dispose();
     for (final emitter in <Disposable>[
       _onBell,
