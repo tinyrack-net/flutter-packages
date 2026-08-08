@@ -5,11 +5,14 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:termworld/src/addons/kitty_graphics_types.dart';
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/terminal.dart';
+
+export 'src/addons/kitty_graphics_types.dart';
 
 /// Supported inline image protocol.
 /// xterm-compatible `TerminalImageProtocol` API.
@@ -308,7 +311,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     final separator = data.indexOf(';');
     final control = separator < 0 ? data : data.substring(0, separator);
     final payload = separator < 0 ? '' : data.substring(separator + 1);
-    final command = _parseKittyCommand(control);
+    final command = _KittyCommand.from(parseKittyCommand(control));
     if (command.id != null && command.imageNumber != null) {
       _kittyResponse(
         command.id!,
@@ -879,6 +882,24 @@ final class _KittyCommand {
     this.placementId,
   });
 
+  factory _KittyCommand.from(KittyCommand source) => _KittyCommand(
+    action: source.action,
+    format: _validKittyInteger(source.format),
+    id: _validKittyInteger(source.id),
+    imageNumber: _validKittyInteger(source.imageNumber),
+    width: _validKittyInteger(source.width),
+    height: _validKittyInteger(source.height),
+    columns: _validKittyInteger(source.columns),
+    rows: _validKittyInteger(source.rows),
+    more: _validKittyInteger(source.more),
+    quiet: _validKittyInteger(source.quiet),
+    cursorMovement: _validKittyInteger(source.cursorMovement),
+    zIndex: _validKittyInteger(source.zIndex),
+    transmission: source.transmission,
+    deleteSelector: source.deleteSelector,
+    placementId: _validKittyInteger(source.placementId),
+  );
+
   final String? action;
   final int? format;
   final int? id;
@@ -914,38 +935,8 @@ final class _KittyCommand {
   );
 }
 
-_KittyCommand _parseKittyCommand(String source) {
-  final fields = <String, String>{};
-  for (final field in source.split(',')) {
-    final separator = field.indexOf('=');
-    if (separator < 0) continue;
-    fields[field.substring(0, separator)] = field.substring(separator + 1);
-  }
-  int? number(String key) => _parseLeadingInt(fields[key]);
-  return _KittyCommand(
-    action: fields['a'],
-    format: number('f'),
-    id: number('i'),
-    imageNumber: number('I'),
-    width: number('s'),
-    height: number('v'),
-    columns: number('c'),
-    rows: number('r'),
-    more: number('m'),
-    quiet: number('q'),
-    cursorMovement: number('C'),
-    zIndex: number('z'),
-    transmission: fields['t'],
-    deleteSelector: fields['d'],
-    placementId: number('p'),
-  );
-}
-
-int? _parseLeadingInt(String? source) {
-  if (source == null) return null;
-  final match = RegExp(r'^[-+]?\d+').firstMatch(source);
-  return match == null ? null : int.tryParse(match.group(0)!);
-}
+int? _validKittyInteger(num? value) =>
+    value == null || value is double && !value.isFinite ? null : value.toInt();
 
 final class _KittyPending {
   const _KittyPending(this.command, this.payload);
