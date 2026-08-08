@@ -2,11 +2,13 @@ import Flutter
 import UIKit
 import XCTest
 
-class RunnerTests: XCTestCase {
+final class RunnerTests: XCTestCase {
+  func testTextInputBoundaryPreservesComposedSequences() {
+    let value = "한글👩🏽‍💻e\u{0301}"
+    let clusters = value.map(String.init)
+    let data = value.data(using: .utf16LittleEndian)
 
-  func testExample() {
-    // If you add code to the Runner application, consider adding tests here.
-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
+    XCTAssertEqual(clusters, ["한", "글", "👩🏽‍💻", "é"])
+    XCTAssertEqual(String(data: data!, encoding: .utf16LittleEndian), value)
   }
-
 }

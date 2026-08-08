@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- Replaces the 0.2 engine and widget API with an xterm.js 6.0.0-compatible
+  headless `Terminal` and a Flutter `TerminalView` adapter.
+- Adds ordered string and UTF-8 writes, parser handlers, buffer namespaces,
+  modes, Unicode providers, selection, markers, decorations, and links.
+- Adds all 13 official addon entrypoints and explicit web capability errors.
+- Moves IME handling to a grapheme-aware delta input client and adds one shared
+  conformance suite for Android, iOS, Linux, macOS, Windows, and web.
+- Vendors the pinned upstream VT fixtures and a reproducible parity manifest.
+
 ## 0.2.1
 
 - Lets terminal output move the cursor backward across automatically wrapped

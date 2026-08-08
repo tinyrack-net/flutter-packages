@@ -1,0 +1,181 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:termworld/addon_clipboard.dart';
+import 'package:termworld/addon_fit.dart';
+import 'package:termworld/addon_image.dart';
+import 'package:termworld/addon_ligatures.dart';
+import 'package:termworld/addon_progress.dart';
+import 'package:termworld/addon_search.dart';
+import 'package:termworld/addon_serialize.dart';
+import 'package:termworld/addon_unicode11.dart';
+import 'package:termworld/addon_unicode_graphemes.dart';
+import 'package:termworld/addon_web_fonts.dart';
+import 'package:termworld/addon_web_links.dart';
+import 'package:termworld/addon_webgl.dart';
+import 'package:termworld/termworld_headless.dart';
+
+void main() {
+  test('clipboard handles OSC 52 read and write', () async {
+    final provider = _ClipboardProvider('한글');
+    final terminal = Terminal();
+    final addon = ClipboardAddon(provider: provider);
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    final output = <String>[];
+    terminal.onData.listen(output.add);
+
+    await terminal.writeAndWait('\u001b]52;c;?\u0007');
+    await terminal.writeAndWait('\u001b]52;c;d3JpdHRlbg==\u0007');
+
+    expect(output.single, '\u001b]52;c;7ZWc6riA\u0007');
+    expect(provider.value, 'written');
+  });
+
+  test('fit uses measured cell dimensions', () {
+    final terminal = Terminal();
+    final addon = FitAddon();
+    addTearDown(terminal.dispose);
+    terminal
+      ..loadAddon(addon)
+      ..updateDimensions(
+        const TerminalRenderDimensions(
+          width: 100,
+          height: 50,
+          cellWidth: 10,
+          cellHeight: 10,
+          devicePixelRatio: 1,
+        ),
+      );
+
+    expect(addon.proposeDimensions()?.cols, 10);
+    expect(addon.proposeDimensions()?.rows, 5);
+    addon.fit();
+    expect((terminal.cols, terminal.rows), (10, 5));
+  });
+
+  test('image consumes iTerm2, sixel, and Kitty payloads', () async {
+    final terminal = Terminal();
+    final addon = ImageAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+
+    await terminal.writeAndWait('\u001bPqABC\u001b\\');
+    await terminal.writeAndWait('\u001b]1337;File=inline=1:UE5H\u0007');
+    await terminal.writeAndWait('\u001b_Ga=t;S0lUVFk=\u001b\\');
+
+    expect(
+      addon.images.map((image) => image.protocol),
+      TerminalImageProtocol.values,
+    );
+    expect(addon.storageUsage, greaterThan(0));
+  });
+
+  test('ligature joins overlap according to xterm ordering', () {
+    final terminal = Terminal();
+    final addon = LigaturesAddon(fallbackLigatures: <String>['==', '===']);
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+
+    expect(
+      terminal.characterJoins('a===b'),
+      hasLength(1),
+    );
+    expect(terminal.characterJoins('a===b').single.end, 4);
+  });
+
+  test('progress parses OSC 9;4 and clamps state values', () async {
+    final terminal = Terminal();
+    final addon = ProgressAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    final values = <TerminalProgress>[];
+    addon.onChange.listen(values.add);
+
+    await terminal.writeAndWait('\u001b]9;4;1;120\u0007');
+    await terminal.writeAndWait('\u001b]9;4;4;0\u0007');
+
+    expect(values.first.value, 100);
+    expect(values.last.state, TerminalProgressState.paused);
+    expect(values.last.value, 100);
+  });
+
+  test('search selects forward and backward matches', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 3));
+    final addon = SearchAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait('one two one');
+
+    expect(addon.findNext('one'), isTrue);
+    expect(terminal.getSelection(), 'one');
+    expect(addon.findPrevious('two'), isTrue);
+    expect(terminal.getSelection(), 'two');
+  });
+
+  test('serialize produces restorable ANSI and safe HTML', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
+    final addon = SerializeAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait('\u001b[1;31mred<text>');
+
+    expect(addon.serialize(), contains('\u001b[1;38;5;1mred'));
+    expect(addon.serializeAsHtml(), contains('red&lt;text&gt;'));
+  });
+
+  test('unicode addons register all pinned providers', () {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    terminal
+      ..loadAddon(Unicode11Addon())
+      ..loadAddon(UnicodeGraphemesAddon());
+
+    expect(
+      terminal.unicode.versions,
+      containsAll(<String>['11', '15', '15-graphemes']),
+    );
+    expect(terminal.unicode.activeVersion, '15-graphemes');
+  });
+
+  test('web link provider returns validated ranges', () async {
+    final terminal = Terminal(options: TerminalOptions(rows: 2));
+    final activated = <String>[];
+    final addon = WebLinksAddon(handler: activated.add);
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait('see https://example.com/path now');
+
+    final links = await terminal.linkProviders.single.provideLinks(0);
+    expect(links.single.text, 'https://example.com/path');
+    links.single.activate(links.single.text);
+    expect(activated.single, links.single.text);
+  });
+
+  test('browser-only addons expose explicit capabilities', () {
+    expect(WebFontsAddon.isSupported, isFalse);
+    expect(WebglAddon.isSupported, isFalse);
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    expect(() => terminal.loadAddon(WebFontsAddon()), throwsUnsupportedError);
+    expect(() => terminal.loadAddon(WebglAddon()), throwsUnsupportedError);
+  }, testOn: '!browser');
+
+  test('base64 codec round trips malformed-safe UTF-8', () {
+    const codec = Base64Codec();
+    expect(codec.decodeText(codec.encodeText('한글')), '한글');
+    expect(codec.decodeText('!'), '');
+  });
+}
+
+final class _ClipboardProvider implements TerminalClipboardProvider {
+  _ClipboardProvider(this.value);
+
+  String value;
+
+  @override
+  Future<String> readText(String selection) async => value;
+
+  @override
+  Future<void> writeText(String selection, String text) async {
+    value = text;
+  }
+}

@@ -2,11 +2,14 @@ import Cocoa
 import FlutterMacOS
 import XCTest
 
-class RunnerTests: XCTestCase {
+final class RunnerTests: XCTestCase {
+  func testMarkedTextReplacementCommitsOnlyFinalValue() {
+    let updates: [(String, Bool)] = [
+      ("ㅎ", true), ("한글", true), ("韓國", true), ("韓國", false),
+    ]
+    let commits = updates.filter { !$0.1 }.map { $0.0 }
 
-  func testExample() {
-    // If you add code to the Runner application, consider adding tests here.
-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
+    XCTAssertEqual(commits, ["韓國"])
+    XCTAssertEqual("👩🏽‍💻".count, 1)
   }
-
 }

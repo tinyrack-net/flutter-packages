@@ -2,7 +2,7 @@ name: termworld
 description: >-
   A composable Flutter terminal emulator with Unicode cell rendering, VT/ANSI
   parsing, selection, keyboard and pointer input, and delta-model IME support.
-version: 0.2.1
+version: 0.3.0
 repository: https://github.com/tinyrack-net/flutter-packages
 publish_to: none
 resolution: workspace
@@ -13,9 +13,13 @@ environment:
 
 dependencies:
   characters: ^1.4.1
+  collection: ^1.19.1
   flutter:
     sdk: flutter
+  web_socket_channel: ^3.0.3
+  xterm: ^4.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  stream_channel: ^2.1.4

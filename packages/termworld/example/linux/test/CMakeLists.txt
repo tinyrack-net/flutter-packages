@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.13)
+project(termworld_linux_input_test LANGUAGES CXX)
+enable_testing()
+add_executable(termworld_linux_input_test text_input_boundary_test.cc)
+target_compile_features(termworld_linux_input_test PRIVATE cxx_std_17)
+target_compile_options(termworld_linux_input_test PRIVATE -Wall -Wextra -Werror)
+add_test(NAME termworld_linux_input_test COMMAND termworld_linux_input_test)

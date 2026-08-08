@@ -1,7 +1,9 @@
-/// A Flutter terminal emulator with composition-safe text input.
+/// A Flutter terminal emulator behaviorally aligned with xterm.js.
 library;
 
-export 'src/terminal_emulator.dart';
-export 'src/terminal_models.dart';
-export 'src/terminal_view.dart';
-export 'src/terminal_view_controller.dart';
+export 'package:xterm/core.dart' show CellOffset;
+export 'package:xterm/ui.dart'
+    show TerminalCursorType, TerminalStyle, TerminalTheme, TerminalThemes;
+export 'src/flutter/terminal_view.dart';
+export 'src/flutter/terminal_view_controller.dart';
+export 'termworld_headless.dart';

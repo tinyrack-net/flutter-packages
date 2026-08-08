@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.14)
+project(termworld_windows_input_test LANGUAGES CXX)
+enable_testing()
+add_executable(termworld_windows_input_test text_input_boundary_test.cpp)
+target_compile_features(termworld_windows_input_test PRIVATE cxx_std_17)
+target_compile_options(termworld_windows_input_test PRIVATE /W4 /WX /utf-8)
+add_test(NAME termworld_windows_input_test COMMAND termworld_windows_input_test)
