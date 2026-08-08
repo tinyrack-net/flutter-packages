@@ -419,8 +419,8 @@ final class TerminalOptions {
     double fastScrollSensitivity = 5,
     this.fontSize = 15,
     this.fontFamily = 'monospace',
-    this.fontWeight = 'normal',
-    this.fontWeightBold = 'bold',
+    Object fontWeight = 'normal',
+    Object fontWeightBold = 'bold',
     this.ignoreBracketedPasteMode = false,
     this.letterSpacing = 0,
     double lineHeight = 1,
@@ -448,32 +448,25 @@ final class TerminalOptions {
     this.windowsPty = const TerminalWindowsPtyOptions(),
     this.wordSeparator = ' ()[]{}\',"`',
     this.windowOptions = const TerminalWindowOptions(),
-    this.cols = 80,
-    this.rows = 24,
+    int cols = 80,
+    int rows = 24,
     this.showCursorImmediately = false,
-  }) : _blinkIntervalDuration = _nonNegative(
-         'blinkIntervalDuration',
-         blinkIntervalDuration,
-       ),
-       _cursorWidth = _atLeastOne('cursorWidth', cursorWidth),
-       _fastScrollSensitivity = _positive(
-         'fastScrollSensitivity',
-         fastScrollSensitivity,
-       ),
-       _lineHeight = _positive('lineHeight', lineHeight),
+  }) : fontWeight = _constructorFontWeight(fontWeight, 'normal'),
+       fontWeightBold = _constructorFontWeight(fontWeightBold, 'bold'),
+       cols = cols < 0 ? 80 : cols,
+       rows = rows < 0 ? 24 : rows,
+       _blinkIntervalDuration = blinkIntervalDuration < 0
+           ? 0
+           : blinkIntervalDuration,
+       _cursorWidth = cursorWidth < 1 ? 1 : cursorWidth,
+       _fastScrollSensitivity = fastScrollSensitivity <= 0
+           ? 5
+           : fastScrollSensitivity,
+       _lineHeight = lineHeight <= 0 ? 1 : lineHeight,
        _minimumContrastRatio = minimumContrastRatio.clamp(1, 21),
-       _scrollback = _boundedScrollback(scrollback),
-       _scrollSensitivity = _positive(
-         'scrollSensitivity',
-         scrollSensitivity,
-       ),
-       _tabStopWidth = _atLeastOne('tabStopWidth', tabStopWidth) {
-    if (cols < 0 || rows < 0) {
-      throw ArgumentError('cols and rows cannot be negative');
-    }
-    _validateFontWeight('fontWeight', fontWeight);
-    _validateFontWeight('fontWeightBold', fontWeightBold);
-  }
+       _scrollback = scrollback < 0 ? 1000 : scrollback.clamp(0, 0xffffffff),
+       _scrollSensitivity = scrollSensitivity <= 0 ? 1 : scrollSensitivity,
+       _tabStopWidth = tabStopWidth < 1 ? 8 : tabStopWidth;
 
   final TerminalEventEmitter<String> _onChange = TerminalEventEmitter<String>();
 
@@ -728,7 +721,7 @@ final class TerminalOptions {
     return value.clamp(0, 0xffffffff);
   }
 
-  static void _validateFontWeight(String name, Object value) {
+  static bool _isValidFontWeight(Object value) {
     const named = <String>{
       'normal',
       'bold',
@@ -742,8 +735,11 @@ final class TerminalOptions {
       '800',
       '900',
     };
-    if (value is num && value >= 1 && value <= 1000) return;
-    if (value is String && named.contains(value)) return;
-    throw ArgumentError.value(value, name, 'must be a weight from 1 to 1000');
+    return (value is num && value >= 1 && value <= 1000) ||
+        (value is String && named.contains(value));
+  }
+
+  static Object _constructorFontWeight(Object value, Object fallback) {
+    return _isValidFontWeight(value) ? value : fallback;
   }
 }

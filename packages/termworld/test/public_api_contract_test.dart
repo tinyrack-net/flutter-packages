@@ -74,13 +74,10 @@ void main() {
     expect(() => options.scrollback = -1, throwsArgumentError);
     expect(() => options.scrollSensitivity = 0, throwsArgumentError);
     expect(() => options.tabStopWidth = 0, throwsArgumentError);
-    expect(() => TerminalOptions(cols: -1), throwsArgumentError);
-    expect(() => TerminalOptions(rows: -1), throwsArgumentError);
-    expect(() => TerminalOptions(fontWeight: 0), throwsArgumentError);
-    expect(
-      () => TerminalOptions(fontWeightBold: 'invalid'),
-      throwsArgumentError,
-    );
+    expect(TerminalOptions(cols: -1).cols, 80);
+    expect(TerminalOptions(rows: -1).rows, 24);
+    expect(TerminalOptions(fontWeight: 0).fontWeight, 'normal');
+    expect(TerminalOptions(fontWeightBold: 'invalid').fontWeightBold, 'bold');
   });
 
   test('unicode registry covers control, combining, wide, and error cases', () {

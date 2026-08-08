@@ -20,12 +20,9 @@ void main() {
     });
 
     test('matches option validation and clamping', () {
-      expect(() => TerminalOptions(scrollback: -1), throwsArgumentError);
-      expect(() => TerminalOptions(cursorWidth: 0), throwsArgumentError);
-      expect(
-        () => TerminalOptions(scrollSensitivity: 0),
-        throwsArgumentError,
-      );
+      expect(TerminalOptions(scrollback: -1).scrollback, 1000);
+      expect(TerminalOptions(cursorWidth: 0).cursorWidth, 1);
+      expect(TerminalOptions(scrollSensitivity: 0).scrollSensitivity, 1);
       expect(
         TerminalOptions(minimumContrastRatio: 30).minimumContrastRatio,
         21,
