@@ -151,4 +151,54 @@ void main() {
       '\u001b[?1;4R',
     ]);
   });
+
+  test('Terminal.clear retains the prompt line and disposes markers', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 5));
+    addTearDown(terminal.dispose);
+    await terminal.writeAndWait(
+      List<String>.generate(10, (index) => '\n\rtest$index').join(),
+    );
+    await terminal.writeAndWait('\u001b[31m!');
+
+    final promptLine = terminal.buffer.active.currentLine;
+    final cursorX = terminal.buffer.active.cursorX;
+    final markers = <TerminalMarker>[
+      terminal.registerMarker()!,
+      terminal.registerMarker(cursorYOffset: -1)!,
+    ];
+    var disposalCount = 0;
+    for (final marker in markers) {
+      marker.onDispose.listen((_) => disposalCount++);
+    }
+    final scrollEvents = <int>[];
+    terminal.onScroll.listen(scrollEvents.add);
+
+    terminal.clear();
+
+    expect(terminal.buffer.active.length, 5);
+    expect(terminal.buffer.active.cursorY, 0);
+    expect(terminal.buffer.active.cursorX, cursorX);
+    expect(terminal.buffer.active.getLine(0), same(promptLine));
+    expect(
+      terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+      'test9!',
+    );
+    expect(
+      terminal.buffer.active.getLine(0)!.getCell(5)!.foreground,
+      1,
+    );
+    for (var row = 1; row < 5; row++) {
+      expect(
+        terminal.buffer.active.getLine(row)!.translateToString(trimRight: true),
+        isEmpty,
+      );
+    }
+    expect(disposalCount, markers.length);
+    expect(markers.every((marker) => marker.isDisposed), isTrue);
+    expect(terminal.markers, isEmpty);
+    expect(scrollEvents, <int>[0]);
+
+    terminal.clear();
+    expect(terminal.buffer.active.getLine(0), same(promptLine));
+  });
 }

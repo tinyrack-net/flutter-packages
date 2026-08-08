@@ -630,6 +630,26 @@ final class TerminalBuffer {
     cursorY = 0;
   }
 
+  /// Discards history while retaining the cursor line as the first line.
+  ///
+  /// This is the buffer mutation used by xterm's public `Terminal.clear` API.
+  /// The retained line is not serialized and written again, so its cells,
+  /// attributes, wrapping state and the cursor column stay intact.
+  void clearKeepingCursorLine([TerminalCellAttributes? eraseAttributes]) {
+    final promptLine = currentLine;
+    _onDelete?.call(0, _lines.length);
+    _lines
+      ..clear()
+      ..add(promptLine)
+      ..addAll(
+        List<TerminalBufferLine>.generate(
+          _rows - 1,
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+        ),
+      );
+    cursorY = 0;
+  }
+
   /// Removes retained scrollback without changing the visible viewport.
   void clearScrollback() {
     final retained = baseY;
