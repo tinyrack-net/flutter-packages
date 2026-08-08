@@ -401,6 +401,14 @@
       "implementation": ["lib/src/core/osc_parser.dart"],
       "tests": ["test/upstream_osc_parser_parity_test.dart"]
     },
+    "src/common/parser/Constants.ts": {
+      "implementation": ["lib/src/core/parser_constants.dart"],
+      "tests": [
+        "test/upstream_apc_parser_parity_test.dart",
+        "test/upstream_dcs_parser_parity_test.dart",
+        "test/upstream_osc_parser_parity_test.dart"
+      ]
+    },
     "src/common/parser/Params.ts": {
       "implementation": ["lib/src/core/params.dart"],
       "tests": ["test/upstream_params_parity_test.dart"]

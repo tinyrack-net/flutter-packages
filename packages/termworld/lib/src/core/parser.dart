@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/parser_constants.dart';
 
 /// Identifies a CSI, DCS, ESC, or APC function.
 final class TerminalFunctionIdentifier {
@@ -53,8 +54,6 @@ typedef TerminalApcHandler = FutureOr<bool> Function(String data);
 final class TerminalParser implements Disposable {
   /// Creates a parser with an optional security gate for custom CSI handlers.
   TerminalParser([this._customCsiHandlerAllowed]);
-
-  static const int _maximumPayload = 10000000;
 
   final bool Function(
     TerminalFunctionIdentifier identifier,
@@ -323,7 +322,7 @@ final class TerminalParser implements Disposable {
     final data = separator < 0 ? '' : body.substring(separator + 1);
     final handled =
         terminator.success &&
-        data.length <= _maximumPayload &&
+        data.length <= parserPayloadLimit &&
         !(identifier == null) &&
         await _callNewest(_osc[identifier], (handler) => handler(data));
     return _ParsedSequence(
@@ -346,7 +345,7 @@ final class TerminalParser implements Disposable {
     );
     final handled =
         terminator.success &&
-        data.length <= _maximumPayload &&
+        data.length <= parserPayloadLimit &&
         await _callNewest(
           _dcs[identifier.key],
           (handler) => handler(data, _parameters(_parameterPart(header))),
@@ -371,7 +370,7 @@ final class TerminalParser implements Disposable {
     );
     final handled =
         terminator.success &&
-        data.length <= _maximumPayload &&
+        data.length <= parserPayloadLimit &&
         await _callNewest(_apc[identifier.key], (handler) => handler(data));
     return _ParsedSequence(
       source.substring(start, terminator.end),

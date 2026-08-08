@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/parser_constants.dart';
 import 'package:termworld/src/core/string_builder.dart';
 
 /// Stateful handler for one APC identifier.
@@ -172,7 +173,7 @@ final class ApcHandler implements ApcSubHandler {
   static int payloadLimit = defaultPayloadLimit;
 
   /// xterm's `ParserConstants.PAYLOAD_LIMIT` value.
-  static const int defaultPayloadLimit = 10000000;
+  static const int defaultPayloadLimit = parserPayloadLimit;
 
   final FutureOr<bool> Function(String data) _handler;
   final LimitedStringBuilder _data = LimitedStringBuilder(payloadLimit);

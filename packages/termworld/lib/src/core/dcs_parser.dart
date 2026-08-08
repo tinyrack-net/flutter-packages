@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/params.dart';
+import 'package:termworld/src/core/parser_constants.dart';
 import 'package:termworld/src/core/string_builder.dart';
 
 /// Stateful handler for one DCS identifier.
@@ -173,7 +174,7 @@ final class DcsHandler implements DcsSubHandler {
   static int payloadLimit = defaultPayloadLimit;
 
   /// xterm's `ParserConstants.PAYLOAD_LIMIT` value.
-  static const int defaultPayloadLimit = 10000000;
+  static const int defaultPayloadLimit = parserPayloadLimit;
 
   final FutureOr<bool> Function(String data, Params params) _handler;
   final LimitedStringBuilder _data = LimitedStringBuilder(payloadLimit);
