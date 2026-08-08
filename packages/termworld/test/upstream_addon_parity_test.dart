@@ -530,6 +530,39 @@ void main() {
     );
   });
 
+  test('addon-serialize ports xterm HTML cell styles and framing', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 32, rows: 2));
+    final addon = SerializeAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait(
+      ' <a>&\u001b[1;3;4:3;9;38;5;46;48;2;1;2;3mstyled\u001b[0m',
+    );
+
+    final html = addon.serializeAsHtml();
+    expect(html, startsWith('<html><body><!--StartFragment--><pre>'));
+    expect(
+      html,
+      contains(
+        'color: #000000; background-color: #ffffff; '
+        'font-family: monospace; font-size: 15px;',
+      ),
+    );
+    expect(html, contains('&lt;a>&amp;'));
+    expect(
+      html,
+      contains(
+        "<span style='color: #00ff00; background-color: #010203; "
+        'font-weight: bold; text-decoration: underline wavy line-through; '
+        "font-style: italic;'>styled</span>",
+      ),
+    );
+    expect(
+      html,
+      endsWith('</div></pre><!--EndFragment--></body></html>'),
+    );
+  });
+
   test('Marker and decoration lifecycle follows tracked line changes', () {
     final factory = TerminalMarkerFactory();
     final marker = factory.create(2);

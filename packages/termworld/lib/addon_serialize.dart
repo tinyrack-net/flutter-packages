@@ -1,8 +1,6 @@
 /// ANSI and HTML terminal serialization addon.
 library;
 
-import 'dart:convert';
-
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/marker.dart';
@@ -180,9 +178,7 @@ final class SerializeAddon extends ManagedTerminalAddon {
             ..write(styles.isEmpty ? '>' : " style='${styles.join(' ')}'>");
         }
         output.write(
-          cell.chars.isEmpty
-              ? ' '
-              : const HtmlEscape(HtmlEscapeMode.element).convert(cell.chars),
+          cell.chars.isEmpty ? ' ' : _escapeHtmlCell(cell.chars),
         );
         previous = cell;
       }
@@ -194,6 +190,9 @@ final class SerializeAddon extends ManagedTerminalAddon {
   String _cssNumber(double value) => value == value.roundToDouble()
       ? value.toInt().toString()
       : value.toString();
+
+  String _escapeHtmlCell(String value) =>
+      value.replaceAll('&', '&amp;').replaceAll('<', '&lt;');
 
   List<String> _htmlStyles(TerminalCell cell, List<String> palette) {
     final styles = <String>[];
