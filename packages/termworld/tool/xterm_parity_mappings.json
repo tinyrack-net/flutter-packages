@@ -259,6 +259,14 @@
       "implementation": ["lib/src/core/buffer_range.dart"],
       "tests": ["test/upstream_buffer_range_parity_test.dart"]
     },
+    "src/common/buffer/CellData.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_cell_data_parity_test.dart"]
+    },
+    "src/common/buffer/CellData.test.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_cell_data_parity_test.dart"]
+    },
     "src/common/Async.ts": {
       "implementation": ["lib/src/core/async.dart"],
       "tests": ["test/upstream_async_parity_test.dart"]
@@ -922,6 +930,31 @@
     "unit:src/common/Color.test.ts:Color channels toRgba should convert an rgba array to an rgba number": {
       "dartTestFile": "test/upstream_color_parity_test.dart",
       "dartTestName": "should convert an rgba array to an rgba number",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/CellData.test.ts:CellData attributesEquals returns true for same attributes with different chars": {
+      "dartTestFile": "test/upstream_cell_data_parity_test.dart",
+      "dartTestName": "returns true for same attributes with different chars",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/CellData.test.ts:CellData attributesEquals detects underline style changes": {
+      "dartTestFile": "test/upstream_cell_data_parity_test.dart",
+      "dartTestName": "detects underline style changes",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/CellData.test.ts:CellData attributesEquals detects underline color changes": {
+      "dartTestFile": "test/upstream_cell_data_parity_test.dart",
+      "dartTestName": "detects underline color changes",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/CellData.test.ts:CellData attributesEquals ignores underline variant offsets": {
+      "dartTestFile": "test/upstream_cell_data_parity_test.dart",
+      "dartTestName": "ignores underline variant offsets",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/CellData.test.ts:CellData attributesEquals ignores url ids": {
+      "dartTestFile": "test/upstream_cell_data_parity_test.dart",
+      "dartTestName": "ignores url ids",
       "dartTestKind": "test"
     },
     "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range for single line": {

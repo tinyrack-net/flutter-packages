@@ -233,7 +233,18 @@ final class _CellData {
   int width;
   TerminalCellAttributes attributes;
 
-  int get code => chars.runes.lastOrNull ?? 0;
+  int get code {
+    final units = chars.codeUnits;
+    if (units.isEmpty) return 0;
+    if (units.length == 2 &&
+        units[0] >= 0xd800 &&
+        units[0] <= 0xdbff &&
+        units[1] >= 0xdc00 &&
+        units[1] <= 0xdfff) {
+      return (units[0] - 0xd800) * 0x400 + units[1] - 0xdc00 + 0x10000;
+    }
+    return units.last;
+  }
 
   _CellData copy() => _CellData(
     chars: chars,
@@ -245,16 +256,6 @@ final class _CellData {
     chars = '';
     width = 1;
     attributes = value.copy();
-  }
-}
-
-extension on Iterable<int> {
-  int? get lastOrNull {
-    int? result;
-    for (final value in this) {
-      result = value;
-    }
-    return result;
   }
 }
 
@@ -330,8 +331,23 @@ final class TerminalCell {
       _cell.attributes.sameAs(TerminalCellAttributes());
 
   /// Whether this cell's attributes equal those of [other].
-  bool attributesEqual(TerminalCell other) =>
-      _cell.attributes.sameAs(other._cell.attributes);
+  bool attributesEqual(TerminalCell other) {
+    final left = _cell.attributes;
+    final right = other._cell.attributes;
+    return left.foreground == right.foreground &&
+        left.background == right.background &&
+        left.bold == right.bold &&
+        left.dim == right.dim &&
+        left.italic == right.italic &&
+        left.underline == right.underline &&
+        (left.underline == TerminalUnderlineStyle.none ||
+            left.underlineColor == right.underlineColor) &&
+        left.blink == right.blink &&
+        left.inverse == right.inverse &&
+        left.invisible == right.invisible &&
+        left.strikethrough == right.strikethrough &&
+        left.overline == right.overline;
+  }
 }
 
 /// One mutable line in a terminal buffer.
