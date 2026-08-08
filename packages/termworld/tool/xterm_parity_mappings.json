@@ -251,6 +251,14 @@
       "implementation": ["lib/src/core/circular_list.dart"],
       "tests": ["test/upstream_circular_list_parity_test.dart"]
     },
+    "src/common/buffer/BufferRange.ts": {
+      "implementation": ["lib/src/core/buffer_range.dart"],
+      "tests": ["test/upstream_buffer_range_parity_test.dart"]
+    },
+    "src/common/buffer/BufferRange.test.ts": {
+      "implementation": ["lib/src/core/buffer_range.dart"],
+      "tests": ["test/upstream_buffer_range_parity_test.dart"]
+    },
     "src/common/Async.ts": {
       "implementation": ["lib/src/core/async.dart"],
       "tests": ["test/upstream_async_parity_test.dart"]
@@ -868,6 +876,26 @@
     "unit:src/common/Color.test.ts:Color channels toRgba should convert an rgba array to an rgba number": {
       "dartTestFile": "test/upstream_color_parity_test.dart",
       "dartTestName": "should convert an rgba array to an rgba number",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range for single line": {
+      "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
+      "dartTestName": "should get range for single line",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should throw for invalid range": {
+      "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
+      "dartTestName": "should throw for invalid range",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range multiple lines": {
+      "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
+      "dartTestName": "should get range multiple lines",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range for end line right after start line": {
+      "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
+      "dartTestName": "should get range for end line right after start line",
       "dartTestKind": "test"
     },
     "unit:src/common/Color.test.ts:Color color blend should blend colors based on the alpha channel": {
