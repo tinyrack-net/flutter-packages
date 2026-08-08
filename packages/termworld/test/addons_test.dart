@@ -59,7 +59,10 @@ void main() {
     terminal.loadAddon(addon);
 
     await terminal.writeAndWait('\u001bPqABC\u001b\\');
-    await terminal.writeAndWait('\u001b]1337;File=inline=1:UE5H\u0007');
+    await terminal.writeAndWait(
+      '\u001b]1337;File=inline=1:'
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u0007',
+    );
     await terminal.writeAndWait('\u001b_Ga=t;S0lUVFk=\u001b\\');
 
     expect(

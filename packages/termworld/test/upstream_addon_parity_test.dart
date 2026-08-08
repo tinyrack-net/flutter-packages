@@ -135,7 +135,7 @@ void main() {
       expect(() => addon.storageLimit = 0.49, throwsRangeError);
       expect(() => addon.storageLimit = 1000.1, throwsRangeError);
 
-      final payload = base64.encode(List<int>.filled(300000, 1));
+      final payload = base64.encode(_fakePng(300, 250, 300000));
       await terminal.writeAndWait(
         '\u001b]1337;File=inline=1:$payload\u0007',
       );
@@ -170,7 +170,8 @@ void main() {
         addon.onImageAdded.listen(changes.add);
         addon.showPlaceholder = false;
         await terminal.writeAndWait(
-          '\u001b]1337;File=inline=1:UE5H\u0007',
+          '\u001b]1337;File=inline=1:'
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u0007',
         );
         expect(changes, <TerminalVoid>[TerminalVoid.value]);
         expect(addon.reset(), isFalse);
@@ -240,6 +241,76 @@ void main() {
       expect(addon.images.single.scrolls, isTrue);
       await terminal.writeAndWait('\u001b[?80h\u001bc\u001bPqC\u001b\\');
       expect(addon.images.single.scrolls, isTrue);
+    });
+
+    test(
+      'IIP validates headers, metrics, names and payload alphabet',
+      () async {
+        final terminal = Terminal();
+        final addon = ImageAddon();
+        addTearDown(terminal.dispose);
+        terminal.loadAddon(addon);
+        final payload = base64.encode(_fakePng(12, 7, 32));
+        final name = base64.encode(utf8.encode('한글.png'));
+
+        await terminal.writeAndWait(
+          '\u001b]1337;File=inline=0:$payload\u0007'
+          '\u001b]1337;File=inline=x:$payload\u0007'
+          '\u001b]1337;File=inline=1;width=bad:$payload\u0007'
+          '\u001b]1337;File=inline=1:%%%%\u0007'
+          '\u001b]1337;File=inline=1;size=1;name=$name;'
+          'width=3;height=4px;preserveAspectRatio=0:$payload\u0007',
+        );
+
+        expect(addon.images, hasLength(1));
+        expect(addon.images.single.pixelWidth, 12);
+        expect(addon.images.single.pixelHeight, 7);
+        expect(addon.images.single.name, '한글.png');
+        expect(addon.images.single.storageBytes, 12 * 7 * 4);
+      },
+    );
+
+    test('IIP multipart chunks and cell-size report', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final reports = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(reports.add);
+      terminal.updateDimensions(
+        const TerminalRenderDimensions(
+          width: 800,
+          height: 480,
+          cellWidth: 10,
+          cellHeight: 20,
+          devicePixelRatio: 2,
+        ),
+      );
+      final payload = base64.encode(_fakePng(2, 3, 32));
+      final split = payload.length ~/ 2;
+
+      await terminal.writeAndWait(
+        '\u001b]1337;ReportCellSize\u0007'
+        '\u001b]1337;FilePart=${payload.substring(0, split)}\u0007'
+        '\u001b]1337;FileEnd\u0007'
+        '\u001b]1337;MultipartFile=inline=1\u0007'
+        '\u001b]1337;FilePart=${payload.substring(0, split)}\u0007'
+        '\u001b]1337;FilePart=${payload.substring(split)}\u0007'
+        '\u001b]1337;FileEnd\u0007',
+      );
+
+      expect(
+        reports,
+        <String>['\u001b]1337;ReportCellSize=20.000;10.000;2.000\u001b\\'],
+      );
+      expect(addon.images, hasLength(1));
+      expect(
+        (addon.images.single.pixelWidth, addon.images.single.pixelHeight),
+        (
+          2,
+          3,
+        ),
+      );
     });
   });
 
@@ -427,4 +498,35 @@ int _stringCellWidth(Terminal terminal, String value) {
     state = next;
   }
   return width;
+}
+
+List<int> _fakePng(int width, int height, int length) {
+  final bytes = List<int>.filled(length, 0)
+    ..setAll(0, <int>[
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a,
+      0,
+      0,
+      0,
+      13,
+      0x49,
+      0x48,
+      0x44,
+      0x52,
+      width >> 24 & 0xff,
+      width >> 16 & 0xff,
+      width >> 8 & 0xff,
+      width & 0xff,
+      height >> 24 & 0xff,
+      height >> 16 & 0xff,
+      height >> 8 & 0xff,
+      height & 0xff,
+    ]);
+  return bytes;
 }

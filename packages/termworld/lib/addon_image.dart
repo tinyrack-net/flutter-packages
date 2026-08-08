@@ -33,6 +33,10 @@ final class TerminalImage {
     required this.column,
     required this.row,
     required this.scrolls,
+    required this.storageBytes,
+    this.pixelWidth,
+    this.pixelHeight,
+    this.name = 'Unnamed file',
   });
 
   /// xterm-compatible `protocol` API.
@@ -49,6 +53,18 @@ final class TerminalImage {
 
   /// Whether the protocol advances the terminal cursor after display.
   final bool scrolls;
+
+  /// Decoded source width when the protocol exposes image metrics.
+  final int? pixelWidth;
+
+  /// Decoded source height when the protocol exposes image metrics.
+  final int? pixelHeight;
+
+  /// Decoded iTerm2 file name.
+  final String name;
+
+  /// RGBA-equivalent bytes charged against the FIFO storage limit.
+  final int storageBytes;
 }
 
 /// Image protocol limits and feature flags.
@@ -142,6 +158,8 @@ final class ImageAddon extends ManagedTerminalAddon {
   bool showPlaceholder;
   late bool _sixelScrolling;
   late int _sixelPaletteLimit;
+  _IipHeader? _multipartHeader;
+  StringBuffer? _multipartPayload;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalImage> get images => List<TerminalImage>.unmodifiable(_images);
@@ -249,16 +267,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     }
     if (options.iipSupport) {
       own(
-        terminal.parser.registerOscHandler(1337, (data) {
-          final separator = data.indexOf(':');
-          if (!data.startsWith('File=') || separator < 0) return false;
-          _addBase64(
-            TerminalImageProtocol.iTerm2,
-            data.substring(separator + 1),
-            options.iipSizeLimit,
-          );
-          return true;
-        }),
+        terminal.parser.registerOscHandler(1337, _handleIip),
       );
     }
     if (options.kittySupport) {
@@ -282,6 +291,140 @@ final class ImageAddon extends ManagedTerminalAddon {
           },
         ),
       );
+    }
+  }
+
+  bool _handleIip(String data) {
+    if (data == 'ReportCellSize') {
+      final dimensions = terminal.dimensions;
+      final width = dimensions == null ? 7.0 : dimensions.width / terminal.cols;
+      final height = dimensions == null
+          ? 14.0
+          : dimensions.height / terminal.rows;
+      final scale = dimensions?.devicePixelRatio ?? 1;
+      terminal.input(
+        '\u001b]1337;ReportCellSize=${height.toStringAsFixed(3)};'
+        '${width.toStringAsFixed(3)};${scale.toStringAsFixed(3)}\u001b\\',
+        wasUserInput: false,
+      );
+      return true;
+    }
+    if (data == 'FileEnd') {
+      final header = _multipartHeader;
+      final payload = _multipartPayload;
+      _multipartHeader = null;
+      _multipartPayload = null;
+      if (header != null && payload != null) {
+        _addIip(header, payload.toString());
+      }
+      return true;
+    }
+    if (data.startsWith('FilePart=')) {
+      final payload = _multipartPayload;
+      if (payload != null) {
+        final part = data.substring(9);
+        if (payload.length + part.length <= _iipEncodedLimit) {
+          payload.write(part);
+        } else {
+          _multipartHeader = null;
+          _multipartPayload = null;
+        }
+      }
+      return true;
+    }
+    if (data.startsWith('MultipartFile=')) {
+      final header = _parseIipHeader(data.substring(14));
+      if (header?.inline == 1) {
+        _multipartHeader = header;
+        _multipartPayload = StringBuffer();
+      } else {
+        _multipartHeader = null;
+        _multipartPayload = null;
+      }
+      return true;
+    }
+    if (!data.startsWith('File=')) return false;
+    _multipartHeader = null;
+    _multipartPayload = null;
+    final separator = data.indexOf(':');
+    if (separator < 0) return true;
+    final header = _parseIipHeader(data.substring(5, separator));
+    if (header?.inline == 1) {
+      _addIip(header!, data.substring(separator + 1));
+    }
+    return true;
+  }
+
+  int get _iipEncodedLimit => (options.iipSizeLimit * 4 / 3).ceil();
+
+  _IipHeader? _parseIipHeader(String source) {
+    final values = <String, String>{};
+    for (final field in source.split(';')) {
+      final separator = field.indexOf('=');
+      if (separator <= 0) continue;
+      values[field.substring(0, separator)] = field.substring(separator + 1);
+    }
+    final inline = int.tryParse(values['inline'] ?? '0');
+    final size = int.tryParse(values['size'] ?? '0');
+    final preserve = int.tryParse(values['preserveAspectRatio'] ?? '1');
+    if (inline == null || size == null || preserve == null) return null;
+    final width = values['width'] ?? 'auto';
+    final height = values['height'] ?? 'auto';
+    final dimension = RegExp(r'^(?:auto|\d+(?:px|%)?)$');
+    if (!dimension.hasMatch(width) || !dimension.hasMatch(height)) return null;
+    var name = 'Unnamed file';
+    final encodedName = values['name'];
+    if (encodedName != null) {
+      final decoded = _decodeBase64(encodedName, options.iipSizeLimit);
+      if (decoded == null) return null;
+      try {
+        name = utf8.decode(decoded);
+      } on FormatException {
+        return null;
+      }
+    }
+    return _IipHeader(
+      inline: inline,
+      size: size,
+      name: name,
+      width: width,
+      height: height,
+      preserveAspectRatio: preserve,
+    );
+  }
+
+  void _addIip(_IipHeader header, String payload) {
+    final bytes = _decodeBase64(payload, options.iipSizeLimit);
+    if (bytes == null) return;
+    final metrics = _imageMetrics(bytes);
+    if (metrics == null ||
+        metrics.width == 0 ||
+        metrics.height == 0 ||
+        metrics.width * metrics.height >= options.pixelLimit) {
+      return;
+    }
+    _add(
+      TerminalImageProtocol.iTerm2,
+      bytes,
+      options.iipSizeLimit,
+      pixelWidth: metrics.width,
+      pixelHeight: metrics.height,
+      name: header.name,
+      storageBytes: metrics.width * metrics.height * 4,
+    );
+  }
+
+  Uint8List? _decodeBase64(String payload, int limit) {
+    if (payload.length > (limit * 4 / 3).ceil() ||
+        payload.length % 4 == 1 ||
+        !RegExp(r'^[A-Za-z0-9+/]*={0,2}$').hasMatch(payload)) {
+      return null;
+    }
+    try {
+      final decoded = base64.decode(base64.normalize(payload));
+      return decoded.length > limit ? null : decoded;
+    } on FormatException {
+      return null;
     }
   }
 
@@ -342,14 +485,19 @@ final class ImageAddon extends ManagedTerminalAddon {
   }
 
   void _addBase64(TerminalImageProtocol protocol, String payload, int limit) {
-    try {
-      _add(protocol, base64.decode(payload), limit);
-    } on FormatException {
-      // xterm ignores invalid image payloads after consuming the sequence.
-    }
+    final decoded = _decodeBase64(payload, limit);
+    if (decoded != null) _add(protocol, decoded, limit);
   }
 
-  void _add(TerminalImageProtocol protocol, List<int> bytes, int limit) {
+  void _add(
+    TerminalImageProtocol protocol,
+    List<int> bytes,
+    int limit, {
+    int? pixelWidth,
+    int? pixelHeight,
+    String name = 'Unnamed file',
+    int? storageBytes,
+  }) {
     if (bytes.length > limit) return;
     final image = TerminalImage(
       protocol: protocol,
@@ -357,9 +505,13 @@ final class ImageAddon extends ManagedTerminalAddon {
       column: terminal.buffer.active.cursorX,
       row: terminal.buffer.active.baseY + terminal.buffer.active.cursorY,
       scrolls: protocol != TerminalImageProtocol.sixel || _sixelScrolling,
+      pixelWidth: pixelWidth,
+      pixelHeight: pixelHeight,
+      name: name,
+      storageBytes: storageBytes ?? bytes.length,
     );
     _images.add(image);
-    _storageBytes += image.data.length;
+    _storageBytes += image.storageBytes;
     _evictToLimit();
     _onImageAdded.fire(TerminalVoid.value);
   }
@@ -379,7 +531,7 @@ final class ImageAddon extends ManagedTerminalAddon {
   void _evictToLimit() {
     final maximumBytes = (_effectiveStorageLimit * 1000000).truncate();
     while (_storageBytes > maximumBytes && _images.isNotEmpty) {
-      _storageBytes -= _images.removeAt(0).data.length;
+      _storageBytes -= _images.removeAt(0).storageBytes;
     }
   }
 
@@ -402,6 +554,8 @@ final class ImageAddon extends ManagedTerminalAddon {
   bool reset() {
     _sixelScrolling = options.sixelScrolling;
     _sixelPaletteLimit = options.sixelPaletteLimit;
+    _multipartHeader = null;
+    _multipartPayload = null;
     _images.clear();
     _storageBytes = 0;
     return false;
@@ -414,3 +568,86 @@ final class ImageAddon extends ManagedTerminalAddon {
     super.dispose();
   }
 }
+
+final class _IipHeader {
+  const _IipHeader({
+    required this.inline,
+    required this.size,
+    required this.name,
+    required this.width,
+    required this.height,
+    required this.preserveAspectRatio,
+  });
+
+  final int inline;
+  final int size;
+  final String name;
+  final String width;
+  final String height;
+  final int preserveAspectRatio;
+}
+
+final class _ImageMetrics {
+  const _ImageMetrics(this.width, this.height);
+
+  final int width;
+  final int height;
+}
+
+_ImageMetrics? _imageMetrics(List<int> data) {
+  if (data.length < 24) return null;
+  if (data[0] == 0x89 &&
+      data[1] == 0x50 &&
+      data[2] == 0x4e &&
+      data[3] == 0x47 &&
+      data[4] == 0x0d &&
+      data[5] == 0x0a &&
+      data[6] == 0x1a &&
+      data[7] == 0x0a &&
+      data[12] == 0x49 &&
+      data[13] == 0x48 &&
+      data[14] == 0x44 &&
+      data[15] == 0x52) {
+    return _ImageMetrics(_bigEndian32(data, 16), _bigEndian32(data, 20));
+  }
+  if (data[0] == 0x47 &&
+      data[1] == 0x49 &&
+      data[2] == 0x46 &&
+      data[3] == 0x38 &&
+      (data[4] == 0x37 || data[4] == 0x39) &&
+      data[5] == 0x61) {
+    return _ImageMetrics(
+      data[6] | data[7] << 8,
+      data[8] | data[9] << 8,
+    );
+  }
+  if (data[0] == 0x71 &&
+      data[1] == 0x6f &&
+      data[2] == 0x69 &&
+      data[3] == 0x66) {
+    return _ImageMetrics(_bigEndian32(data, 4), _bigEndian32(data, 8));
+  }
+  if (data[0] == 0xff && data[1] == 0xd8 && data[2] == 0xff) {
+    var offset = 4;
+    while (offset + 8 < data.length) {
+      final blockLength = data[offset] << 8 | data[offset + 1];
+      offset += blockLength;
+      if (offset + 8 >= data.length || data[offset] != 0xff) return null;
+      final marker = data[offset + 1];
+      if (marker == 0xc0 || marker == 0xc2) {
+        return _ImageMetrics(
+          data[offset + 7] << 8 | data[offset + 8],
+          data[offset + 5] << 8 | data[offset + 6],
+        );
+      }
+      offset += 2;
+    }
+  }
+  return null;
+}
+
+int _bigEndian32(List<int> data, int offset) =>
+    data[offset] << 24 |
+    data[offset + 1] << 16 |
+    data[offset + 2] << 8 |
+    data[offset + 3];
