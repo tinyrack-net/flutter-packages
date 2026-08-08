@@ -203,9 +203,19 @@ void main() {
           (value) =>
               value.layer == TerminalDecorationLayer.top &&
               value.borderColor == '#0a0b0c' &&
-              value.overviewRulerColor == '#ff0000',
+              value.overviewRulerColor == null,
         ),
         isTrue,
+      );
+      expect(
+        terminal.decorations
+            .where(
+              (value) =>
+                  value.layer == TerminalDecorationLayer.bottom &&
+                  value.overviewRulerColor == '#ffff00',
+            )
+            .length,
+        1,
       );
       search.clearActiveDecoration();
       expect(
