@@ -1383,6 +1383,17 @@ final class _TerminalCoreEngine {
       ]);
   }
 
+  void handleOptionChange(String name) {
+    switch (name) {
+      case 'scrollback':
+        buffer.normal.updateScrollback(options.scrollback);
+        return;
+      case 'tabStopWidth':
+        _resetTabStops();
+        return;
+    }
+  }
+
   void softReset() {
     insertMode = false;
     originMode = false;

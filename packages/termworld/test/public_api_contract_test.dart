@@ -86,6 +86,85 @@ void main() {
     expect(TerminalOptions(fontWeightBold: 'invalid').fontWeightBold, 'bold');
   });
 
+  test('every mutable option reports only effective changes', () {
+    final options = TerminalOptions();
+    final changes = <String>[];
+    options.onChange.listen(changes.add);
+
+    options
+      ..allowProposedApi = true
+      ..allowTransparency = true
+      ..altClickMovesCursor = false
+      ..convertEol = true
+      ..cursorBlink = true
+      ..cursorStyle = TerminalCursorStyle.bar
+      ..cursorInactiveStyle = TerminalInactiveCursorStyle.none
+      ..disableStdin = true
+      ..drawBoldTextInBrightColors = false
+      ..fontSize = 16
+      ..fontFamily = 'test'
+      ..ignoreBracketedPasteMode = true
+      ..letterSpacing = 1
+      ..logLevel = TerminalLogLevel.debug
+      ..macOptionIsMeta = true
+      ..macOptionClickForcesSelection = true
+      ..mouseEventsRequireAlt = true
+      ..reflowCursorLine = true
+      ..rescaleOverlappingGlyphs = true
+      ..rightClickSelectsWord = !options.rightClickSelectsWord
+      ..screenReaderMode = true
+      ..scrollOnEraseInDisplay = true
+      ..scrollOnUserInput = false
+      ..smoothScrollDuration = 1
+      ..fontFamily = 'test';
+
+    expect(changes, <String>[
+      'allowProposedApi',
+      'allowTransparency',
+      'altClickMovesCursor',
+      'convertEol',
+      'cursorBlink',
+      'cursorStyle',
+      'cursorInactiveStyle',
+      'disableStdin',
+      'drawBoldTextInBrightColors',
+      'fontSize',
+      'fontFamily',
+      'ignoreBracketedPasteMode',
+      'letterSpacing',
+      'logLevel',
+      'macOptionIsMeta',
+      'macOptionClickForcesSelection',
+      'mouseEventsRequireAlt',
+      'reflowCursorLine',
+      'rescaleOverlappingGlyphs',
+      'rightClickSelectsWord',
+      'screenReaderMode',
+      'scrollOnEraseInDisplay',
+      'scrollOnUserInput',
+      'smoothScrollDuration',
+    ]);
+  });
+
+  test(
+    'live scrollback and tab width changes update the core services',
+    () async {
+      final options = TerminalOptions(cols: 10, rows: 2, scrollback: 10);
+      final terminal = Terminal(options: options);
+      await terminal.writeAndWait('a\r\nb\r\nc\r\nd');
+      expect(terminal.buffer.normal.baseY, 2);
+
+      options.scrollback = 0;
+      expect(terminal.buffer.normal.baseY, 0);
+      expect(terminal.buffer.normal.length, 2);
+
+      terminal.reset();
+      options.tabStopWidth = 4;
+      await terminal.writeAndWait('\t');
+      expect(terminal.buffer.active.cursorX, 4);
+    },
+  );
+
   test('unicode registry covers control, combining, wide, and error cases', () {
     final unicode = TerminalUnicodeHandling();
     final provider = unicode.active;

@@ -239,6 +239,7 @@ final class Terminal extends DisposableStore {
     buffer = _engine.buffer;
     parser = own(TerminalParser());
     modes = TerminalModes._(this);
+    own(this.options.onChange.listen(_handleOptionChange));
   }
 
   late _TerminalCoreEngine _engine;
@@ -357,6 +358,16 @@ final class Terminal extends DisposableStore {
   void Function()? _focus;
   void Function()? _blur;
   bool _hasFocus = false;
+
+  void _handleOptionChange(String name) {
+    _engine.handleOptionChange(name);
+    final nextViewport = _viewportY.clamp(0, buffer.normal.baseY);
+    if (nextViewport != _viewportY) {
+      _viewportY = nextViewport;
+      _onScroll.fire(_viewportY);
+    }
+    _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
+  }
 
   /// Queues text or UTF-8 bytes for ordered parsing.
   void write(Object data, {void Function()? onParsed}) {

@@ -406,57 +406,90 @@ final class TerminalColorTheme {
 final class TerminalOptions {
   /// Creates options using xterm.js defaults.
   TerminalOptions({
-    this.allowProposedApi = false,
-    this.allowTransparency = false,
-    this.altClickMovesCursor = true,
-    this.convertEol = false,
-    this.cursorBlink = false,
+    bool allowProposedApi = false,
+    bool allowTransparency = false,
+    bool altClickMovesCursor = true,
+    bool convertEol = false,
+    bool cursorBlink = false,
     int blinkIntervalDuration = 0,
-    this.cursorStyle = TerminalCursorStyle.block,
+    TerminalCursorStyle cursorStyle = TerminalCursorStyle.block,
     int cursorWidth = 1,
-    this.cursorInactiveStyle = TerminalInactiveCursorStyle.outline,
-    this.disableStdin = false,
-    this.drawBoldTextInBrightColors = true,
+    TerminalInactiveCursorStyle cursorInactiveStyle =
+        TerminalInactiveCursorStyle.outline,
+    bool disableStdin = false,
+    bool drawBoldTextInBrightColors = true,
     double fastScrollSensitivity = 5,
-    this.fontSize = 15,
-    this.fontFamily = 'monospace',
+    double fontSize = 15,
+    String fontFamily = 'monospace',
     Object fontWeight = 'normal',
     Object fontWeightBold = 'bold',
-    this.ignoreBracketedPasteMode = false,
-    this.letterSpacing = 0,
+    bool ignoreBracketedPasteMode = false,
+    double letterSpacing = 0,
     double lineHeight = 1,
-    this.linkHandler,
-    this.logLevel = TerminalLogLevel.info,
-    this.logger,
-    this.macOptionIsMeta = false,
-    this.macOptionClickForcesSelection = false,
+    TerminalLinkHandler? linkHandler,
+    TerminalLogLevel logLevel = TerminalLogLevel.info,
+    TerminalLogger? logger,
+    bool macOptionIsMeta = false,
+    bool macOptionClickForcesSelection = false,
     double minimumContrastRatio = 1,
-    this.mouseEventsRequireAlt = false,
-    this.quirks = const TerminalQuirks(),
-    this.reflowCursorLine = false,
-    this.rescaleOverlappingGlyphs = false,
+    bool mouseEventsRequireAlt = false,
+    TerminalQuirks quirks = const TerminalQuirks(),
+    bool reflowCursorLine = false,
+    bool rescaleOverlappingGlyphs = false,
     bool? rightClickSelectsWord,
-    this.screenReaderMode = false,
+    bool screenReaderMode = false,
     int scrollback = 1000,
-    this.scrollOnEraseInDisplay = false,
-    this.scrollOnUserInput = true,
+    bool scrollOnEraseInDisplay = false,
+    bool scrollOnUserInput = true,
     double scrollSensitivity = 1,
-    this.scrollbar = const TerminalScrollbarOptions(),
-    this.smoothScrollDuration = 0,
+    TerminalScrollbarOptions scrollbar = const TerminalScrollbarOptions(),
+    int smoothScrollDuration = 0,
     int tabStopWidth = 8,
-    this.theme = const TerminalColorTheme(),
-    this.vtExtensions = const TerminalVtExtensions(),
-    this.windowsPty = const TerminalWindowsPtyOptions(),
+    TerminalColorTheme theme = const TerminalColorTheme(),
+    TerminalVtExtensions vtExtensions = const TerminalVtExtensions(),
+    TerminalWindowsPtyOptions windowsPty = const TerminalWindowsPtyOptions(),
     String wordSeparator = ' ()[]{}\',"`',
-    this.windowOptions = const TerminalWindowOptions(),
+    TerminalWindowOptions windowOptions = const TerminalWindowOptions(),
     int cols = 80,
     int rows = 24,
-    this.showCursorImmediately = false,
-  }) : _fontWeight = _constructorFontWeight(fontWeight, 'normal'),
+    bool showCursorImmediately = false,
+  }) : _allowProposedApi = _initial(allowProposedApi),
+       _allowTransparency = _initial(allowTransparency),
+       _altClickMovesCursor = _initial(altClickMovesCursor),
+       _convertEol = _initial(convertEol),
+       _cursorBlink = _initial(cursorBlink),
+       _cursorStyle = _initial(cursorStyle),
+       _cursorInactiveStyle = _initial(cursorInactiveStyle),
+       _disableStdin = _initial(disableStdin),
+       _drawBoldTextInBrightColors = _initial(drawBoldTextInBrightColors),
+       _fontSize = _initial(fontSize),
+       _fontFamily = _initial(fontFamily),
+       _fontWeight = _constructorFontWeight(fontWeight, 'normal'),
        _fontWeightBold = _constructorFontWeight(fontWeightBold, 'bold'),
+       _ignoreBracketedPasteMode = _initial(ignoreBracketedPasteMode),
+       _letterSpacing = _initial(letterSpacing),
+       _linkHandler = _initial(linkHandler),
+       _logLevel = _initial(logLevel),
+       _logger = _initial(logger),
+       _macOptionIsMeta = _initial(macOptionIsMeta),
+       _macOptionClickForcesSelection = _initial(macOptionClickForcesSelection),
+       _mouseEventsRequireAlt = _initial(mouseEventsRequireAlt),
+       _quirks = _initial(quirks),
+       _reflowCursorLine = _initial(reflowCursorLine),
+       _rescaleOverlappingGlyphs = _initial(rescaleOverlappingGlyphs),
+       _screenReaderMode = _initial(screenReaderMode),
+       _scrollOnEraseInDisplay = _initial(scrollOnEraseInDisplay),
+       _scrollOnUserInput = _initial(scrollOnUserInput),
+       _scrollbar = _initial(scrollbar),
+       _smoothScrollDuration = _initial(smoothScrollDuration),
+       _theme = _initial(theme),
+       _vtExtensions = _initial(vtExtensions),
+       _windowsPty = _initial(windowsPty),
        _wordSeparator = wordSeparator.isEmpty ? ' ()[]{}\',"`' : wordSeparator,
+       _windowOptions = _initial(windowOptions),
        cols = cols < 0 ? 80 : cols,
        rows = rows < 0 ? 24 : rows,
+       _showCursorImmediately = _initial(showCursorImmediately),
        _blinkIntervalDuration = blinkIntervalDuration < 0
            ? 0
            : blinkIntervalDuration,
@@ -466,7 +499,7 @@ final class TerminalOptions {
            : fastScrollSensitivity,
        _lineHeight = lineHeight <= 0 ? 1 : lineHeight,
        _minimumContrastRatio = _contrastRatio(minimumContrastRatio),
-       rightClickSelectsWord = rightClickSelectsWord ?? terminalHostIsMac,
+       _rightClickSelectsWord = rightClickSelectsWord ?? terminalHostIsMac,
        _scrollback = scrollback < 0 ? 1000 : scrollback.clamp(0, 0xffffffff),
        _scrollSensitivity = scrollSensitivity <= 0 ? 1 : scrollSensitivity,
        _tabStopWidth = tabStopWidth < 1 ? 8 : tabStopWidth;
@@ -476,118 +509,49 @@ final class TerminalOptions {
   /// Fires with the Dart option name after a value changes.
   TerminalEvent<String> get onChange => _onChange.event;
 
-  /// xterm-compatible `allowProposedApi` API.
-  bool allowProposedApi;
-
-  /// xterm-compatible `allowTransparency` API.
-  bool allowTransparency;
-
-  /// xterm-compatible `altClickMovesCursor` API.
-  bool altClickMovesCursor;
-
-  /// xterm-compatible `convertEol` API.
-  bool convertEol;
-
-  /// xterm-compatible `cursorBlink` API.
-  bool cursorBlink;
+  bool _allowProposedApi;
+  bool _allowTransparency;
+  bool _altClickMovesCursor;
+  bool _convertEol;
+  bool _cursorBlink;
   int _blinkIntervalDuration;
-
-  /// xterm-compatible `cursorStyle` API.
-  TerminalCursorStyle cursorStyle;
+  TerminalCursorStyle _cursorStyle;
   int _cursorWidth;
-
-  /// xterm-compatible `cursorInactiveStyle` API.
-  TerminalInactiveCursorStyle cursorInactiveStyle;
-
-  /// xterm-compatible `disableStdin` API.
-  bool disableStdin;
-
-  /// xterm-compatible `drawBoldTextInBrightColors` API.
-  bool drawBoldTextInBrightColors;
+  TerminalInactiveCursorStyle _cursorInactiveStyle;
+  bool _disableStdin;
+  bool _drawBoldTextInBrightColors;
   double _fastScrollSensitivity;
-
-  /// xterm-compatible `fontSize` API.
-  double fontSize;
-
-  /// xterm-compatible `fontFamily` API.
-  String fontFamily;
-
-  /// xterm-compatible `fontWeight` API.
+  double _fontSize;
+  String _fontFamily;
   Object _fontWeight;
-
-  /// xterm-compatible `fontWeightBold` API.
   Object _fontWeightBold;
-
-  /// xterm-compatible `ignoreBracketedPasteMode` API.
-  bool ignoreBracketedPasteMode;
-
-  /// xterm-compatible `letterSpacing` API.
-  double letterSpacing;
+  bool _ignoreBracketedPasteMode;
+  double _letterSpacing;
   double _lineHeight;
-
-  /// xterm-compatible `linkHandler` API.
-  TerminalLinkHandler? linkHandler;
-
-  /// xterm-compatible `logLevel` API.
-  TerminalLogLevel logLevel;
-
-  /// xterm-compatible `logger` API.
-  TerminalLogger? logger;
-
-  /// xterm-compatible `macOptionIsMeta` API.
-  bool macOptionIsMeta;
-
-  /// xterm-compatible `macOptionClickForcesSelection` API.
-  bool macOptionClickForcesSelection;
+  TerminalLinkHandler? _linkHandler;
+  TerminalLogLevel _logLevel;
+  TerminalLogger? _logger;
+  bool _macOptionIsMeta;
+  bool _macOptionClickForcesSelection;
   double _minimumContrastRatio;
-
-  /// xterm-compatible `mouseEventsRequireAlt` API.
-  bool mouseEventsRequireAlt;
-
-  /// xterm-compatible `quirks` API.
-  TerminalQuirks quirks;
-
-  /// xterm-compatible `reflowCursorLine` API.
-  bool reflowCursorLine;
-
-  /// xterm-compatible `rescaleOverlappingGlyphs` API.
-  bool rescaleOverlappingGlyphs;
-
-  /// xterm-compatible `rightClickSelectsWord` API.
-  bool rightClickSelectsWord;
-
-  /// xterm-compatible `screenReaderMode` API.
-  bool screenReaderMode;
+  bool _mouseEventsRequireAlt;
+  TerminalQuirks _quirks;
+  bool _reflowCursorLine;
+  bool _rescaleOverlappingGlyphs;
+  bool _rightClickSelectsWord;
+  bool _screenReaderMode;
   int _scrollback;
-
-  /// xterm-compatible `scrollOnEraseInDisplay` API.
-  bool scrollOnEraseInDisplay;
-
-  /// xterm-compatible `scrollOnUserInput` API.
-  bool scrollOnUserInput;
+  bool _scrollOnEraseInDisplay;
+  bool _scrollOnUserInput;
   double _scrollSensitivity;
-
-  /// xterm-compatible `scrollbar` API.
-  TerminalScrollbarOptions scrollbar;
-
-  /// xterm-compatible `smoothScrollDuration` API.
-  int smoothScrollDuration;
+  TerminalScrollbarOptions _scrollbar;
+  int _smoothScrollDuration;
   int _tabStopWidth;
-
-  /// xterm-compatible `theme` API.
-  TerminalColorTheme theme;
-
-  /// xterm-compatible `vtExtensions` API.
-  TerminalVtExtensions vtExtensions;
-
-  /// xterm-compatible `windowsPty` API.
-  TerminalWindowsPtyOptions windowsPty;
-
-  /// xterm-compatible `wordSeparator` API.
+  TerminalColorTheme _theme;
+  TerminalVtExtensions _vtExtensions;
+  TerminalWindowsPtyOptions _windowsPty;
   String _wordSeparator;
-
-  /// xterm-compatible `windowOptions` API.
-  TerminalWindowOptions windowOptions;
+  TerminalWindowOptions _windowOptions;
 
   /// xterm-compatible `cols` API.
   final int cols;
@@ -596,7 +560,298 @@ final class TerminalOptions {
   final int rows;
 
   /// xterm-compatible `showCursorImmediately` API.
-  final bool showCursorImmediately;
+  final bool _showCursorImmediately;
+
+  /// xterm-compatible `allowProposedApi` API.
+  bool get allowProposedApi => _allowProposedApi;
+  set allowProposedApi(bool value) => _setOption(
+    'allowProposedApi',
+    _allowProposedApi,
+    value,
+    (next) => _allowProposedApi = next,
+  );
+
+  /// xterm-compatible `allowTransparency` API.
+  bool get allowTransparency => _allowTransparency;
+  set allowTransparency(bool value) => _setOption(
+    'allowTransparency',
+    _allowTransparency,
+    value,
+    (next) => _allowTransparency = next,
+  );
+
+  /// xterm-compatible `altClickMovesCursor` API.
+  bool get altClickMovesCursor => _altClickMovesCursor;
+  set altClickMovesCursor(bool value) => _setOption(
+    'altClickMovesCursor',
+    _altClickMovesCursor,
+    value,
+    (next) => _altClickMovesCursor = next,
+  );
+
+  /// xterm-compatible `convertEol` API.
+  bool get convertEol => _convertEol;
+  set convertEol(bool value) => _setOption(
+    'convertEol',
+    _convertEol,
+    value,
+    (next) => _convertEol = next,
+  );
+
+  /// xterm-compatible `cursorBlink` API.
+  bool get cursorBlink => _cursorBlink;
+  set cursorBlink(bool value) => _setOption(
+    'cursorBlink',
+    _cursorBlink,
+    value,
+    (next) => _cursorBlink = next,
+  );
+
+  /// xterm-compatible `cursorStyle` API.
+  TerminalCursorStyle get cursorStyle => _cursorStyle;
+  set cursorStyle(TerminalCursorStyle value) => _setOption(
+    'cursorStyle',
+    _cursorStyle,
+    value,
+    (next) => _cursorStyle = next,
+  );
+
+  /// xterm-compatible `cursorInactiveStyle` API.
+  TerminalInactiveCursorStyle get cursorInactiveStyle => _cursorInactiveStyle;
+  set cursorInactiveStyle(TerminalInactiveCursorStyle value) => _setOption(
+    'cursorInactiveStyle',
+    _cursorInactiveStyle,
+    value,
+    (next) => _cursorInactiveStyle = next,
+  );
+
+  /// xterm-compatible `disableStdin` API.
+  bool get disableStdin => _disableStdin;
+  set disableStdin(bool value) => _setOption(
+    'disableStdin',
+    _disableStdin,
+    value,
+    (next) => _disableStdin = next,
+  );
+
+  /// xterm-compatible `drawBoldTextInBrightColors` API.
+  bool get drawBoldTextInBrightColors => _drawBoldTextInBrightColors;
+  set drawBoldTextInBrightColors(bool value) => _setOption(
+    'drawBoldTextInBrightColors',
+    _drawBoldTextInBrightColors,
+    value,
+    (next) => _drawBoldTextInBrightColors = next,
+  );
+
+  /// xterm-compatible `fontSize` API.
+  double get fontSize => _fontSize;
+  set fontSize(double value) => _setOption(
+    'fontSize',
+    _fontSize,
+    value,
+    (next) => _fontSize = next,
+  );
+
+  /// xterm-compatible `fontFamily` API.
+  String get fontFamily => _fontFamily;
+  set fontFamily(String value) => _setOption(
+    'fontFamily',
+    _fontFamily,
+    value,
+    (next) => _fontFamily = next,
+  );
+
+  /// xterm-compatible `ignoreBracketedPasteMode` API.
+  bool get ignoreBracketedPasteMode => _ignoreBracketedPasteMode;
+  set ignoreBracketedPasteMode(bool value) => _setOption(
+    'ignoreBracketedPasteMode',
+    _ignoreBracketedPasteMode,
+    value,
+    (next) => _ignoreBracketedPasteMode = next,
+  );
+
+  /// xterm-compatible `letterSpacing` API.
+  double get letterSpacing => _letterSpacing;
+  set letterSpacing(double value) => _setOption(
+    'letterSpacing',
+    _letterSpacing,
+    value,
+    (next) => _letterSpacing = next,
+  );
+
+  /// xterm-compatible `linkHandler` API.
+  TerminalLinkHandler? get linkHandler => _linkHandler;
+  set linkHandler(TerminalLinkHandler? value) => _setOption(
+    'linkHandler',
+    _linkHandler,
+    value,
+    (next) => _linkHandler = next,
+  );
+
+  /// xterm-compatible `logLevel` API.
+  TerminalLogLevel get logLevel => _logLevel;
+  set logLevel(TerminalLogLevel value) => _setOption(
+    'logLevel',
+    _logLevel,
+    value,
+    (next) => _logLevel = next,
+  );
+
+  /// xterm-compatible `logger` API.
+  TerminalLogger? get logger => _logger;
+  set logger(TerminalLogger? value) => _setOption(
+    'logger',
+    _logger,
+    value,
+    (next) => _logger = next,
+  );
+
+  /// xterm-compatible `macOptionIsMeta` API.
+  bool get macOptionIsMeta => _macOptionIsMeta;
+  set macOptionIsMeta(bool value) => _setOption(
+    'macOptionIsMeta',
+    _macOptionIsMeta,
+    value,
+    (next) => _macOptionIsMeta = next,
+  );
+
+  /// xterm-compatible `macOptionClickForcesSelection` API.
+  bool get macOptionClickForcesSelection => _macOptionClickForcesSelection;
+  set macOptionClickForcesSelection(bool value) => _setOption(
+    'macOptionClickForcesSelection',
+    _macOptionClickForcesSelection,
+    value,
+    (next) => _macOptionClickForcesSelection = next,
+  );
+
+  /// xterm-compatible `mouseEventsRequireAlt` API.
+  bool get mouseEventsRequireAlt => _mouseEventsRequireAlt;
+  set mouseEventsRequireAlt(bool value) => _setOption(
+    'mouseEventsRequireAlt',
+    _mouseEventsRequireAlt,
+    value,
+    (next) => _mouseEventsRequireAlt = next,
+  );
+
+  /// xterm-compatible `quirks` API.
+  TerminalQuirks get quirks => _quirks;
+  set quirks(TerminalQuirks value) => _setOption(
+    'quirks',
+    _quirks,
+    value,
+    (next) => _quirks = next,
+  );
+
+  /// xterm-compatible `reflowCursorLine` API.
+  bool get reflowCursorLine => _reflowCursorLine;
+  set reflowCursorLine(bool value) => _setOption(
+    'reflowCursorLine',
+    _reflowCursorLine,
+    value,
+    (next) => _reflowCursorLine = next,
+  );
+
+  /// xterm-compatible `rescaleOverlappingGlyphs` API.
+  bool get rescaleOverlappingGlyphs => _rescaleOverlappingGlyphs;
+  set rescaleOverlappingGlyphs(bool value) => _setOption(
+    'rescaleOverlappingGlyphs',
+    _rescaleOverlappingGlyphs,
+    value,
+    (next) => _rescaleOverlappingGlyphs = next,
+  );
+
+  /// xterm-compatible `rightClickSelectsWord` API.
+  bool get rightClickSelectsWord => _rightClickSelectsWord;
+  set rightClickSelectsWord(bool value) => _setOption(
+    'rightClickSelectsWord',
+    _rightClickSelectsWord,
+    value,
+    (next) => _rightClickSelectsWord = next,
+  );
+
+  /// xterm-compatible `screenReaderMode` API.
+  bool get screenReaderMode => _screenReaderMode;
+  set screenReaderMode(bool value) => _setOption(
+    'screenReaderMode',
+    _screenReaderMode,
+    value,
+    (next) => _screenReaderMode = next,
+  );
+
+  /// xterm-compatible `scrollOnEraseInDisplay` API.
+  bool get scrollOnEraseInDisplay => _scrollOnEraseInDisplay;
+  set scrollOnEraseInDisplay(bool value) => _setOption(
+    'scrollOnEraseInDisplay',
+    _scrollOnEraseInDisplay,
+    value,
+    (next) => _scrollOnEraseInDisplay = next,
+  );
+
+  /// xterm-compatible `scrollOnUserInput` API.
+  bool get scrollOnUserInput => _scrollOnUserInput;
+  set scrollOnUserInput(bool value) => _setOption(
+    'scrollOnUserInput',
+    _scrollOnUserInput,
+    value,
+    (next) => _scrollOnUserInput = next,
+  );
+
+  /// xterm-compatible `scrollbar` API.
+  TerminalScrollbarOptions get scrollbar => _scrollbar;
+  set scrollbar(TerminalScrollbarOptions value) => _setOption(
+    'scrollbar',
+    _scrollbar,
+    value,
+    (next) => _scrollbar = next,
+  );
+
+  /// xterm-compatible `smoothScrollDuration` API.
+  int get smoothScrollDuration => _smoothScrollDuration;
+  set smoothScrollDuration(int value) => _setOption(
+    'smoothScrollDuration',
+    _smoothScrollDuration,
+    value,
+    (next) => _smoothScrollDuration = next,
+  );
+
+  /// xterm-compatible `theme` API.
+  TerminalColorTheme get theme => _theme;
+  set theme(TerminalColorTheme value) => _setOption(
+    'theme',
+    _theme,
+    value,
+    (next) => _theme = next,
+  );
+
+  /// xterm-compatible `vtExtensions` API.
+  TerminalVtExtensions get vtExtensions => _vtExtensions;
+  set vtExtensions(TerminalVtExtensions value) => _setOption(
+    'vtExtensions',
+    _vtExtensions,
+    value,
+    (next) => _vtExtensions = next,
+  );
+
+  /// xterm-compatible `windowsPty` API.
+  TerminalWindowsPtyOptions get windowsPty => _windowsPty;
+  set windowsPty(TerminalWindowsPtyOptions value) => _setOption(
+    'windowsPty',
+    _windowsPty,
+    value,
+    (next) => _windowsPty = next,
+  );
+
+  /// xterm-compatible `windowOptions` API.
+  TerminalWindowOptions get windowOptions => _windowOptions;
+  set windowOptions(TerminalWindowOptions value) => _setOption(
+    'windowOptions',
+    _windowOptions,
+    value,
+    (next) => _windowOptions = next,
+  );
+
+  /// xterm-compatible `showCursorImmediately` API.
+  bool get showCursorImmediately => _showCursorImmediately;
 
   /// xterm-compatible `blinkIntervalDuration` API.
   int get blinkIntervalDuration => _blinkIntervalDuration;
@@ -720,10 +975,21 @@ final class TerminalOptions {
   );
 
   void _set<T>(String name, T oldValue, T newValue, void Function(T) assign) {
+    _setOption(name, oldValue, newValue, assign);
+  }
+
+  void _setOption<T>(
+    String name,
+    T oldValue,
+    T newValue,
+    void Function(T) assign,
+  ) {
     if (oldValue == newValue) return;
     assign(newValue);
     _onChange.fire(name);
   }
+
+  static T _initial<T>(T value) => value;
 
   static int _nonNegative(String name, int value) {
     if (value < 0) {

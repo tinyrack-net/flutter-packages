@@ -486,9 +486,10 @@ final class TerminalBuffer {
     required this.type,
     required int columns,
     required int rows,
-    required this.scrollback,
+    required int scrollback,
   }) : _columns = columns,
        _rows = rows,
+       _scrollback = _initialScrollback(scrollback),
        _lines = List<TerminalBufferLine>.generate(
          rows,
          (_) => TerminalBufferLine(columns),
@@ -498,7 +499,8 @@ final class TerminalBuffer {
   final TerminalBufferType type;
 
   /// Maximum number of retained scrollback lines.
-  final int scrollback;
+  int get scrollback => _scrollback;
+  int _scrollback;
   final List<TerminalBufferLine> _lines;
   int _columns;
   int _rows;
@@ -601,6 +603,13 @@ final class TerminalBuffer {
     if (retained > 0) _lines.removeRange(0, retained);
   }
 
+  /// Updates the retained history limit and immediately removes excess lines.
+  void updateScrollback(int value) {
+    if (type == TerminalBufferType.alternate || _scrollback == value) return;
+    _scrollback = value;
+    _trim();
+  }
+
   /// Scrolls the inclusive region from [top] through [bottom] upward.
   void scroll(
     TerminalCellAttributes eraseAttributes, {
@@ -688,6 +697,8 @@ final class TerminalBuffer {
       _lines.removeRange(0, _lines.length - maximum);
     }
   }
+
+  static int _initialScrollback(int value) => value;
 }
 
 /// Normal, alternate, and active buffers.
