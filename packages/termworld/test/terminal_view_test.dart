@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' show PointerDeviceKind;
 
+import 'package:flutter/gestures.dart' show PointerScrollEvent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -695,6 +696,39 @@ void main() {
     await mouse.up();
     await tester.pump();
     expect(reports, <String>['\u001b[<0;1;1M', '\u001b[<0;1;1m']);
+
+    await tester.sendEventToBinding(
+      PointerScrollEvent(
+        position: start,
+        scrollDelta: const Offset(0, 100),
+      ),
+    );
+    await tester.pump();
+    expect(reports.last, '\u001b[<65;1;1M');
+
+    await terminal.writeAndWait(
+      '\u001b[?1000lone\r\ntwo\r\nthree\r\nfour',
+    );
+    final bottom = terminal.viewportY;
+    await tester.sendEventToBinding(
+      PointerScrollEvent(
+        position: start,
+        scrollDelta: const Offset(0, -100),
+      ),
+    );
+    await tester.pump();
+    expect(terminal.viewportY, lessThan(bottom));
+
+    reports.clear();
+    await terminal.writeAndWait('\u001b[?1049h');
+    await tester.sendEventToBinding(
+      PointerScrollEvent(
+        position: start,
+        scrollDelta: const Offset(0, 100),
+      ),
+    );
+    await tester.pump();
+    expect(reports, <String>['\u001b[B']);
     await mouse.removePointer();
   });
 

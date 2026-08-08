@@ -303,7 +303,8 @@ jobs:
             -d web-server \
             --browser-name=chrome \
             --web-browser-flag=--headless=new \
-            --web-browser-flag=--enable-features=ClipboardAPI
+            --web-browser-flag=--enable-features=ClipboardAPI \
+            --web-browser-flag=--user-data-dir=${{ github.workspace }}/packages/termworld/example/tool/chrome-profile
         working-directory: packages/dropwell/example
       - name: L5 web release build
         run: flutter build web --release
