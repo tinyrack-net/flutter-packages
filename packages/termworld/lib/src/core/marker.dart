@@ -69,6 +69,8 @@ final class TerminalDecoration implements Disposable {
     this.height = 1,
     this.backgroundColor,
     this.foregroundColor,
+    this.borderColor,
+    this.overviewRulerColor,
     this.layer = TerminalDecorationLayer.bottom,
   }) {
     if (x < 0) throw ArgumentError.value(x, 'x', 'cannot be negative');
@@ -97,6 +99,12 @@ final class TerminalDecoration implements Disposable {
 
   /// xterm-compatible `foregroundColor` API.
   final String? foregroundColor;
+
+  /// Optional outline color used by search and link decorations.
+  final String? borderColor;
+
+  /// Optional color presented in an overview ruler by capable renderers.
+  final String? overviewRulerColor;
 
   /// xterm-compatible `layer` API.
   final TerminalDecorationLayer layer;

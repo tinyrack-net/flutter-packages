@@ -116,7 +116,8 @@ void main() {
           '\u001b[?3;2\u0024y',
           '\u001b[?6;1\u0024y',
           '\u001b[?8;3\u0024y',
-          '\u001b[?9;1\u0024y',
+          // Enabling VT200 after X10 replaces the active mouse protocol.
+          '\u001b[?9;2\u0024y',
           '\u001b[?12;1\u0024y',
           '\u001b[?67;4\u0024y',
           '\u001b[?1005;4\u0024y',

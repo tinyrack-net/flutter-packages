@@ -610,6 +610,8 @@ final class Terminal extends DisposableStore {
     int height = 1,
     String? backgroundColor,
     String? foregroundColor,
+    String? borderColor,
+    String? overviewRulerColor,
     TerminalDecorationLayer layer = TerminalDecorationLayer.bottom,
   }) {
     if (marker.isDisposed || marker.line < 0) return null;
@@ -621,6 +623,8 @@ final class Terminal extends DisposableStore {
       height: height,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
+      borderColor: borderColor,
+      overviewRulerColor: overviewRulerColor,
       layer: layer,
     );
     _decorations.add(decoration);
@@ -652,7 +656,10 @@ final class Terminal extends DisposableStore {
           endColumn: end,
         ),
       );
-      if (y != selection.end.y && !line.isWrapped) output.write('\n');
+      if (y != selection.end.y &&
+          !(buffer.active.getLine(y + 1)?.isWrapped ?? false)) {
+        output.write('\n');
+      }
     }
     return output.toString();
   }
