@@ -70,7 +70,7 @@ final class ImageAddonOptions {
   final int pixelLimit;
 
   /// xterm-compatible `storageLimit` API.
-  final int storageLimit;
+  final double storageLimit;
 
   /// xterm-compatible `showPlaceholder` API.
   final bool showPlaceholder;
@@ -103,36 +103,50 @@ final class ImageAddonOptions {
 /// Parses and stores images emitted by terminal applications.
 final class ImageAddon extends ManagedTerminalAddon {
   /// Creates an image addon.
-  ImageAddon({this.options = const ImageAddonOptions()}) {
-    if (options.storageLimit < 0) {
-      throw ArgumentError.value(options.storageLimit, 'storageLimit');
-    }
-  }
+  ImageAddon({this.options = const ImageAddonOptions()})
+    : _configuredStorageLimit = options.storageLimit,
+      showPlaceholder = options.showPlaceholder;
 
   /// xterm-compatible `options` API.
   final ImageAddonOptions options;
   final List<TerminalImage> _images = <TerminalImage>[];
-  final TerminalEventEmitter<TerminalImage> _onImageAdded =
-      TerminalEventEmitter<TerminalImage>();
+  final TerminalEventEmitter<TerminalVoid> _onImageAdded =
+      TerminalEventEmitter<TerminalVoid>();
   int _storageBytes = 0;
+  double _configuredStorageLimit;
+  double _effectiveStorageLimit = 10;
 
   /// xterm-compatible `onImageAdded` API.
-  TerminalEvent<TerminalImage> get onImageAdded => _onImageAdded.event;
+  TerminalEvent<TerminalVoid> get onImageAdded => _onImageAdded.event;
 
   /// xterm-compatible `storageLimit` API.
-  int get storageLimit => options.storageLimit;
+  double get storageLimit => isActive ? _effectiveStorageLimit : -1;
+
+  /// Changes the FIFO image storage limit in decimal megabytes.
+  set storageLimit(double value) {
+    _configuredStorageLimit = value;
+    if (!isActive) return;
+    _setStorageLimit(value);
+  }
 
   /// xterm-compatible `storageUsage` API.
-  int get storageUsage => _storageBytes;
+  double get storageUsage => isActive ? _storageBytes / 1000000 : -1;
 
   /// xterm-compatible `showPlaceholder` API.
-  bool get showPlaceholder => options.showPlaceholder;
+  bool showPlaceholder;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalImage> get images => List<TerminalImage>.unmodifiable(_images);
 
   @override
   void onActivate(Terminal terminal) {
+    if (_configuredStorageLimit >= 0.5 && _configuredStorageLimit <= 1000) {
+      _setStorageLimit(_configuredStorageLimit);
+    } else {
+      // xterm's ImageStorage logs the invalid constructor value and retains
+      // its 10 MB fallback rather than failing addon activation.
+      _effectiveStorageLimit = 10;
+    }
     if (options.sixelSupport) {
       own(
         terminal.parser.registerDcsHandler(
@@ -204,11 +218,27 @@ final class ImageAddon extends ManagedTerminalAddon {
     );
     _images.add(image);
     _storageBytes += image.data.length;
-    final maximumBytes = storageLimit * 1024 * 1024;
+    _evictToLimit();
+    _onImageAdded.fire(TerminalVoid.value);
+  }
+
+  void _setStorageLimit(double value) {
+    if (value < 0.5 || value > 1000) {
+      throw RangeError.value(
+        value,
+        'storageLimit',
+        'must be at least 0.5 MB and not exceed 1000 MB',
+      );
+    }
+    _effectiveStorageLimit = (value * 250000).truncate() * 4 / 1000000;
+    _evictToLimit();
+  }
+
+  void _evictToLimit() {
+    final maximumBytes = (_effectiveStorageLimit * 1000000).truncate();
     while (_storageBytes > maximumBytes && _images.isNotEmpty) {
       _storageBytes -= _images.removeAt(0).data.length;
     }
-    _onImageAdded.fire(image);
   }
 
   /// xterm-compatible `getImageAtBufferCell` API.
@@ -219,11 +249,18 @@ final class ImageAddon extends ManagedTerminalAddon {
     return null;
   }
 
+  /// Extracts the image tile represented by one buffer cell.
+  ///
+  /// The standalone representation retains encoded bytes; Flutter renderers
+  /// crop those bytes' decoded image to the requested cell when painting.
+  TerminalImage? extractTileAtBufferCell(int column, int row) =>
+      getImageAtBufferCell(column, row);
+
   /// Removes all retained image payloads.
   bool reset() {
     _images.clear();
     _storageBytes = 0;
-    return true;
+    return false;
   }
 
   @override

@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:termworld/addon_image.dart';
 import 'package:termworld/addon_progress.dart';
 import 'package:termworld/addon_serialize.dart';
 import 'package:termworld/addon_unicode11.dart';
@@ -102,6 +105,78 @@ void main() {
     expect(
       _stringCellWidth(terminal, List<String>.filled(10, '🤣').join()),
       20,
+    );
+  });
+
+  group('addon-image/test/ImageAddon.test.ts public accessors', () {
+    test('storage accessors are unavailable before activation', () {
+      final addon = ImageAddon();
+      addTearDown(addon.dispose);
+      expect(addon.storageLimit, -1);
+      expect(addon.storageUsage, -1);
+      addon
+        ..storageLimit = 1
+        ..showPlaceholder = false;
+      expect(addon.showPlaceholder, isFalse);
+    });
+
+    test('get/set storage limit and synchronous pressure eviction', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon(
+        options: const ImageAddonOptions(
+          storageLimit: 0.5,
+          iipSizeLimit: 1000000,
+        ),
+      );
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      expect(addon.storageLimit, 0.5);
+      expect(addon.storageUsage, 0);
+      expect(() => addon.storageLimit = 0.49, throwsRangeError);
+      expect(() => addon.storageLimit = 1000.1, throwsRangeError);
+
+      final payload = base64.encode(List<int>.filled(300000, 1));
+      await terminal.writeAndWait(
+        '\u001b]1337;File=inline=1:$payload\u0007',
+      );
+      await terminal.writeAndWait(
+        '\u001b]1337;File=inline=1:$payload\u0007',
+      );
+      expect(addon.images, hasLength(1));
+      expect(addon.storageUsage, closeTo(0.3, 0.000001));
+      expect(addon.extractTileAtBufferCell(0, 0), same(addon.images.single));
+      addon.storageLimit = 0.5;
+      expect(addon.storageLimit, 0.5);
+    });
+
+    test('invalid constructor limit retains 10 MB storage fallback', () {
+      final terminal = Terminal();
+      final addon = ImageAddon(
+        options: const ImageAddonOptions(storageLimit: 0.1),
+      );
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      expect(addon.storageLimit, 10);
+    });
+
+    test(
+      'image event is void and reset preserves mutable placeholder',
+      () async {
+        final terminal = Terminal();
+        final addon = ImageAddon();
+        final changes = <TerminalVoid>[];
+        addTearDown(terminal.dispose);
+        terminal.loadAddon(addon);
+        addon.onImageAdded.listen(changes.add);
+        addon.showPlaceholder = false;
+        await terminal.writeAndWait(
+          '\u001b]1337;File=inline=1:UE5H\u0007',
+        );
+        expect(changes, <TerminalVoid>[TerminalVoid.value]);
+        expect(addon.reset(), isFalse);
+        expect(addon.showPlaceholder, isFalse);
+        expect(addon.storageUsage, 0);
+      },
     );
   });
 
