@@ -179,7 +179,7 @@ public final class BrowsewellPlugin: NSObject, FlutterPlugin {
     var best: (view: WKWebView, distance: Double)?
     func visit(_ view: NSView) {
       if let webView = view as? WKWebView, !webView.isHidden {
-        let origin = webView.convert(.zero, to: root)
+        let origin = webView.convert(NSPoint.zero, to: root)
         let viewTop = root.bounds.height - origin.y - webView.bounds.height
         let distance = pow(origin.x - x, 2) + pow(viewTop - top, 2)
         if distance < (best?.distance ?? .greatestFiniteMagnitude) {

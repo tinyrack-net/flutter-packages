@@ -68,15 +68,10 @@ void main() {
     final snapshot = await controller.snapshot();
     final refs = _refs(snapshot.document);
     expect(snapshot.generation, greaterThan(0));
-    expect(
-      refs.keys,
-      containsAll(<String>['Trusted click', 'Name', 'Choice', 'Frame button']),
-    );
+    expect(refs.keys, containsAll(<String>['Trusted click', 'Name', 'Choice']));
 
     await controller.click(refs['Trusted click']!);
     await controller.waitFor(text: 'trusted-click');
-    await controller.click(refs['Frame button']!);
-    await controller.waitFor(text: 'trusted-frame-click');
     await controller.fill(refs['Name']!, 'Ada');
     await controller.waitFor(text: 'trusted:Ada');
     await controller.type(' Lovelace', ref: refs['Name']);
@@ -150,6 +145,22 @@ void main() {
     await controller.waitFor(url: fixtureUrl.toString());
     await controller.back();
     await controller.forward();
+  });
+
+  testWidgets('snapshots and automates a cross-origin frame', (tester) async {
+    final controller = await BrowsewellController.create(
+      profile: BrowsewellProfile(directory: profileDirectory.path),
+      initialUrl: fixtureUrl,
+    );
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(BrowsewellExample(controller: controller));
+    await tester.pumpAndSettle();
+    await controller.waitFor(text: 'Browsewell fixture');
+
+    final refs = _refs((await controller.snapshot()).document);
+    expect(refs.keys, contains('Frame button'));
+    await controller.click(refs['Frame button']!);
+    await controller.waitFor(text: 'trusted-frame-click');
   });
 
   testWidgets('supports two isolated views sharing one persistent profile', (
