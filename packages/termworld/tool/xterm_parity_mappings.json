@@ -39,6 +39,14 @@
     "addons/addon-serialize/typings/addon-serialize.d.ts:106": {"implementation":"lib/addon_serialize.dart","symbol":"class TerminalSerializeRange"},
     "addons/addon-serialize/typings/addon-serialize.d.ts:110": {"implementation":"lib/addon_serialize.dart","symbol":"final Object start"},
     "addons/addon-serialize/typings/addon-serialize.d.ts:114": {"implementation":"lib/addon_serialize.dart","symbol":"final Object end"},
+    "addons/addon-web-fonts/typings/addon-web-fonts.d.ts:14": {"implementation":"lib/src/addons/web_fonts_web.dart","symbol":"class WebFontsAddon extends"},
+    "addons/addon-web-fonts/typings/addon-web-fonts.d.ts:18": {"implementation":"lib/src/addons/web_fonts_web.dart","symbol":"WebFontsAddon({this.initialRelayout = true})"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:13": {"implementation":"lib/addon_web_links.dart","symbol":"class WebLinksAddon extends"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:23": {"implementation":"lib/addon_web_links.dart","symbol":"WebLinksAddon({"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:40": {"implementation":"lib/addon_web_links.dart","symbol":"class WebLinkProviderOptions"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:44": {"implementation":"lib/addon_web_links.dart","symbol":"hover;"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:50": {"implementation":"lib/addon_web_links.dart","symbol":"leave;"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:55": {"implementation":"lib/addon_web_links.dart","symbol":"RegExp? urlPattern"},
     "addons/addon-attach/typings/addon-attach.d.ts:9": {
       "implementation": "lib/addon_attach.dart",
       "symbol": "bidirectional"
