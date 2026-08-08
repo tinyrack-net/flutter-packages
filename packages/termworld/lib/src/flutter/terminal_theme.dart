@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/terminal.dart';
@@ -143,6 +145,44 @@ abstract final class TerminalThemes {
     palette: _palette,
   );
 
+  /// Composites [foreground] over [background] using xterm's rounded channels.
+  static Color blend(Color background, Color foreground) =>
+      _blend(background, foreground);
+
+  /// Adjusts [foreground] until it reaches xterm's minimum contrast [ratio].
+  static Color ensureContrast(
+    Color background,
+    Color foreground,
+    double ratio,
+  ) {
+    if (ratio <= 1) return foreground;
+    final backgroundChannels = _channels(background);
+    final foregroundChannels = _channels(foreground);
+    final backgroundLuminance = _relativeLuminance(backgroundChannels);
+    final foregroundLuminance = _relativeLuminance(foregroundChannels);
+    if (_contrastRatio(backgroundLuminance, foregroundLuminance) >= ratio) {
+      return foreground;
+    }
+    final primary = foregroundLuminance < backgroundLuminance
+        ? _reduceLuminance(backgroundChannels, foregroundChannels, ratio)
+        : _increaseLuminance(backgroundChannels, foregroundChannels, ratio);
+    final primaryRatio = _contrastRatio(
+      backgroundLuminance,
+      _relativeLuminance(primary),
+    );
+    if (primaryRatio >= ratio) return _fromChannels(primary);
+    final secondary = foregroundLuminance < backgroundLuminance
+        ? _increaseLuminance(backgroundChannels, foregroundChannels, ratio)
+        : _reduceLuminance(backgroundChannels, foregroundChannels, ratio);
+    final secondaryRatio = _contrastRatio(
+      backgroundLuminance,
+      _relativeLuminance(secondary),
+    );
+    return _fromChannels(
+      primaryRatio > secondaryRatio ? primary : secondary,
+    );
+  }
+
   /// Resolves xterm's partial public theme against its browser defaults.
   static TerminalTheme resolve(
     TerminalColorTheme theme, {
@@ -232,6 +272,7 @@ abstract final class TerminalThemes {
   static Color? _parse(String? source) {
     if (source == null) return null;
     final value = source.trim().toLowerCase();
+    if (value == 'transparent') return const Color(0x00000000);
     if (value.startsWith('#')) {
       final hex = value.substring(1);
       if (hex.length == 3 || hex.length == 4) {
@@ -262,6 +303,78 @@ abstract final class TerminalThemes {
       return Color((parsed & 0xff) << 24 | parsed >> 8);
     }
     return null;
+  }
+
+  static (int, int, int) _channels(Color color) => (
+    (color.r * 255).round(),
+    (color.g * 255).round(),
+    (color.b * 255).round(),
+  );
+
+  static Color _fromChannels((int, int, int) channels) => Color.fromARGB(
+    255,
+    channels.$1,
+    channels.$2,
+    channels.$3,
+  );
+
+  static double _relativeLuminance((int, int, int) channels) {
+    double channel(int value) {
+      final normalized = value / 255;
+      return normalized <= 0.03928
+          ? normalized / 12.92
+          : math.pow((normalized + 0.055) / 1.055, 2.4).toDouble();
+    }
+
+    return channel(channels.$1) * 0.2126 +
+        channel(channels.$2) * 0.7152 +
+        channel(channels.$3) * 0.0722;
+  }
+
+  static double _contrastRatio(double first, double second) =>
+      (first > second ? first + 0.05 : second + 0.05) /
+      (first > second ? second + 0.05 : first + 0.05);
+
+  static (int, int, int) _reduceLuminance(
+    (int, int, int) background,
+    (int, int, int) foreground,
+    double ratio,
+  ) {
+    var red = foreground.$1;
+    var green = foreground.$2;
+    var blue = foreground.$3;
+    while (_contrastRatio(
+              _relativeLuminance((red, green, blue)),
+              _relativeLuminance(background),
+            ) <
+            ratio &&
+        (red > 0 || green > 0 || blue > 0)) {
+      red -= (red * 0.1).ceil();
+      green -= (green * 0.1).ceil();
+      blue -= (blue * 0.1).ceil();
+    }
+    return (red, green, blue);
+  }
+
+  static (int, int, int) _increaseLuminance(
+    (int, int, int) background,
+    (int, int, int) foreground,
+    double ratio,
+  ) {
+    var red = foreground.$1;
+    var green = foreground.$2;
+    var blue = foreground.$3;
+    while (_contrastRatio(
+              _relativeLuminance((red, green, blue)),
+              _relativeLuminance(background),
+            ) <
+            ratio &&
+        (red < 255 || green < 255 || blue < 255)) {
+      red = (red + ((255 - red) * 0.1).ceil()).clamp(0, 255);
+      green = (green + ((255 - green) * 0.1).ceil()).clamp(0, 255);
+      blue = (blue + ((255 - blue) * 0.1).ceil()).clamp(0, 255);
+    }
+    return (red, green, blue);
   }
 
   static List<Color> _buildPalette() {

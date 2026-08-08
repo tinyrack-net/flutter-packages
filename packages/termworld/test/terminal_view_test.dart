@@ -49,6 +49,29 @@ void main() {
     expect(dynamic.foreground, const Color(0xff112233));
     expect(dynamic.background, const Color(0xff445566));
     expect(dynamic.cursor, const Color(0xff778899));
+
+    expect(
+      TerminalThemes.ensureContrast(
+        const Color(0xff000000),
+        const Color(0xff606060),
+        4,
+      ),
+      const Color(0xff707070),
+    );
+    expect(
+      TerminalThemes.ensureContrast(
+        const Color(0xffffffff),
+        const Color(0xff606060),
+        7,
+      ),
+      const Color(0xff565656),
+    );
+    expect(
+      TerminalThemes.resolve(
+        const TerminalColorTheme(foreground: 'transparent'),
+      ).foreground,
+      const Color(0x00000000),
+    );
   });
 
   testWidgets('exposes visible terminal rows in screen reader mode', (

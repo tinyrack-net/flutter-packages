@@ -1307,12 +1307,25 @@ final class _TerminalPainter extends CustomPainter {
         }
         final selected = _selected(selection, column, bufferRow);
         if (selected) {
+          final selectionColor = focused
+              ? theme.selection
+              : theme.selectionInactive;
           canvas.drawRect(
             rect,
-            Paint()
-              ..color = focused ? theme.selection : theme.selectionInactive,
+            Paint()..color = selectionColor,
           );
           foreground = theme.selectionForeground ?? foreground;
+          background = TerminalThemes.blend(background, selectionColor);
+        }
+        final codePoint = cell.chars.isEmpty ? null : cell.chars.runes.first;
+        if (codePoint != null &&
+            !_treatGlyphAsBackgroundColor(codePoint) &&
+            terminal.options.minimumContrastRatio != 1) {
+          foreground = TerminalThemes.ensureContrast(
+            background,
+            foreground,
+            terminal.options.minimumContrastRatio / (cell.isDim ? 2 : 1),
+          );
         }
         if (!cell.isInvisible && cell.chars.isNotEmpty) {
           TextPainter(
@@ -1490,6 +1503,10 @@ final class _TerminalPainter extends CustomPainter {
     if (row == range.end.y) return column < range.end.x;
     return true;
   }
+
+  bool _treatGlyphAsBackgroundColor(int codePoint) =>
+      codePoint >= 0xe0a4 && codePoint <= 0xe0d6 ||
+      codePoint >= 0x2500 && codePoint <= 0x259f;
 
   void _paintCursor(
     Canvas canvas,
