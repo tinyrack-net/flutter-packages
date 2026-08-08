@@ -210,6 +210,80 @@ void main() {
     expect(replacement.disposed, isTrue);
     expect(cache.length, 0);
   });
+
+  group('texture atlas image processing', () {
+    test('clears exact background pixels and reports an empty image', () {
+      final pixels = Uint8ClampedList.fromList(<int>[
+        0x12,
+        0x34,
+        0x56,
+        0xff,
+        0x12,
+        0x34,
+        0x56,
+        0x40,
+      ]);
+      expect(
+        clearTerminalWebglImageBackground(
+          pixels,
+          0x123456ff,
+          0xffffffff,
+        ),
+        isTrue,
+      );
+      expect(pixels, <int>[0x12, 0x34, 0x56, 0, 0x12, 0x34, 0x56, 0]);
+      expect(isTerminalWebglImageTransparent(pixels), isTrue);
+    });
+
+    test('uses the foreground-relative threshold when enabled', () {
+      final enabled = Uint8ClampedList.fromList(<int>[11, 20, 30, 0xff]);
+      final disabled = Uint8ClampedList.fromList(enabled);
+      expect(
+        clearTerminalWebglImageBackground(
+          enabled,
+          0x0a141eff,
+          0xfafafaff,
+        ),
+        isTrue,
+      );
+      expect(enabled[3], 0);
+      expect(
+        clearTerminalWebglImageBackground(
+          disabled,
+          0x0a141eff,
+          0xfafafaff,
+          enableThresholdCheck: false,
+        ),
+        isFalse,
+      );
+      expect(disabled[3], 0xff);
+      expect(isTerminalWebglImageTransparent(disabled), isFalse);
+    });
+
+    test('preserves distinct foreground pixels and reports non-empty', () {
+      final pixels = Uint8ClampedList.fromList(<int>[
+        1,
+        2,
+        3,
+        0xff,
+        0xaa,
+        0xbb,
+        0xcc,
+        0xff,
+      ]);
+      expect(
+        clearTerminalWebglImageBackground(
+          pixels,
+          0x010203ff,
+          0xaabbccff,
+        ),
+        isFalse,
+      );
+      expect(pixels[3], 0);
+      expect(pixels[7], 0xff);
+      expect(isTerminalWebglImageTransparent(pixels), isFalse);
+    });
+  });
 }
 
 void _expectTypedSlices<T extends List<num>>(T values, int largeStart) {

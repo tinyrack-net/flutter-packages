@@ -347,6 +347,54 @@ List<num> _typedListLike(List<num> source, int length) => switch (source) {
   _ => throw ArgumentError.value(source, 'source', 'must be a typed list'),
 };
 
+/// Makes pixels matching (or nearly matching) [backgroundRgba] transparent.
+///
+/// Returns true when every resulting pixel is transparent, matching xterm's
+/// texture-atlas background removal pass.
+bool clearTerminalWebglImageBackground(
+  Uint8ClampedList pixels,
+  int backgroundRgba,
+  int foregroundRgba, {
+  bool enableThresholdCheck = true,
+}) {
+  final red = backgroundRgba >>> 24;
+  final green = backgroundRgba >>> 16 & 0xff;
+  final blue = backgroundRgba >>> 8 & 0xff;
+  final foregroundRed = foregroundRgba >>> 24;
+  final foregroundGreen = foregroundRgba >>> 16 & 0xff;
+  final foregroundBlue = foregroundRgba >>> 8 & 0xff;
+  final threshold =
+      ((red - foregroundRed).abs() +
+          (green - foregroundGreen).abs() +
+          (blue - foregroundBlue).abs()) ~/
+      12;
+  var empty = true;
+  for (var offset = 0; offset < pixels.length; offset += 4) {
+    final exact =
+        pixels[offset] == red &&
+        pixels[offset + 1] == green &&
+        pixels[offset + 2] == blue;
+    final difference =
+        (pixels[offset] - red).abs() +
+        (pixels[offset + 1] - green).abs() +
+        (pixels[offset + 2] - blue).abs();
+    if (exact || enableThresholdCheck && difference < threshold) {
+      pixels[offset + 3] = 0;
+    } else {
+      empty = false;
+    }
+  }
+  return empty;
+}
+
+/// Whether every pixel in an RGBA buffer has zero alpha.
+bool isTerminalWebglImageTransparent(Uint8ClampedList pixels) {
+  for (var offset = 0; offset < pixels.length; offset += 4) {
+    if (pixels[offset + 3] > 0) return false;
+  }
+  return true;
+}
+
 /// Inputs that determine WebGL texture-atlas compatibility.
 final class TerminalCharAtlasConfig {
   /// Creates a texture-atlas configuration snapshot.
