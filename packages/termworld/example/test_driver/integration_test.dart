@@ -38,9 +38,7 @@ Future<void> _grantClipboardPermission(FlutterDriver driver) async {
   );
   final client = HttpClient();
   try {
-    final request = await client.postUrl(endpoint);
-    request.headers.contentType = ContentType.json;
-    request.write(
+    final body = utf8.encode(
       jsonEncode(<String, Object>{
         'cmd': 'Browser.grantPermissions',
         'params': <String, Object>{
@@ -52,6 +50,11 @@ Future<void> _grantClipboardPermission(FlutterDriver driver) async {
         },
       }),
     );
+    final request = await client.postUrl(endpoint);
+    request.headers
+      ..contentType = ContentType.json
+      ..contentLength = body.length;
+    request.add(body);
     final response = await request.close();
     final responseBody = await utf8.decoder.bind(response).join();
     if (response.statusCode != HttpStatus.ok) {
