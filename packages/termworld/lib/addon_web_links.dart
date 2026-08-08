@@ -2,20 +2,44 @@
 library;
 
 import 'package:termworld/src/addons/managed_addon.dart';
+import 'package:termworld/src/addons/web_links_opener.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/terminal.dart';
 
 /// Link activation callback.
-typedef TerminalLinkHandler = void Function(String uri);
+typedef WebLinkActivationHandler = void Function(Object? event, String uri);
+
+/// Optional hover, leave and matching behavior for web links.
+final class WebLinkProviderOptions {
+  /// Creates web link provider options.
+  const WebLinkProviderOptions({this.hover, this.leave, this.urlPattern});
+
+  /// Invoked when a pointer enters a resolved link.
+  final void Function(
+    Object? event,
+    String text,
+    TerminalBufferRange range,
+  )?
+  hover;
+
+  /// Invoked when a pointer leaves a resolved link.
+  final void Function(Object? event, String text)? leave;
+
+  /// Optional URL matching expression.
+  final RegExp? urlPattern;
+}
 
 /// Detects web links in terminal rows.
 final class WebLinksAddon extends ManagedTerminalAddon {
   /// Creates a web link addon.
   WebLinksAddon({
-    required this.handler,
+    WebLinkActivationHandler? handler,
+    this.options = const WebLinkProviderOptions(),
     RegExp? urlPattern,
-  }) : urlPattern =
+  }) : handler = handler ?? openWebLink,
+       urlPattern =
+           options.urlPattern ??
            urlPattern ??
            RegExp(
              r'''https?://[^\s"'!*(){}|\\^<>`]*[^\s"':,.!?{}|\\^~\[\]`()<>]''',
@@ -23,7 +47,10 @@ final class WebLinksAddon extends ManagedTerminalAddon {
            );
 
   /// xterm-compatible `handler` API.
-  final TerminalLinkHandler handler;
+  final WebLinkActivationHandler handler;
+
+  /// Hover, leave and regex overrides.
+  final WebLinkProviderOptions options;
 
   /// xterm-compatible `urlPattern` API.
   final RegExp urlPattern;
@@ -32,7 +59,7 @@ final class WebLinksAddon extends ManagedTerminalAddon {
   @override
   void onActivate(Terminal terminal) {
     _registration = terminal.registerLinkProvider(
-      _WebLinkProvider(terminal, urlPattern, handler),
+      _WebLinkProvider(terminal, urlPattern, handler, options),
     );
   }
 
@@ -45,11 +72,17 @@ final class WebLinksAddon extends ManagedTerminalAddon {
 }
 
 final class _WebLinkProvider implements TerminalLinkProvider {
-  const _WebLinkProvider(this.terminal, this.pattern, this.handler);
+  const _WebLinkProvider(
+    this.terminal,
+    this.pattern,
+    this.handler,
+    this.options,
+  );
 
   final Terminal terminal;
   final RegExp pattern;
-  final TerminalLinkHandler handler;
+  final WebLinkActivationHandler handler;
+  final WebLinkProviderOptions options;
 
   @override
   List<TerminalLink> provideLinks(int bufferLineNumber) {
@@ -70,13 +103,18 @@ final class _WebLinkProvider implements TerminalLinkProvider {
     final start = _mapStringIndex(startLine, 0, match.start);
     final end = _mapStringIndex(start.y, start.x, text.length);
     if (start.x < 0 || start.y < 0 || end.x < 0 || end.y < 0) return null;
+    final range = TerminalBufferRange(
+      start: TerminalBufferPosition(start.x + 1, start.y + 1),
+      end: TerminalBufferPosition(end.x, end.y + 1),
+    );
     return TerminalLink(
-      range: TerminalBufferRange(
-        start: TerminalBufferPosition(start.x + 1, start.y + 1),
-        end: TerminalBufferPosition(end.x, end.y + 1),
-      ),
+      range: range,
       text: text,
       activate: handler,
+      hover: options.hover == null
+          ? null
+          : (event, value) => options.hover!(event, value, range),
+      leave: options.leave,
     );
   }
 

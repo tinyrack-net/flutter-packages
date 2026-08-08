@@ -143,10 +143,14 @@ typedef TerminalCharacterJoiner =
 /// Link returned by a terminal link provider.
 final class TerminalLink {
   /// xterm-compatible `TerminalLink` API.
-  const TerminalLink({
+  TerminalLink({
     required this.range,
     required this.text,
     required this.activate,
+    this.decorations,
+    this.hover,
+    this.leave,
+    this.dispose,
   });
 
   /// xterm-compatible `range` API.
@@ -156,7 +160,31 @@ final class TerminalLink {
   final String text;
 
   /// xterm-compatible `Function` API.
-  final void Function(String text) activate;
+  final void Function(Object? event, String text) activate;
+
+  /// Optional renderer-managed pointer and underline state.
+  TerminalLinkDecorations? decorations;
+
+  /// Invoked when a pointer enters the link.
+  final void Function(Object? event, String text)? hover;
+
+  /// Invoked when a pointer leaves the link.
+  final void Function(Object? event, String text)? leave;
+
+  /// Releases provider-owned link resources.
+  final void Function()? dispose;
+}
+
+/// Mutable visual state associated with a resolved link.
+final class TerminalLinkDecorations {
+  /// Creates link decoration state using xterm's enabled defaults.
+  TerminalLinkDecorations({this.pointerCursor = true, this.underline = true});
+
+  /// Whether hovering requests a pointer cursor.
+  bool pointerCursor;
+
+  /// Whether hovering underlines the link.
+  bool underline;
 }
 
 /// Resolves links for one 0-based buffer line.

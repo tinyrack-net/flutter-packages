@@ -154,7 +154,15 @@ void main() {
   test('web link provider returns validated ranges', () async {
     final terminal = Terminal(options: TerminalOptions(cols: 40, rows: 3));
     final activated = <String>[];
-    final addon = WebLinksAddon(handler: activated.add);
+    final hovered = <TerminalBufferRange>[];
+    final left = <String>[];
+    final addon = WebLinksAddon(
+      handler: (_, uri) => activated.add(uri),
+      options: WebLinkProviderOptions(
+        hover: (_, _, range) => hovered.add(range),
+        leave: (_, text) => left.add(text),
+      ),
+    );
     addTearDown(terminal.dispose);
     terminal.loadAddon(addon);
     await terminal.writeAndWait(
@@ -180,8 +188,16 @@ void main() {
         end: TerminalBufferPosition(5, 2),
       ),
     );
-    firstRowLinks.first.activate(firstRowLinks.first.text);
+    firstRowLinks.first.activate(null, firstRowLinks.first.text);
+    firstRowLinks.first.hover?.call(null, firstRowLinks.first.text);
+    firstRowLinks.first.leave?.call(null, firstRowLinks.first.text);
     expect(activated.single, firstRowLinks.first.text);
+    expect(hovered.single, firstRowLinks.first.range);
+    expect(left.single, firstRowLinks.first.text);
+
+    final decorations = TerminalLinkDecorations()..underline = false;
+    expect(decorations.pointerCursor, isTrue);
+    expect(decorations.underline, isFalse);
   });
 
   test('browser-only addons expose explicit capabilities', () {
