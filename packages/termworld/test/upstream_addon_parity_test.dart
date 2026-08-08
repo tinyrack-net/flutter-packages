@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_progress.dart';
+import 'package:termworld/addon_serialize.dart';
 import 'package:termworld/addon_unicode11.dart';
 import 'package:termworld/addon_unicode_graphemes.dart';
 import 'package:termworld/termworld_headless.dart';
@@ -125,6 +126,140 @@ void main() {
     expect(_stringCellWidth(terminal, '(⚰︎)'), 3);
     expect(_stringCellWidth(terminal, '(⚰️)'), 4);
     expect(_stringCellWidth(terminal, '<É️g️a️l️i️️t️é️>'), 16);
+  });
+
+  test(
+    'addon-serialize preserves attributes, ranges, modes and safe HTML',
+    () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 12, rows: 3));
+      final addon = SerializeAddon();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      await terminal.writeAndWait(
+        <String>[
+          '\u001b[1;2;3;4;5;7;8;9;38;2;1;2;3;48;5;200mstyled',
+          '\u001b[0m\r\nplain\r\nlast',
+          '\u001b[?1;6h\u001b[?25;7l\u001b[4h\u001b=\u001b[?2004h',
+          '\u001b[2;1H',
+        ].join(),
+      );
+
+      final serialized = addon.serialize();
+      expect(serialized, contains('1;2;3;4;5;7;8;9'));
+      expect(serialized, contains('38;2;1;2;3'));
+      expect(serialized, contains('48;5;200'));
+      expect(serialized, endsWith('\u001b[?7l'));
+      expect(
+        addon.serialize(
+          options: const TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: 1, end: 1),
+            excludeModes: true,
+          ),
+        ),
+        startsWith('plain'),
+      );
+
+      final marker = terminal.registerMarker()!;
+      expect(
+        addon.serialize(
+          options: TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: marker, end: marker),
+            excludeModes: true,
+          ),
+        ),
+        startsWith('plain'),
+      );
+      expect(
+        () => addon.serialize(
+          options: const TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: 'bad', end: 1),
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addon.serialize(
+          options: const TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: 2, end: 1),
+          ),
+        ),
+        throwsRangeError,
+      );
+      expect(
+        () => addon.serialize(
+          options: const TerminalSerializeOptions(scrollback: -1),
+        ),
+        throwsArgumentError,
+      );
+
+      terminal.select(0, 1, 5);
+      expect(
+        addon.serializeAsHtml(
+          options: const TerminalHtmlSerializeOptions(
+            onlySelection: true,
+            includeGlobalBackground: true,
+          ),
+        ),
+        '<pre style="background:#000;color:#fff">plain</pre>',
+      );
+      terminal.clearSelection();
+      expect(
+        addon.serializeAsHtml(
+          options: const TerminalHtmlSerializeOptions(
+            startLine: 1,
+            endLine: 2,
+            startColumn: 1,
+          ),
+        ),
+        contains('lain\nlast'),
+      );
+      expect(
+        addon.serializeAsHtml(
+          options: const TerminalHtmlSerializeOptions(scrollback: 0),
+        ),
+        startsWith('<pre>'),
+      );
+    },
+  );
+
+  test('Marker and decoration lifecycle follows tracked line changes', () {
+    final factory = TerminalMarkerFactory();
+    final marker = factory.create(2);
+    final disposed = <String>[];
+    marker.onDispose.listen((_) => disposed.add('marker'));
+    marker.move(3);
+    expect((marker.id, marker.line), (1, 5));
+    TerminalDecoration(
+        marker: marker,
+        anchor: TerminalDecorationAnchor.right,
+        x: 1,
+        width: 2,
+        height: 2,
+        backgroundColor: '#000000',
+        foregroundColor: '#ffffff',
+        layer: TerminalDecorationLayer.top,
+      )
+      ..onRender.listen((_) => disposed.add('render'))
+      ..onDispose.listen((_) => disposed.add('decoration'))
+      ..rendered()
+      ..dispose()
+      ..rendered()
+      ..dispose();
+    marker
+      ..move(-10)
+      ..move(1)
+      ..dispose();
+    expect(disposed, <String>['render', 'decoration', 'marker']);
+    expect(marker.line, -1);
+    expect(factory.create(0).id, 2);
+    expect(
+      () => TerminalDecoration(marker: marker, x: -1),
+      throwsArgumentError,
+    );
+    expect(
+      () => TerminalDecoration(marker: marker, width: 0),
+      throwsArgumentError,
+    );
   });
 }
 
