@@ -27,9 +27,17 @@ final class FitAddon extends ManagedTerminalAddon {
     if (render == null || render.cellWidth <= 0 || render.cellHeight <= 0) {
       return null;
     }
+    final scrollbarWidth =
+        terminal.options.scrollback == 0 ||
+            !terminal.options.scrollbar.showScrollbar
+        ? 0
+        : terminal.options.scrollbar.width ?? 14;
     return TerminalDimensions(
       rows: (render.height / render.cellHeight).floor().clamp(1, 0x7fffffff),
-      cols: (render.width / render.cellWidth).floor().clamp(2, 0x7fffffff),
+      cols: ((render.width - scrollbarWidth) / render.cellWidth).floor().clamp(
+        2,
+        0x7fffffff,
+      ),
     );
   }
 

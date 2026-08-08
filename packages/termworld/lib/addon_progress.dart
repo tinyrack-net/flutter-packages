@@ -67,20 +67,20 @@ final class ProgressAddon extends ManagedTerminalAddon {
         final parts = data.split(';');
         if (parts.length > 3) return true;
         if (parts.length == 2) parts.add('');
-        final state = int.tryParse(parts[1]);
-        final amount = parts[2].isEmpty ? 0 : int.tryParse(parts[2]);
-        if (state == null || state < 0 || state > 4) return true;
+        final state = _strictInt(parts[1]);
+        final amount = _strictInt(parts[2]);
+        if (state < 0 || state > 4) return true;
         final nextState = TerminalProgressState.values[state];
         switch (nextState) {
           case TerminalProgressState.remove:
             progress = TerminalProgress(state: nextState, value: 0);
           case TerminalProgressState.set:
-            if (amount != null) {
+            if (amount >= 0) {
               progress = TerminalProgress(state: nextState, value: amount);
             }
           case TerminalProgressState.error:
           case TerminalProgressState.paused:
-            if (amount != null) {
+            if (amount >= 0) {
               progress = TerminalProgress(
                 state: nextState,
                 value: amount == 0 ? progress.value : amount,
@@ -95,6 +95,15 @@ final class ProgressAddon extends ManagedTerminalAddon {
         return true;
       }),
     );
+  }
+
+  static int _strictInt(String value) {
+    var result = 0;
+    for (final code in value.codeUnits) {
+      if (code < 0x30 || code > 0x39) return -1;
+      result = result * 10 + code - 0x30;
+    }
+    return result;
   }
 
   @override
