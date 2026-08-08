@@ -259,6 +259,14 @@
       "implementation": ["lib/src/core/buffer_range.dart"],
       "tests": ["test/upstream_buffer_range_parity_test.dart"]
     },
+    "src/common/buffer/BufferSet.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_buffer_set_parity_test.dart"]
+    },
+    "src/common/buffer/BufferSet.test.ts": {
+      "implementation": ["lib/src/core/buffer.dart"],
+      "tests": ["test/upstream_buffer_set_parity_test.dart"]
+    },
     "src/common/buffer/CellData.ts": {
       "implementation": ["lib/src/core/buffer.dart"],
       "tests": ["test/upstream_cell_data_parity_test.dart"]
@@ -1578,6 +1586,54 @@
       "dartTestFile": "test/upstream_addon_manager_parity_test.dart",
       "dartTestName": "should dispose all loaded addons",
       "dartTestKind": "test"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet constructor should create two different buffers: alt and normal": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should create two different buffers: alt and normal",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/constructor/should create two different buffers: alt and normal"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet activateNormalBuffer should set the normal buffer as the currently active buffer": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should set the normal buffer as the currently active buffer",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/activateNormalBuffer/should set the normal buffer as the currently active buffer"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet activateAltBuffer should set the alt buffer as the currently active buffer": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should set the alt buffer as the currently active buffer",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/activateAltBuffer/should set the alt buffer as the currently active buffer"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet cursor handling when swapping buffers should keep the cursor stationary when activating alt buffer": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should keep the cursor stationary when activating alt buffer",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/cursor handling when swapping buffers/should keep the cursor stationary when activating alt buffer"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet cursor handling when swapping buffers should keep the cursor stationary when activating normal buffer": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should keep the cursor stationary when activating normal buffer",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/cursor handling when swapping buffers/should keep the cursor stationary when activating normal buffer"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet markers should clear the markers when the buffer is switched": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should clear the markers when the buffer is switched",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/markers/should clear the markers when the buffer is switched"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet lifecycle should dispose previous buffers on reset": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should dispose previous buffers on reset",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/lifecycle/should dispose previous buffers on reset"
+    },
+    "unit:src/common/buffer/BufferSet.test.ts:BufferSet lifecycle should dispose both buffers when disposed": {
+      "dartTestFile": "test/upstream_buffer_set_parity_test.dart",
+      "dartTestName": "should dispose both buffers when disposed",
+      "dartTestKind": "test",
+      "dartTestPath": "BufferSet/lifecycle/should dispose both buffers when disposed"
     },
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
       "dartTestFile": "test/upstream_params_parity_test.dart",

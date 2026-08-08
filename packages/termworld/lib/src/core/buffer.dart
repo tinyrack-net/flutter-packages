@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
+import 'package:termworld/src/core/marker.dart';
 
 /// Terminal buffer kind.
 enum TerminalBufferType {
@@ -513,7 +515,7 @@ final class TerminalBufferLine {
 }
 
 /// A complete normal or alternate terminal buffer.
-final class TerminalBuffer {
+final class TerminalBuffer implements Disposable {
   TerminalBuffer._({
     required this.type,
     required int columns,
@@ -545,6 +547,32 @@ final class TerminalBuffer {
   final void Function(int amount)? _onTrim;
   final void Function(int index, int amount)? _onInsert;
   final void Function(int index, int amount)? _onDelete;
+  final List<TerminalMarker> _markers = <TerminalMarker>[];
+  final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
+  bool _isDisposed = false;
+
+  /// Markers currently anchored in this buffer.
+  List<TerminalMarker> get markers =>
+      List<TerminalMarker>.unmodifiable(_markers);
+
+  /// Adds a marker at an absolute buffer line.
+  TerminalMarker addMarker(int line) {
+    if (_isDisposed) throw StateError('Buffer has been disposed');
+    final marker = _markerFactory.create(line);
+    _markers.add(marker);
+    marker.onDispose.listen((_) => _markers.remove(marker));
+    return marker;
+  }
+
+  /// Disposes every marker owned by this buffer.
+  void clearAllMarkers() {
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      marker.dispose();
+    }
+  }
+
+  @override
+  bool get isDisposed => _isDisposed;
 
   /// Zero-based cursor column.
   int cursorX = 0;
@@ -632,7 +660,7 @@ final class TerminalBuffer {
       final minimumLength = rows + oldBase;
       while (_lines.length > minimumLength &&
           _lines.length > absoluteCursor + 1) {
-        _onDelete?.call(_lines.length - 1, 1);
+        _deleteLines(_lines.length - 1, 1);
         _lines.removeLast();
       }
     }
@@ -649,7 +677,7 @@ final class TerminalBuffer {
 
   /// Replaces all content with an empty viewport.
   void clear([TerminalCellAttributes? eraseAttributes]) {
-    _onDelete?.call(0, _lines.length);
+    _deleteLines(0, _lines.length);
     _lines
       ..clear()
       ..addAll(
@@ -669,7 +697,7 @@ final class TerminalBuffer {
   /// attributes, wrapping state and the cursor column stay intact.
   void clearKeepingCursorLine([TerminalCellAttributes? eraseAttributes]) {
     final promptLine = currentLine;
-    _onDelete?.call(0, _lines.length);
+    _deleteLines(0, _lines.length);
     _lines
       ..clear()
       ..add(promptLine)
@@ -687,7 +715,7 @@ final class TerminalBuffer {
     final retained = baseY;
     if (retained > 0) {
       _lines.removeRange(0, retained);
-      _onTrim?.call(retained);
+      _trimLines(retained);
     }
   }
 
@@ -712,8 +740,8 @@ final class TerminalBuffer {
     }
     final start = baseY + top;
     final end = baseY + last;
-    _onDelete?.call(start, 1);
-    _onInsert?.call(end, 1);
+    _deleteLines(start, 1);
+    _insertLines(end, 1);
     _lines
       ..removeAt(start)
       ..insert(end, TerminalBufferLine(_columns, attributes: eraseAttributes));
@@ -728,8 +756,8 @@ final class TerminalBuffer {
     final last = bottom ?? _rows - 1;
     final start = baseY + top;
     final end = baseY + last;
-    _onDelete?.call(end, 1);
-    _onInsert?.call(start, 1);
+    _deleteLines(end, 1);
+    _insertLines(start, 1);
     _lines
       ..removeAt(end)
       ..insert(
@@ -749,8 +777,8 @@ final class TerminalBuffer {
     final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
     final end = baseY + last + 1;
-    _onInsert?.call(start, amount);
-    _onDelete?.call(end, amount);
+    _insertLines(start, amount);
+    _deleteLines(end, amount);
     _lines
       ..insertAll(
         start,
@@ -773,8 +801,8 @@ final class TerminalBuffer {
     final amount = count.clamp(0, last - row + 1);
     final start = baseY + row;
     final insertion = baseY + last - amount + 1;
-    _onDelete?.call(start, amount);
-    _onInsert?.call(insertion, amount);
+    _deleteLines(start, amount);
+    _insertLines(insertion, amount);
     _lines
       ..removeRange(start, start + amount)
       ..insertAll(
@@ -854,9 +882,9 @@ final class TerminalBuffer {
       _lines.replaceRange(groupStart, groupEnd + 1, layout.lines);
       final delta = layout.lines.length - oldCount;
       if (delta > 0) {
-        _onInsert?.call(groupEnd + 1, delta);
+        _insertLines(groupEnd + 1, delta);
       } else if (delta < 0) {
-        _onDelete?.call(groupStart + layout.lines.length, -delta);
+        _deleteLines(groupStart + layout.lines.length, -delta);
       }
       if (containsCursor) {
         cursorAbsolute = groupStart + layout.cursorRow;
@@ -948,8 +976,42 @@ final class TerminalBuffer {
     if (_lines.length > maximum) {
       final amount = _lines.length - maximum;
       _lines.removeRange(0, amount);
-      _onTrim?.call(amount);
+      _trimLines(amount);
     }
+  }
+
+  void _trimLines(int amount) {
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      marker.move(-amount);
+    }
+    _onTrim?.call(amount);
+  }
+
+  void _insertLines(int index, int amount) {
+    for (final marker in _markers) {
+      if (marker.line >= index) marker.move(amount);
+    }
+    _onInsert?.call(index, amount);
+  }
+
+  void _deleteLines(int index, int amount) {
+    final end = index + amount;
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      if (marker.line >= index && marker.line < end) {
+        marker.dispose();
+      } else if (marker.line >= end) {
+        marker.move(-amount);
+      }
+    }
+    _onDelete?.call(index, amount);
+  }
+
+  @override
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    clearAllMarkers();
+    _lines.clear();
   }
 
   static int _initialScrollback(int value) => value;
@@ -965,7 +1027,22 @@ final class _ReflowLayout {
 }
 
 /// Normal, alternate, and active buffers.
-final class TerminalBufferNamespace {
+final class TerminalBufferActivation {
+  /// Creates a buffer activation event.
+  const TerminalBufferActivation({
+    required this.activeBuffer,
+    required this.inactiveBuffer,
+  });
+
+  /// Buffer that became active.
+  final TerminalBuffer activeBuffer;
+
+  /// Buffer that became inactive.
+  final TerminalBuffer inactiveBuffer;
+}
+
+/// Normal, alternate, and active buffers.
+final class TerminalBufferNamespace implements Disposable {
   /// Creates normal and alternate buffers with the given dimensions.
   TerminalBufferNamespace({
     required int columns,
@@ -974,32 +1051,46 @@ final class TerminalBufferNamespace {
     void Function(int amount)? onTrim,
     void Function(int index, int amount)? onInsert,
     void Function(int index, int amount)? onDelete,
-  }) : normal = TerminalBuffer._(
-         type: TerminalBufferType.normal,
-         columns: columns,
-         rows: rows,
-         scrollback: scrollback,
-         onTrim: onTrim,
-         onInsert: onInsert,
-         onDelete: onDelete,
-       ),
-       alternate = TerminalBuffer._(
-         type: TerminalBufferType.alternate,
-         columns: columns,
-         rows: rows,
-         scrollback: 0,
-       ) {
-    _active = normal;
+  }) : this._(
+         columns,
+         rows,
+         scrollback,
+         onTrim,
+         onInsert,
+         onDelete,
+       );
+
+  TerminalBufferNamespace._(
+    this._columns,
+    this._rows,
+    this._scrollback,
+    this._onTrim,
+    this._onInsert,
+    this._onDelete,
+  ) {
+    reset();
   }
 
   /// Normal buffer with scrollback history.
-  final TerminalBuffer normal;
+  TerminalBuffer get normal => _normal;
+  late TerminalBuffer _normal;
 
   /// Alternate screen buffer.
-  final TerminalBuffer alternate;
+  TerminalBuffer get alternate => _alternate;
+  late TerminalBuffer _alternate;
   late TerminalBuffer _active;
+  int _columns;
+  int _rows;
+  final int _scrollback;
+  final void Function(int amount)? _onTrim;
+  final void Function(int index, int amount)? _onInsert;
+  final void Function(int index, int amount)? _onDelete;
+  bool _initialized = false;
+  bool _isDisposed = false;
   final TerminalEventEmitter<TerminalBuffer> _onBufferChange =
       TerminalEventEmitter<TerminalBuffer>();
+  final TerminalEventEmitter<TerminalBufferActivation> _onBufferActivate =
+      TerminalEventEmitter<TerminalBufferActivation>();
 
   /// Buffer currently receiving input and being rendered.
   TerminalBuffer get active => _active;
@@ -1007,21 +1098,54 @@ final class TerminalBufferNamespace {
   /// Fires synchronously after the active buffer changes.
   TerminalEvent<TerminalBuffer> get onBufferChange => _onBufferChange.event;
 
+  /// Fires synchronously with both sides of an xterm buffer activation.
+  TerminalEvent<TerminalBufferActivation> get onBufferActivate =>
+      _onBufferActivate.event;
+
+  /// Replaces both buffers and activates a fresh normal buffer.
+  void reset() {
+    if (_isDisposed) throw StateError('Buffer set has been disposed');
+    if (_initialized) {
+      _normal.dispose();
+      _alternate.dispose();
+    }
+    _normal = TerminalBuffer._(
+      type: TerminalBufferType.normal,
+      columns: _columns,
+      rows: _rows,
+      scrollback: _scrollback,
+      onTrim: _onTrim,
+      onInsert: _onInsert,
+      onDelete: _onDelete,
+    );
+    _alternate = TerminalBuffer._(
+      type: TerminalBufferType.alternate,
+      columns: _columns,
+      rows: _rows,
+      scrollback: 0,
+    );
+    _active = _normal;
+    _initialized = true;
+    _fireActivation(_normal, _alternate);
+  }
+
   /// Activates the normal buffer.
   void useNormal() {
     if (identical(_active, normal)) return;
     normal
       ..cursorX = alternate.cursorX
       ..cursorY = alternate.cursorY;
-    alternate.clear();
+    alternate
+      ..clearAllMarkers()
+      ..clear();
     _switch(normal);
   }
 
   /// Activates the alternate buffer, optionally clearing it first.
   void useAlternate({bool clear = true}) {
     if (identical(_active, alternate)) return;
+    if (clear) alternate.clear();
     alternate
-      ..clear()
       ..cursorX = normal.cursorX
       ..cursorY = normal.cursorY;
     _switch(alternate);
@@ -1029,8 +1153,19 @@ final class TerminalBufferNamespace {
 
   void _switch(TerminalBuffer value) {
     if (identical(_active, value)) return;
+    final inactive = _active;
     _active = value;
-    _onBufferChange.fire(value);
+    _fireActivation(value, inactive);
+  }
+
+  void _fireActivation(TerminalBuffer active, TerminalBuffer inactive) {
+    _onBufferChange.fire(active);
+    _onBufferActivate.fire(
+      TerminalBufferActivation(
+        activeBuffer: active,
+        inactiveBuffer: inactive,
+      ),
+    );
   }
 
   /// Resizes both buffers.
@@ -1040,6 +1175,8 @@ final class TerminalBufferNamespace {
     TerminalCellAttributes eraseAttributes, {
     bool reflowCursorLine = false,
   }) {
+    _columns = columns;
+    _rows = rows;
     normal.resize(
       columns,
       rows,
@@ -1049,6 +1186,17 @@ final class TerminalBufferNamespace {
     alternate.resize(columns, rows, eraseAttributes);
   }
 
-  /// Releases buffer-change listeners.
-  void dispose() => _onBufferChange.dispose();
+  @override
+  bool get isDisposed => _isDisposed;
+
+  /// Releases both buffers and buffer-change listeners.
+  @override
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    normal.dispose();
+    alternate.dispose();
+    _onBufferChange.dispose();
+    _onBufferActivate.dispose();
+  }
 }
