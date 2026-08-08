@@ -8,6 +8,7 @@ import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/marker.dart';
+import 'package:termworld/src/core/mouse_state_service.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/unicode.dart';
@@ -653,7 +654,8 @@ final class Terminal extends DisposableStore {
   void Function()? _focus;
   void Function()? _blur;
   bool _hasFocus = false;
-  String? _lastMouseReportKey;
+  final MouseStateService _mouseStateService = MouseStateService();
+  CoreMouseEvent? _lastMouseEvent;
 
   void _handleOptionChange(String name) {
     _engine.handleOptionChange(name);
@@ -857,104 +859,87 @@ final class Terminal extends DisposableStore {
                 event.action == TerminalMouseAction.wheelRight)) {
       return false;
     }
-    var shift = event.shift;
-    var alt = event.alt;
-    var control = event.control;
-    switch (engine.mouseMode) {
-      case TerminalMouseTrackingMode.none:
-        return false;
-      case TerminalMouseTrackingMode.x10:
-        if (event.button == TerminalMouseButton.wheel ||
-            event.action != TerminalMouseAction.down) {
-          return false;
-        }
-        shift = false;
-        alt = false;
-        control = false;
-      case TerminalMouseTrackingMode.vt200:
-        if (event.action == TerminalMouseAction.move) return false;
-      case TerminalMouseTrackingMode.drag:
-        if (event.action == TerminalMouseAction.move &&
-            event.button == TerminalMouseButton.none) {
-          return false;
-        }
-      case TerminalMouseTrackingMode.any:
-        break;
+    final protocol = switch (engine.mouseMode) {
+      TerminalMouseTrackingMode.none => 'NONE',
+      TerminalMouseTrackingMode.x10 => 'X10',
+      TerminalMouseTrackingMode.vt200 => 'VT200',
+      TerminalMouseTrackingMode.drag => 'DRAG',
+      TerminalMouseTrackingMode.any => 'ANY',
+    };
+    final encoding = engine.sgrPixelsMouseMode
+        ? 'SGR_PIXELS'
+        : engine.sgrMouseMode
+        ? 'SGR'
+        : 'DEFAULT';
+    if (_mouseStateService.activeProtocol != protocol) {
+      _mouseStateService.activeProtocol = protocol;
     }
-    if (event.button != TerminalMouseButton.wheel &&
+    if (_mouseStateService.activeEncoding != encoding) {
+      _mouseStateService.activeEncoding = encoding;
+    }
+    final coreEvent = CoreMouseEvent(
+      column: event.column + 1,
+      row: event.row + 1,
+      x: event.pixelX,
+      y: event.pixelY,
+      button: switch (event.button) {
+        TerminalMouseButton.left => CoreMouseButton.left,
+        TerminalMouseButton.middle => CoreMouseButton.middle,
+        TerminalMouseButton.right => CoreMouseButton.right,
+        TerminalMouseButton.none => CoreMouseButton.none,
+        TerminalMouseButton.wheel => CoreMouseButton.wheel,
+      },
+      action: switch (event.action) {
+        TerminalMouseAction.up => CoreMouseAction.up,
+        TerminalMouseAction.down => CoreMouseAction.down,
+        TerminalMouseAction.wheelLeft => CoreMouseAction.left,
+        TerminalMouseAction.wheelRight => CoreMouseAction.right,
+        TerminalMouseAction.move => CoreMouseAction.move,
+      },
+      shift: event.shift,
+      alt: event.alt,
+      control: event.control,
+    );
+    if (coreEvent.button != CoreMouseButton.wheel &&
         options.mouseEventsRequireAlt) {
-      if (!alt) return false;
-      alt = false;
+      if (!coreEvent.alt) return false;
+      coreEvent.alt = false;
     }
-    final column = event.column + 1;
-    final row = event.row + 1;
-    final reportKey = engine.sgrPixelsMouseMode
-        ? '${event.pixelX};${event.pixelY};${event.button};${event.action}'
-        : '$column;$row;${event.button};${event.action}';
-    if (event.action == TerminalMouseAction.move &&
-        reportKey == _lastMouseReportKey) {
+    if (coreEvent.action == CoreMouseAction.move &&
+        _mouseEventsEqual(
+          _lastMouseEvent,
+          coreEvent,
+          pixels: _mouseStateService.isPixelEncoding,
+        )) {
       return false;
     }
-    final code = _mouseEventCode(
-      event,
-      shift: shift,
-      alt: alt,
-      control: control,
-      sgr: engine.sgrMouseMode || engine.sgrPixelsMouseMode,
-    );
-    late final String report;
-    if (engine.sgrMouseMode || engine.sgrPixelsMouseMode) {
-      final x = engine.sgrPixelsMouseMode ? event.pixelX : column;
-      final y = engine.sgrPixelsMouseMode ? event.pixelY : row;
-      final finalByte =
-          event.action == TerminalMouseAction.up &&
-              event.button != TerminalMouseButton.wheel
-          ? 'm'
-          : 'M';
-      report = '\u001b[<$code;$x;$y$finalByte';
-      _triggerData(report);
-    } else {
-      final parameters = <int>[code + 32, column + 32, row + 32];
-      if (parameters.any((value) => value > 255)) return false;
-      report = '\u001b[M${String.fromCharCodes(parameters)}';
+    if (!_mouseStateService.restrictMouseEvent(coreEvent)) return false;
+    final report = _mouseStateService.encodeMouseEvent(coreEvent);
+    if (report.isNotEmpty && _mouseStateService.isDefaultEncoding) {
       _onBinary.fire(report);
+    } else if (report.isNotEmpty) {
+      _triggerData(report);
     }
-    _lastMouseReportKey = reportKey;
+    _lastMouseEvent = coreEvent;
     return true;
   }
 
-  int _mouseEventCode(
-    TerminalMouseEvent event, {
-    required bool shift,
-    required bool alt,
-    required bool control,
-    required bool sgr,
+  bool _mouseEventsEqual(
+    CoreMouseEvent? left,
+    CoreMouseEvent right, {
+    required bool pixels,
   }) {
-    var code = (shift ? 4 : 0) | (alt ? 8 : 0) | (control ? 16 : 0);
-    if (event.button == TerminalMouseButton.wheel) {
-      return code |
-          64 |
-          switch (event.action) {
-            TerminalMouseAction.up => 0,
-            TerminalMouseAction.down => 1,
-            TerminalMouseAction.wheelLeft => 2,
-            TerminalMouseAction.wheelRight => 3,
-            TerminalMouseAction.move => 0,
-          };
+    if (left == null) return false;
+    if (pixels) {
+      if (left.x != right.x || left.y != right.y) return false;
+    } else if (left.column != right.column || left.row != right.row) {
+      return false;
     }
-    code |= switch (event.button) {
-      TerminalMouseButton.left => 0,
-      TerminalMouseButton.middle => 1,
-      TerminalMouseButton.right => 2,
-      TerminalMouseButton.none => 3,
-      TerminalMouseButton.wheel => 0,
-    };
-    if (event.action == TerminalMouseAction.move) {
-      code |= 32;
-    } else if (event.action == TerminalMouseAction.up && !sgr) {
-      code |= 3;
-    }
-    return code;
+    return left.button == right.button &&
+        left.action == right.action &&
+        left.control == right.control &&
+        left.alt == right.alt &&
+        left.shift == right.shift;
   }
 
   /// xterm-compatible `registerLinkProvider` API.
@@ -1232,6 +1217,8 @@ final class Terminal extends DisposableStore {
   /// Performs a full RIS reset.
   void reset() {
     _engine.reset();
+    _mouseStateService.reset();
+    _lastMouseEvent = null;
     _viewportY = 0;
     clearSelection();
     refresh(0, rows - 1);
@@ -1261,6 +1248,7 @@ final class Terminal extends DisposableStore {
     if (isDisposed) return;
     _isDisposing = true;
     _addonManager.dispose();
+    _mouseStateService.dispose();
     unicode.dispose();
     for (final decoration in List<TerminalDecoration>.of(_decorations)) {
       decoration.dispose();

@@ -303,6 +303,14 @@
       "implementation": ["lib/src/core/core_service.dart"],
       "tests": ["test/upstream_core_service_parity_test.dart"]
     },
+    "src/common/services/MouseStateService.ts": {
+      "implementation": ["lib/src/core/mouse_state_service.dart"],
+      "tests": ["test/upstream_mouse_state_service_parity_test.dart"]
+    },
+    "src/common/services/MouseStateService.test.ts": {
+      "implementation": ["lib/src/core/mouse_state_service.dart"],
+      "tests": ["test/upstream_mouse_state_service_parity_test.dart"]
+    },
     "src/common/services/OscLinkService.ts": {
       "implementation": ["lib/src/core/osc_link_service.dart"],
       "tests": ["test/upstream_osc_link_service_parity_test.dart"]
@@ -1642,6 +1650,54 @@
       "dartTestName": "should dispose both buffers when disposed",
       "dartTestKind": "test",
       "dartTestPath": "BufferSet/lifecycle/should dispose both buffers when disposed"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService init": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "init",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/init"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService default protocols - NONE, X10, VT200, DRAG, ANY": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "default protocols - NONE, X10, VT200, DRAG, ANY",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/default protocols - NONE, X10, VT200, DRAG, ANY"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService default encodings - DEFAULT, SGR": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "default encodings - DEFAULT, SGR",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/default encodings - DEFAULT, SGR"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService protocol/encoding setter, reset": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "protocol/encoding setter, reset",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/protocol/encoding setter, reset"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService addEncoding": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "addEncoding",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/addEncoding"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService addProtocol": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "addProtocol",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/addProtocol"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService onProtocolChange": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "onProtocolChange",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/onProtocolChange"
+    },
+    "unit:src/common/services/MouseStateService.test.ts:MouseStateService restrictMouseEvent/encodeMouseEvent": {
+      "dartTestFile": "test/upstream_mouse_state_service_parity_test.dart",
+      "dartTestName": "restrictMouseEvent/encodeMouseEvent",
+      "dartTestKind": "test",
+      "dartTestPath": "MouseStateService/restrictMouseEvent/encodeMouseEvent"
     },
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
       "dartTestFile": "test/upstream_params_parity_test.dart",
