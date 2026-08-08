@@ -61,6 +61,32 @@ void main() {
       expect(logger.records.single.$2, 'message');
       expect(logger.records.single.$3, <Object?>[1, 2]);
     });
+
+    test('dispatches every enabled severity to the matching logger method', () {
+      final logger = _Logger();
+      final service = TerminalLogService(
+        TerminalOptions(logger: logger, logLevel: TerminalLogLevel.trace),
+      );
+      addTearDown(service.dispose);
+
+      service
+        ..trace('trace', <Object?>[0])
+        ..debug('debug', <Object?>[1])
+        ..info('info', <Object?>[2])
+        ..warning('warn', <Object?>[3])
+        ..error('error', <Object?>[4]);
+
+      expect(
+        logger.records,
+        <(TerminalLogLevel, String, List<Object?>)>[
+          (TerminalLogLevel.trace, 'trace', <Object?>[0]),
+          (TerminalLogLevel.debug, 'debug', <Object?>[1]),
+          (TerminalLogLevel.info, 'info', <Object?>[2]),
+          (TerminalLogLevel.warning, 'warn', <Object?>[3]),
+          (TerminalLogLevel.error, 'error', <Object?>[4]),
+        ],
+      );
+    });
   });
 }
 
