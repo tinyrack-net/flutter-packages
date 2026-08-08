@@ -17,6 +17,46 @@
       "implementation": "lib/addon_attach.dart",
       "symbol": "AttachAddon(this.socket"
     },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:13": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "ClipboardAddon"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:19": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "ClipboardAddon({"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:33": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "TerminalBase64Codec"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:38": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "encodeText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:45": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "decodeText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:51": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "Base64Codec"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:66": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "TerminalClipboardProvider"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:72": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "readText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:79": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "writeText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:88": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "FlutterClipboardProvider"
+    },
     "addons/addon-fit/typings/addon-fit.d.ts:13": {
       "implementation": "lib/addon_fit.dart",
       "symbol": "FitAddon"
@@ -90,6 +130,22 @@
     "addons/addon-attach/test/playwright.config.ts": {
       "implementation": ["lib/addon_attach.dart"],
       "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-clipboard/src/ClipboardAddon.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-clipboard/test/playwright.config.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
     },
     "addons/addon-fit/typings/addon-fit.d.ts": {
       "implementation": ["lib/addon_fit.dart"],
@@ -194,6 +250,80 @@
     "addons/addon-attach/test/AttachAddon.test.ts:33:test": {
       "dartTestFile": "test/public_api_contract_test.dart",
       "dartTestName": "utf8",
+      "dartTestKind": "test"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:19:describe": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "ClipboardAddon",
+      "dartTestKind": "group"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:46:describe": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "write data",
+      "dartTestKind": "group"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:47:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "simple string",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/write data/simple string"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:51:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "primary selection",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/write data/primary selection"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:55:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "empty selection (default)",
+      "dartTestKind": "test"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:59:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "invalid base64 string",
+      "dartTestKind": "test"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:63:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "empty string",
+      "dartTestKind": "test"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:70:describe": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "read data",
+      "dartTestKind": "group"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:77:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "simple string",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/read data/simple string"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:83:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "primary selection",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/read data/primary selection"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:89:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "clear clipboard",
+      "dartTestKind": "test"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:96:describe": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "non-ASCII",
+      "dartTestKind": "group"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:99:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "write simple string",
+      "dartTestKind": "test"
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts:103:test": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "read simple string",
       "dartTestKind": "test"
     },
     "addons/addon-fit/test/FitAddon.test.ts:18:describe": {
