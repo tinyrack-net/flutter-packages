@@ -16,12 +16,20 @@ void main() {
     final overridden = TerminalThemes.resolve(
       const TerminalColorTheme(
         foreground: '#123456',
+        cursor: '#ffffff80',
+        cursorAccent: '#010203',
         selectionBackground: 'rgba(1, 2, 3, 0.5)',
+        selectionForeground: '#040506',
+        selectionInactiveBackground: '#112233',
         red: '#abc',
       ),
     );
     expect(overridden.foreground, const Color(0xff123456));
     expect(overridden.selection, const Color(0x80010203));
+    expect(overridden.selectionForeground, const Color(0xff040506));
+    expect(overridden.selectionInactive, const Color(0x4d112233));
+    expect(overridden.cursorAccent, const Color(0xff010203));
+    expect(overridden.cursor, const Color(0xff808080));
     expect(overridden.palette[1], const Color(0xffaabbcc));
 
     final dynamic = TerminalThemes.resolve(

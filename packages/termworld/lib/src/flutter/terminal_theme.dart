@@ -100,6 +100,9 @@ final class TerminalTheme {
     required this.cursor,
     required this.selection,
     required this.palette,
+    this.cursorAccent = const Color(0xff000000),
+    this.selectionForeground,
+    this.selectionInactive = const Color(0x4dffffff),
   });
 
   /// Default text color.
@@ -111,8 +114,17 @@ final class TerminalTheme {
   /// Cursor color.
   final Color cursor;
 
+  /// Text color redrawn over a filled block cursor.
+  final Color cursorAccent;
+
   /// Selection overlay color.
   final Color selection;
+
+  /// Optional text color used inside the active selection.
+  final Color? selectionForeground;
+
+  /// Selection overlay color while the terminal is unfocused.
+  final Color selectionInactive;
 
   /// ANSI 256-color palette.
   final List<Color> palette;
@@ -171,18 +183,49 @@ abstract final class TerminalThemes {
         }
       }
     }
+    final background = overrides?.background == null
+        ? _parse(theme.background) ?? defaultTheme.background
+        : Color(0xff000000 | overrides!.background!);
+    final selection = _selectionColor(
+      _parse(theme.selectionBackground) ?? defaultTheme.selection,
+    );
     return TerminalTheme(
       foreground: overrides?.foreground == null
           ? _parse(theme.foreground) ?? defaultTheme.foreground
           : Color(0xff000000 | overrides!.foreground!),
-      background: overrides?.background == null
-          ? _parse(theme.background) ?? defaultTheme.background
-          : Color(0xff000000 | overrides!.background!),
-      cursor: overrides?.cursor == null
-          ? _parse(theme.cursor) ?? defaultTheme.cursor
-          : Color(0xff000000 | overrides!.cursor!),
-      selection: _parse(theme.selectionBackground) ?? defaultTheme.selection,
+      background: background,
+      cursor: _blend(
+        background,
+        overrides?.cursor == null
+            ? _parse(theme.cursor) ?? defaultTheme.cursor
+            : Color(0xff000000 | overrides!.cursor!),
+      ),
+      cursorAccent: _blend(
+        background,
+        _parse(theme.cursorAccent) ?? defaultTheme.cursorAccent,
+      ),
+      selection: selection,
+      selectionForeground: _parse(theme.selectionForeground),
+      selectionInactive: _selectionColor(
+        _parse(theme.selectionInactiveBackground) ?? selection,
+      ),
       palette: List<Color>.unmodifiable(palette),
+    );
+  }
+
+  static Color _selectionColor(Color color) =>
+      color.a == 1 ? color.withValues(alpha: 0.3) : color;
+
+  static Color _blend(Color background, Color foreground) {
+    final alpha = foreground.a;
+    if (alpha == 1) return foreground;
+    int channel(double front, double back) =>
+        (front * alpha * 255 + back * (1 - alpha) * 255).round();
+    return Color.fromARGB(
+      255,
+      channel(foreground.r, background.r),
+      channel(foreground.g, background.g),
+      channel(foreground.b, background.b),
     );
   }
 

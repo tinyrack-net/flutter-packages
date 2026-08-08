@@ -914,8 +914,14 @@ final class _TerminalPainter extends CustomPainter {
             cell.isInverse) {
           canvas.drawRect(rect, Paint()..color = background);
         }
-        if (_selected(selection, column, bufferRow)) {
-          canvas.drawRect(rect, Paint()..color = theme.selection);
+        final selected = _selected(selection, column, bufferRow);
+        if (selected) {
+          canvas.drawRect(
+            rect,
+            Paint()
+              ..color = focused ? theme.selection : theme.selectionInactive,
+          );
+          foreground = theme.selectionForeground ?? foreground;
         }
         if (!cell.isInvisible && cell.chars.isNotEmpty) {
           TextPainter(
@@ -1130,11 +1136,42 @@ final class _TerminalPainter extends CustomPainter {
       ),
     };
     final paint = Paint()
-      ..color = theme.cursor.withValues(alpha: 0.7)
+      ..color = theme.cursor
       ..style = !focused && inactiveStyle == TerminalInactiveCursorStyle.outline
           ? PaintingStyle.stroke
           : PaintingStyle.fill;
     canvas.drawRect(rect, paint);
+    if (cursorType == TerminalCursorType.block &&
+        paint.style == PaintingStyle.fill) {
+      final line = terminal.buffer.active.getLine(
+        terminal.buffer.active.baseY + row,
+      );
+      final cell = line?.getCell(column);
+      if (cell != null &&
+          cell.width > 0 &&
+          !cell.isInvisible &&
+          cell.chars.isNotEmpty) {
+        TextPainter(
+            text: TextSpan(
+              text: cell.chars,
+              style: style
+                  .toTextStyle(color: theme.cursorAccent)
+                  .copyWith(
+                    fontWeight: cell.isBold
+                        ? style.fontWeightBold
+                        : style.fontWeight,
+                    fontStyle: cell.isItalic
+                        ? FontStyle.italic
+                        : FontStyle.normal,
+                  ),
+            ),
+            textDirection: TextDirection.ltr,
+            textWidthBasis: TextWidthBasis.longestLine,
+          )
+          ..layout(maxWidth: rect.width)
+          ..paint(canvas, rect.topLeft);
+      }
+    }
   }
 
   @override
