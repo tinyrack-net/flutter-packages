@@ -94,8 +94,10 @@ void main() {
     expect(provider.width(0x200d), 0);
     expect(provider.width('A'.codeUnitAt(0)), 1);
     expect(provider.width(0xac00), 2);
-    expect(provider.width(0x1f600), 2);
-    expect(provider.charProperties(0xac00, 0), 2);
+    // The built-in core provider is xterm's Unicode 6 table. Applications
+    // opt into newer emoji widths through an official Unicode addon.
+    expect(provider.width(0x1f600), 1);
+    expect(provider.charProperties(0xac00, 0), 4);
     expect(() => unicode.register(provider), throwsArgumentError);
     expect(() => unicode.activeVersion = 'missing', throwsArgumentError);
     unicode
@@ -125,7 +127,10 @@ void main() {
         ' '
         '\u001b[?1;6;7;25;45;66;1000;1004;2004;2026;9001h',
       );
-      expect(events, containsAll(<String>['bell', 'title', 'cursor', 'line']));
+      expect(events, containsAll(<String>['bell', 'title', 'line']));
+      // Cursor events compare the position at parser entry and exit. This
+      // write returns to its starting position when origin mode is enabled.
+      expect(events, isNot(contains('cursor')));
       expect(terminal.modes.applicationCursorKeysMode, isTrue);
       expect(terminal.modes.applicationKeypadMode, isTrue);
       expect(terminal.modes.insertMode, isTrue);
