@@ -279,6 +279,14 @@
       "implementation": ["lib/src/core/core_service.dart"],
       "tests": ["test/upstream_core_service_parity_test.dart"]
     },
+    "src/common/services/OscLinkService.ts": {
+      "implementation": ["lib/src/core/osc_link_service.dart"],
+      "tests": ["test/upstream_osc_link_service_parity_test.dart"]
+    },
+    "src/common/services/OscLinkService.test.ts": {
+      "implementation": ["lib/src/core/osc_link_service.dart"],
+      "tests": ["test/upstream_osc_link_service_parity_test.dart"]
+    },
     "src/common/services/CharsetService.ts": {
       "implementation": ["lib/src/core/charset_service.dart"],
       "tests": ["test/upstream_charset_service_parity_test.dart"]
@@ -946,6 +954,21 @@
     "unit:src/common/services/CharsetService.test.ts:CharsetService should reset glevel, charsets, and active charset": {
       "dartTestFile": "test/upstream_charset_service_parity_test.dart",
       "dartTestName": "should reset glevel, charsets, and active charset",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/OscLinkService.test.ts:OscLinkService constructor link IDs are created and fetched consistently": {
+      "dartTestFile": "test/upstream_osc_link_service_parity_test.dart",
+      "dartTestName": "link IDs are created and fetched consistently",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/OscLinkService.test.ts:OscLinkService constructor should dispose the link ID when the last marker is trimmed from the buffer": {
+      "dartTestFile": "test/upstream_osc_link_service_parity_test.dart",
+      "dartTestName": "should dispose the link ID when the last marker is trimmed from the buffer",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/services/OscLinkService.test.ts:OscLinkService constructor should fetch link data from link id": {
+      "dartTestFile": "test/upstream_osc_link_service_parity_test.dart",
+      "dartTestName": "should fetch link data from link id",
       "dartTestKind": "test"
     },
     "unit:src/common/services/CoreService.test.ts:CoreService isCursorInitialized should be false by default": {
