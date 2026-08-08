@@ -184,6 +184,9 @@ void main() {
     await tester.pump();
     expect(find.bySemanticsLabel(' third'), findsOneWidget);
     semantics.dispose();
+    // Canonical line translation owns xterm's 15-second string-cache timer.
+    // Dispose before Flutter's pending-timer invariant runs.
+    terminal.dispose();
   });
 
   testWidgets('renders and automatically resizes the headless terminal', (
