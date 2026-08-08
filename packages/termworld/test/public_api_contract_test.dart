@@ -18,8 +18,10 @@ void main() {
       final terminal = Terminal();
       addTearDown(terminal.dispose);
       terminal.loadAddon(AttachAddon(socket));
-      socket.addIncoming('foo');
-      await Future<void>.delayed(Duration.zero);
+      await _waitForWriteParsed(
+        terminal,
+        () => socket.addIncoming('foo'),
+      );
 
       expect(
         terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
@@ -32,8 +34,10 @@ void main() {
       final terminal = Terminal();
       addTearDown(terminal.dispose);
       terminal.loadAddon(AttachAddon(socket));
-      socket.addIncoming(Uint8List.fromList(<int>[102, 111, 111]));
-      await Future<void>.delayed(Duration.zero);
+      await _waitForWriteParsed(
+        terminal,
+        () => socket.addIncoming(Uint8List.fromList(<int>[102, 111, 111])),
+      );
 
       expect(
         terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
@@ -421,12 +425,14 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       terminal.input('out');
       expect(socket.sent, <Object?>['out']);
-      socket
-        ..addIncoming('one')
-        ..addIncoming(Uint8List.fromList(<int>[0x74, 0x77, 0x6f]))
-        ..addIncoming(<int>[0x74, 0x68, 0x72, 0x65, 0x65])
-        ..addIncoming(4);
-      await Future<void>.delayed(Duration.zero);
+      await _waitForWriteParsed(
+        terminal,
+        () => socket
+          ..addIncoming('one')
+          ..addIncoming(Uint8List.fromList(<int>[0x74, 0x77, 0x6f]))
+          ..addIncoming(<int>[0x74, 0x68, 0x72, 0x65, 0x65])
+          ..addIncoming(4),
+      );
 
       expect(
         terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
@@ -470,6 +476,17 @@ void main() {
       isA<SizedBox>(),
     );
   });
+}
+
+Future<void> _waitForWriteParsed(Terminal terminal, void Function() action) {
+  final completer = Completer<void>();
+  late final Disposable listener;
+  listener = terminal.onWriteParsed.listen((_) {
+    listener.dispose();
+    completer.complete();
+  });
+  action();
+  return completer.future;
 }
 
 final class _UnicodeProvider implements TerminalUnicodeProvider {

@@ -1506,6 +1506,16 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "playwright:7f3b9553b1778fc0311e-066c3f81e61f0b34a287": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "AttachAddon utf8",
+      "dartTestKind": "test"
+    },
+    "playwright:7f3b9553b1778fc0311e-0a11a3f7eb7b6d1df06c": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "AttachAddon string",
+      "dartTestKind": "test"
+    },
     "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent ANY": {
       "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
       "dartTestName": "xterm MouseService 00",
