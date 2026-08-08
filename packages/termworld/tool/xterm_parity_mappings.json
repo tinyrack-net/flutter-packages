@@ -137,6 +137,14 @@
     }
   },
   "sources": {
+    "src/browser/input/MoveToCell.ts": {
+      "implementation": ["lib/src/core/move_to_cell.dart"],
+      "tests": ["test/upstream_move_to_cell_parity_test.dart"]
+    },
+    "src/browser/input/MoveToCell.test.ts": {
+      "implementation": ["lib/src/core/move_to_cell.dart"],
+      "tests": ["test/upstream_move_to_cell_parity_test.dart"]
+    },
     "src/browser/renderer/shared/TextBlinkStateManager.ts": {
       "implementation": ["lib/src/core/text_blink_state_manager.dart"],
       "tests": ["test/upstream_text_blink_state_manager_parity_test.dart"]
@@ -645,6 +653,10 @@
     }
   },
   "tests": {
+    "unit:src/browser/input/MoveToCell.test.ts:MoveToCell alt buffer should move the cursor across rows": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should move the cursor across rows","dartTestKind":"test"},
+    "unit:src/browser/input/MoveToCell.test.ts:MoveToCell normal buffer should use the correct character for application cursor": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should use the correct character for application cursor","dartTestKind":"test"},
+    "unit:src/browser/input/MoveToCell.test.ts:MoveToCell normal buffer should use the right directional escape sequences": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should use the right directional escape sequences","dartTestKind":"test"},
+    "unit:src/browser/input/MoveToCell.test.ts:MoveToCell normal buffer should wrap around entire row instead of doing up and down when the Y value differs": {"dartTestFile":"test/upstream_move_to_cell_parity_test.dart","dartTestName":"should wrap around entire row instead of doing up and down when the Y value differs","dartTestKind":"test"},
     "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager does not start interval when duration is zero": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"does not start interval when duration is zero","dartTestKind":"test"},
     "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager pauses while viewport is hidden and resumes when visible": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"pauses while viewport is hidden and resumes when visible","dartTestKind":"test"},
     "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager starts interval only when needed": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"starts interval only when needed","dartTestKind":"test"},
