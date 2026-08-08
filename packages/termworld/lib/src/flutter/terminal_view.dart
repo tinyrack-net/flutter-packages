@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/marker.dart';
+import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
@@ -18,7 +19,7 @@ class TerminalView extends StatefulWidget {
     super.key,
     this.controller,
     this.theme,
-    this.style = const TerminalStyle(),
+    this.style,
     this.padding,
     this.focusNode,
     this.autofocus = false,
@@ -41,7 +42,7 @@ class TerminalView extends StatefulWidget {
   final TerminalTheme? theme;
 
   /// Renderer font style.
-  final TerminalStyle style;
+  final TerminalStyle? style;
 
   /// Space around the terminal viewport.
   final EdgeInsets? padding;
@@ -179,11 +180,12 @@ final class _TerminalViewState extends State<TerminalView> {
     builder: (context, constraints) {
       _reportDimensions(context, constraints.biggest);
       final theme = widget.theme ?? TerminalThemes.defaultTheme;
+      final style = _effectiveStyle;
       final renderer = CustomPaint(
         painter: _TerminalPainter(
           terminal: widget.terminal,
           theme: theme,
-          style: widget.style,
+          style: style,
           padding: widget.padding ?? EdgeInsets.zero,
           backgroundOpacity: widget.backgroundOpacity,
           focused: _focusNode.hasFocus,
@@ -266,7 +268,7 @@ final class _TerminalViewState extends State<TerminalView> {
                         child: Text(
                           composingText,
                           key: const ValueKey<String>('termworld-preedit'),
-                          style: widget.style.toTextStyle(
+                          style: style.toTextStyle(
                             color: theme.foreground,
                           ),
                         ),
@@ -300,6 +302,48 @@ final class _TerminalViewState extends State<TerminalView> {
         widget.terminal.rows - 1,
       ),
     );
+  }
+
+  TerminalStyle get _effectiveStyle {
+    final override = widget.style;
+    if (override != null) return override;
+    final options = widget.terminal.options;
+    return TerminalStyle(
+      fontFamily: options.fontFamily,
+      fontSize: options.fontSize,
+      height: options.lineHeight,
+      fontWeight: _fontWeight(options.fontWeight, FontWeight.normal),
+      fontWeightBold: _fontWeight(options.fontWeightBold, FontWeight.bold),
+      letterSpacing: options.letterSpacing,
+      cursorType: switch (options.cursorStyle) {
+        TerminalCursorStyle.block => TerminalCursorType.block,
+        TerminalCursorStyle.underline => TerminalCursorType.underline,
+        TerminalCursorStyle.bar => TerminalCursorType.bar,
+      },
+      cursorBlink: options.cursorBlink,
+      cursorWidth: options.cursorWidth.toDouble(),
+    );
+  }
+
+  FontWeight _fontWeight(Object value, FontWeight fallback) {
+    if (value is int) {
+      return switch (value.clamp(100, 900)) {
+        <= 100 => FontWeight.w100,
+        <= 200 => FontWeight.w200,
+        <= 300 => FontWeight.w300,
+        <= 400 => FontWeight.w400,
+        <= 500 => FontWeight.w500,
+        <= 600 => FontWeight.w600,
+        <= 700 => FontWeight.w700,
+        <= 800 => FontWeight.w800,
+        _ => FontWeight.w900,
+      };
+    }
+    final text = value.toString();
+    if (text == 'bold') return FontWeight.bold;
+    if (text == 'normal') return FontWeight.normal;
+    final parsed = int.tryParse(text);
+    return parsed == null ? fallback : _fontWeight(parsed, fallback);
   }
 
   Future<void> _updateHoveredLink(
@@ -594,8 +638,9 @@ final class _TerminalViewState extends State<TerminalView> {
   void _reportDimensions(BuildContext context, Size size) {
     if (!size.isFinite || size.isEmpty) return;
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final cellHeight = widget.style.fontSize * widget.style.height;
-    final cellWidth = widget.style.fontSize * 0.6;
+    final style = _effectiveStyle;
+    final cellHeight = style.fontSize * style.height;
+    final cellWidth = style.fontSize * 0.6 + style.letterSpacing;
     final padding = widget.padding ?? EdgeInsets.zero;
     final columns = ((size.width - padding.horizontal) / cellWidth).floor();
     final rows = ((size.height - padding.vertical) / cellHeight).floor();
@@ -696,7 +741,7 @@ final class _TerminalPainter extends CustomPainter {
                     )
                     .copyWith(
                       fontWeight: cell.isBold
-                          ? FontWeight.bold
+                          ? style.fontWeightBold
                           : style.fontWeight,
                       fontStyle: cell.isItalic
                           ? FontStyle.italic
@@ -718,7 +763,7 @@ final class _TerminalPainter extends CustomPainter {
     }
     _paintDecorations(canvas, dimensions, TerminalDecorationLayer.top);
     _paintHoveredLink(canvas, dimensions);
-    if (terminal.modes.showCursor && focused) {
+    if (terminal.modes.showCursor) {
       _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
     }
   }
@@ -864,7 +909,19 @@ final class _TerminalPainter extends CustomPainter {
   ) {
     final left = padding.left + column * dimensions.cellWidth;
     final top = padding.top + row * dimensions.cellHeight;
-    final rect = switch (style.cursorType) {
+    final inactiveStyle = terminal.options.cursorInactiveStyle;
+    if (!focused && inactiveStyle == TerminalInactiveCursorStyle.none) return;
+    final cursorType = focused
+        ? style.cursorType
+        : switch (inactiveStyle) {
+            TerminalInactiveCursorStyle.outline => TerminalCursorType.block,
+            TerminalInactiveCursorStyle.block => TerminalCursorType.block,
+            TerminalInactiveCursorStyle.bar => TerminalCursorType.bar,
+            TerminalInactiveCursorStyle.underline =>
+              TerminalCursorType.underline,
+            TerminalInactiveCursorStyle.none => TerminalCursorType.block,
+          };
+    final rect = switch (cursorType) {
       TerminalCursorType.block => Rect.fromLTWH(
         left,
         top,
@@ -880,11 +937,16 @@ final class _TerminalPainter extends CustomPainter {
       TerminalCursorType.bar => Rect.fromLTWH(
         left,
         top,
-        2,
+        style.cursorWidth,
         dimensions.cellHeight,
       ),
     };
-    canvas.drawRect(rect, Paint()..color = theme.cursor.withValues(alpha: 0.7));
+    final paint = Paint()
+      ..color = theme.cursor.withValues(alpha: 0.7)
+      ..style = !focused && inactiveStyle == TerminalInactiveCursorStyle.outline
+          ? PaintingStyle.stroke
+          : PaintingStyle.fill;
+    canvas.drawRect(rect, paint);
   }
 
   @override

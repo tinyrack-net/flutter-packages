@@ -41,8 +41,11 @@ final class TerminalStyle {
     this.fontSize = 14,
     this.height = 1.2,
     this.fontWeight = FontWeight.normal,
+    this.fontWeightBold = FontWeight.bold,
+    this.letterSpacing = 0,
     this.cursorType = TerminalCursorType.block,
     this.cursorBlink = false,
+    this.cursorWidth = 1,
   });
 
   /// Preferred monospace font family.
@@ -57,11 +60,20 @@ final class TerminalStyle {
   /// Default font weight.
   final FontWeight fontWeight;
 
+  /// Weight used by cells carrying the bold SGR attribute.
+  final FontWeight fontWeightBold;
+
+  /// Extra logical pixels inserted between glyphs.
+  final double letterSpacing;
+
   /// Cursor shape.
   final TerminalCursorType cursorType;
 
   /// Whether the cursor should blink.
   final bool cursorBlink;
+
+  /// Width of the bar cursor in logical pixels.
+  final double cursorWidth;
 
   /// Converts these settings to a Flutter text style.
   TextStyle toTextStyle({Color? color, Color? backgroundColor}) => TextStyle(
@@ -72,6 +84,7 @@ final class TerminalStyle {
     fontSize: fontSize,
     height: height,
     fontWeight: fontWeight,
+    letterSpacing: letterSpacing,
   );
 }
 

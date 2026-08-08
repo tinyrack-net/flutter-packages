@@ -30,6 +30,40 @@ void main() {
     expect(find.bySemanticsLabel('terminal'), findsOneWidget);
   });
 
+  testWidgets('derives renderer metrics from xterm terminal options', (
+    tester,
+  ) async {
+    final terminal = Terminal(
+      options: TerminalOptions(
+        cols: 10,
+        rows: 2,
+        fontFamily: 'Termworld Test',
+        fontSize: 20,
+        fontWeight: 500,
+        fontWeightBold: 800,
+        letterSpacing: 2,
+        lineHeight: 1.5,
+        cursorStyle: TerminalCursorStyle.bar,
+        cursorWidth: 3,
+      ),
+    );
+    addTearDown(terminal.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 200,
+          height: 100,
+          child: TerminalView(terminal: terminal, autoResize: false),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(terminal.dimensions?.cellWidth, 14);
+    expect(terminal.dimensions?.cellHeight, 30);
+  });
+
   testWidgets('commits Hangul, candidate replacement, and emoji once', (
     tester,
   ) async {
