@@ -295,6 +295,10 @@
       "implementation": ["lib/src/core/string_builder.dart"],
       "tests": ["test/upstream_string_builder_parity_test.dart"]
     },
+    "src/common/TaskQueue.ts": {
+      "implementation": ["lib/src/core/task_queue.dart"],
+      "tests": ["test/upstream_task_queue_parity_test.dart"]
+    },
     "src/common/WindowsMode.ts": {
       "implementation": [
         "lib/src/core/windows_mode.dart",
