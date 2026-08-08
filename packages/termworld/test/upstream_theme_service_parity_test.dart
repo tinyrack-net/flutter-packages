@@ -168,6 +168,43 @@ void main() {
         },
       );
     });
+
+    test('modify, restore and contrast-cache lifecycle matches xterm', () {
+      final events = <TerminalColorSet>[];
+      service.onChangeColors.listen(events.add);
+      service.colors.contrastCache.setCss(1, 2, 'cached');
+      options.minimumContrastRatio = 2;
+      expect(service.colors.contrastCache.hasCss(1, 2), isFalse);
+
+      final original = (
+        service.colors.foreground,
+        service.colors.background,
+        service.colors.cursor,
+        service.colors.ansi[1],
+      );
+      service
+        ..modifyColors((colors) {
+          colors
+            ..foreground = const Color(0xff010101)
+            ..background = const Color(0xff020202)
+            ..cursor = const Color(0xff030303)
+            ..ansi[1] = const Color(0xff040404);
+        })
+        ..restoreColor(-1)
+        ..restoreColor(-2)
+        ..restoreColor(-3)
+        ..restoreColor(1)
+        ..restoreColor()
+        ..restoreColor(999);
+      expect(service.colors.foreground, original.$1);
+      expect(service.colors.background, original.$2);
+      expect(service.colors.cursor, original.$3);
+      expect(service.colors.ansi[1], original.$4);
+      expect(events, isNotEmpty);
+      service
+        ..dispose()
+        ..dispose();
+    });
   });
 }
 

@@ -33,6 +33,21 @@ void main() {
       expect(service.getJoinedCharacters(0), isEmpty);
     });
 
+    test('joined cell data and failing handlers remain renderer-safe', () {
+      final cell = buffers.active.getLine(0)!.getCell(0)!;
+      final joined = JoinedCellData(cell, 'ab', 2);
+      expect(joined.firstCell, same(cell));
+      expect(joined.chars, 'ab');
+      expect(joined.width, 2);
+      expect(joined.code, 0x1fffff);
+      expect(joined.isCombined, isTrue);
+      service
+        ..register((_) => throw StateError('first'))
+        ..register((_) => throw StateError('second'));
+      expect(service.getJoinedCharacters(0), isEmpty);
+      expect(service.getJoinedCharacters(-1), isEmpty);
+    });
+
     test('returns ranges matched by the registered joiners', () {
       service.register(_substringJoiner('->'));
       _expectRanges(service.getJoinedCharacters(0), <(int, int)>[

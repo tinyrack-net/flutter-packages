@@ -137,6 +137,22 @@
     }
   },
   "sources": {
+    "addons/addon-search/src/DecorationManager.ts": {
+      "implementation": ["lib/addon_search.dart"],
+      "tests": ["test/upstream_search_parity_test.dart"]
+    },
+    "addons/addon-search/src/DecorationManager.test.ts": {
+      "implementation": ["lib/addon_search.dart"],
+      "tests": ["test/upstream_search_parity_test.dart"]
+    },
+    "src/browser/renderer/shared/RendererUtils.ts": {
+      "implementation": ["lib/src/core/renderer_utils.dart"],
+      "tests": ["test/upstream_renderer_utils_parity_test.dart"]
+    },
+    "src/browser/renderer/shared/RendererUtils.test.ts": {
+      "implementation": ["lib/src/core/renderer_utils.dart"],
+      "tests": ["test/upstream_renderer_utils_parity_test.dart"]
+    },
     "src/browser/decorations/ColorZoneStore.ts": {
       "implementation": ["lib/src/core/color_zone_store.dart"],
       "tests": ["test/upstream_color_zone_store_parity_test.dart"]
@@ -610,6 +626,9 @@
     }
   },
   "tests": {
+    "unit:addons/addon-search/src/DecorationManager.test.ts:DecorationManager should only add one overview ruler marker per buffer line": {"dartTestFile":"test/upstream_search_parity_test.dart","dartTestName":"should only add one overview ruler marker per buffer line","dartTestKind":"test"},
+    "unit:addons/addon-search/src/DecorationManager.test.ts:DecorationManager should split highlight decorations for a wrapped match": {"dartTestFile":"test/upstream_search_parity_test.dart","dartTestName":"should split highlight decorations for a wrapped match","dartTestKind":"test"},
+    "unit:src/browser/renderer/shared/RendererUtils.test.ts:RendererUtils computeNextVariantOffset": {"dartTestFile":"test/upstream_renderer_utils_parity_test.dart","dartTestName":"computeNextVariantOffset","dartTestKind":"test"},
     "unit:src/browser/decorations/ColorZoneStore.test.ts:ColorZoneStore should merge adjacent zones": {"dartTestFile":"test/upstream_color_zone_store_parity_test.dart","dartTestName":"should merge adjacent zones","dartTestKind":"test"},
     "unit:src/browser/decorations/ColorZoneStore.test.ts:ColorZoneStore should not merge non-adjacent zones": {"dartTestFile":"test/upstream_color_zone_store_parity_test.dart","dartTestName":"should not merge non-adjacent zones","dartTestKind":"test"},
     "unit:src/browser/decorations/ColorZoneStore.test.ts:ColorZoneStore should reuse zone objects": {"dartTestFile":"test/upstream_color_zone_store_parity_test.dart","dartTestName":"should reuse zone objects","dartTestKind":"test"},

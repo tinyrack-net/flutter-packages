@@ -27,6 +27,26 @@ void main() {
       expect(decoration.isDisposed, isTrue);
     });
 
+    test('registration events and disposed marker rejection match xterm', () {
+      final registered = <TerminalDecoration>[];
+      final removed = <TerminalDecoration>[];
+      service.onDecorationRegistered.listen(registered.add);
+      service.onDecorationRemoved.listen(removed.add);
+      final decoration = _register(service, buffers.active, 2);
+      expect(service.decorations, contains(decoration));
+      decoration.dispose();
+      expect(registered, <TerminalDecoration>[decoration]);
+      expect(removed, <TerminalDecoration>[decoration]);
+      final marker = buffers.active.addMarker(3)..dispose();
+      expect(
+        service.registerDecoration(TerminalDecoration(marker: marker)),
+        isNull,
+      );
+      service
+        ..dispose()
+        ..dispose();
+    });
+
     group('forEachDecorationAtCell', () {
       test('should find decoration at its marker line', () {
         _register(service, buffers.active, 5, width: 10);

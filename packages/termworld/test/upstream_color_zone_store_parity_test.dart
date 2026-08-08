@@ -43,6 +43,30 @@ void main() {
         ..addDecoration(_decoration(buffers.active, 1));
       expect(store.zones.single, same(first));
     });
+
+    test('filters, extends and trims pooled zones', () {
+      store.addDecoration(
+        TerminalDecoration(marker: buffers.active.addMarker(0)),
+      );
+      expect(store.zones, isEmpty);
+      store
+        ..addDecoration(_decoration(buffers.active, 1))
+        ..addDecoration(_decoration(buffers.active, 1))
+        ..addDecoration(_decoration(buffers.active, 0));
+      expect(store.zones.single.startBufferLine, 0);
+      store.addDecoration(
+        TerminalDecoration(
+          marker: buffers.active.addMarker(5),
+          overviewRulerColor: 'blue',
+          overviewRulerPosition: TerminalOverviewRulerPosition.left,
+        ),
+      );
+      expect(store.zones, hasLength(2));
+      store
+        ..clear()
+        ..addDecoration(_decoration(buffers.active, 3));
+      expect(store.zones, hasLength(1));
+    });
   });
 }
 

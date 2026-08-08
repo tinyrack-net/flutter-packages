@@ -125,6 +125,50 @@ void main() {
       expect(selection.end, const TerminalBufferPosition(2, 1));
     });
 
+    test('should split highlight decorations for a wrapped match', () async {
+      terminal.resize(10, 5);
+      await terminal.writeAndWait('0123456789abcde');
+      expect(
+        search.findNext(
+          '9abc',
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      final inactive = terminal.decorations
+          .where((value) => value.layer == TerminalDecorationLayer.bottom)
+          .toList();
+      expect(inactive, hasLength(2));
+      expect((inactive[0].x, inactive[0].width), (9, 1));
+      expect((inactive[1].x, inactive[1].width), (0, 3));
+      expect(
+        inactive.where((value) => value.overviewRulerColor != null),
+        hasLength(2),
+      );
+    });
+
+    test('should only add one overview ruler marker per buffer line', () async {
+      terminal.resize(10, 5);
+      await terminal.writeAndWait('abcdefghij');
+      expect(
+        search.findNext(
+          '[af]',
+          options: const TerminalSearchOptions(
+            regex: true,
+            decorations: _decorations,
+          ),
+        ),
+        isTrue,
+      );
+      final inactive = terminal.decorations.where(
+        (value) => value.layer == TerminalDecorationLayer.bottom,
+      );
+      expect(
+        inactive.where((value) => value.overviewRulerColor != null),
+        hasLength(1),
+      );
+    });
+
     test('whole word uses xterm non-word character set', () async {
       await terminal.writeAndWait('foo foobar foo_bar (foo)');
       const options = TerminalSearchOptions(wholeWord: true);

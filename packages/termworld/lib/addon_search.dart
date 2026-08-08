@@ -104,6 +104,7 @@ final class SearchAddon extends ManagedTerminalAddon {
   final TerminalEventEmitter<TerminalSearchResult> _onDidChangeResults =
       TerminalEventEmitter<TerminalSearchResult>();
   final List<_SearchDecoration> _highlightDecorations = <_SearchDecoration>[];
+  final Set<int> _highlightedLines = <int>{};
   List<_SearchMatch> _trackedMatches = <_SearchMatch>[];
   _SearchDecorationGroup? _activeDecoration;
   String? _cachedTerm;
@@ -374,6 +375,7 @@ final class SearchAddon extends ManagedTerminalAddon {
         cursorYOffset: row - terminal.buffer.normal.absoluteCursorY,
       );
       if (marker != null) {
+        final hasOverviewRuler = !_highlightedLines.contains(marker.line);
         final decoration = terminal.registerDecoration(
           marker: marker,
           x: column,
@@ -385,11 +387,15 @@ final class SearchAddon extends ManagedTerminalAddon {
               ? options.activeMatchBackground
               : options.matchBackground,
           borderColor: active ? options.activeMatchBorder : options.matchBorder,
-          overviewRulerColor: active
-              ? options.activeMatchColorOverviewRuler
-              : options.matchOverviewRuler,
+          overviewRulerColor: hasOverviewRuler
+              ? active
+                    ? options.activeMatchColorOverviewRuler
+                    : options.matchOverviewRuler
+              : null,
+          overviewRulerPosition: TerminalOverviewRulerPosition.center,
         );
         if (decoration != null) {
+          if (!active) _highlightedLines.add(marker.line);
           decorations.add(_SearchDecoration(marker, decoration));
         } else {
           marker.dispose();
@@ -433,6 +439,7 @@ final class SearchAddon extends ManagedTerminalAddon {
       decoration.dispose();
     }
     _highlightDecorations.clear();
+    _highlightedLines.clear();
   }
 
   /// Clears only the active-result decoration without changing selection.
