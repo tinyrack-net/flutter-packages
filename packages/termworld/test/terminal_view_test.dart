@@ -67,6 +67,52 @@ void main() {
       const Color(0xff565656),
     );
     expect(
+      TerminalThemes.ensureContrast(
+        const Color(0xff000000),
+        const Color(0xffffffff),
+        4.5,
+      ),
+      const Color(0xffffffff),
+    );
+    expect(
+      TerminalThemes.ensureContrast(
+        const Color(0xff123456),
+        const Color(0xff654321),
+        1,
+      ),
+      const Color(0xff654321),
+    );
+    expect(
+      TerminalThemes.ensureContrast(
+        const Color(0xff000000),
+        const Color(0xff606060),
+        100,
+      ),
+      const Color(0xffffffff),
+    );
+    expect(
+      TerminalThemes.ensureContrast(
+        const Color(0xffffffff),
+        const Color(0xff606060),
+        100,
+      ),
+      const Color(0xff000000),
+    );
+    expect(
+      TerminalThemes.blend(
+        const Color(0xff000000),
+        const Color(0xffffffff),
+      ),
+      const Color(0xffffffff),
+    );
+    expect(
+      TerminalThemes.blend(
+        const Color(0xff000000),
+        const Color(0x80ffffff),
+      ),
+      const Color(0xff808080),
+    );
+    expect(
       TerminalThemes.resolve(
         const TerminalColorTheme(foreground: 'transparent'),
       ).foreground,
