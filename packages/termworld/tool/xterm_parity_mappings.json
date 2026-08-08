@@ -271,6 +271,20 @@
       "implementation": ["lib/src/core/color.dart"],
       "tests": ["test/upstream_color_parity_test.dart"]
     },
+    "src/common/input/UnicodeV6.ts": {
+      "implementation": [
+        "lib/src/core/unicode.dart",
+        "lib/src/core/unicode11_tables.g.dart"
+      ],
+      "tests": ["test/upstream_unicode_v6_parity_test.dart"]
+    },
+    "src/common/input/UnicodeV6.test.ts": {
+      "implementation": [
+        "lib/src/core/unicode.dart",
+        "lib/src/core/unicode11_tables.g.dart"
+      ],
+      "tests": ["test/upstream_unicode_v6_parity_test.dart"]
+    },
     "src/common/Lifecycle.ts": {
       "implementation": ["lib/src/core/disposable.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
@@ -896,6 +910,11 @@
     "unit:src/common/buffer/BufferRange.test.ts:BufferRange getRangeLength should get range for end line right after start line": {
       "dartTestFile": "test/upstream_buffer_range_parity_test.dart",
       "dartTestName": "should get range for end line right after start line",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/UnicodeV6.test.ts:wcwidth should match all values from the old implementation": {
+      "dartTestFile": "test/upstream_unicode_v6_parity_test.dart",
+      "dartTestName": "wcwidth should match all values from the old implementation",
       "dartTestKind": "test"
     },
     "unit:src/common/Color.test.ts:Color color blend should blend colors based on the alpha channel": {

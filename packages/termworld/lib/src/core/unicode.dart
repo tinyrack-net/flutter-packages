@@ -119,7 +119,8 @@ final class Unicode6TerminalProvider implements TerminalUnicodeProvider {
         codePoint >= 0xfe30 && codePoint <= 0xfe6f ||
         codePoint >= 0xff00 && codePoint <= 0xff60 ||
         codePoint >= 0xffe0 && codePoint <= 0xffe6 ||
-        codePoint >= 0x20000 && codePoint <= 0x3fffd) {
+        codePoint >= 0x20000 && codePoint <= 0x2fffd ||
+        codePoint >= 0x30000 && codePoint <= 0x3fffd) {
       return 2;
     }
     return 1;
