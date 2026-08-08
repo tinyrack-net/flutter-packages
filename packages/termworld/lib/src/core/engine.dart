@@ -1586,7 +1586,7 @@ final class _TerminalCoreEngine {
     final active = buffer.active;
     active
       ..savedCursorX = active.cursorX
-      ..savedCursorY = active.absoluteCursorY
+      ..savedCursorY = active.cursorY
       ..savedAttributes = _attributes.copy()
       ..savedCharsets = <String>[_g0, _g1, _g2, _g3]
       ..savedCharsetLevel = _activeCharset;
@@ -1600,7 +1600,7 @@ final class _TerminalCoreEngine {
     final active = buffer.active;
     active
       ..cursorX = active.savedCursorX.clamp(0, _columns - 1)
-      ..cursorY = (active.savedCursorY - active.baseY).clamp(0, _rows - 1);
+      ..cursorY = active.savedCursorY.clamp(0, _rows - 1);
     _attributes = active.savedAttributes.copy();
     _g0 = active.savedCharsets[0];
     _g1 = active.savedCharsets[1];
