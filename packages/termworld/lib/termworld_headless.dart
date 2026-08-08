@@ -20,3 +20,4 @@ export 'src/core/terminal.dart';
 export 'src/core/text_blink_state_manager.dart';
 export 'src/core/text_decoder.dart';
 export 'src/core/unicode.dart';
+export 'src/core/windows_mode.dart';

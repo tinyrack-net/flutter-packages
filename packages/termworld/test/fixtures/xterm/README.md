@@ -9,3 +9,6 @@ the adjacent xterm.js MIT license.
 `src/common/input/KittyKeyboard.test.ts` at the same revision. It was produced
 by instrumenting the pinned implementation in memory while running all 165
 upstream tests. Its Git blob hash is verified by the parity gate.
+
+`win32_input_mode_cases.json` similarly captures every event and result from
+all 64 pinned `src/common/input/Win32InputMode.test.ts` cases.

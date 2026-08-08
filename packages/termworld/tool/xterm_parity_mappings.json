@@ -1338,8 +1338,8 @@
     "src/common/input/KittyKeyboard.test.ts": {"implementation":["lib/src/core/kitty_keyboard.dart"],"tests":["test/upstream_kitty_keyboard_parity_test.dart"]},
     "src/common/input/TextDecoder.ts": {"implementation":["lib/src/core/text_decoder.dart","lib/src/core/terminal.dart"],"tests":["test/upstream_text_decoder_parity_test.dart"]},
     "src/common/input/TextDecoder.test.ts": {"implementation":["lib/src/core/text_decoder.dart"],"tests":["test/upstream_text_decoder_parity_test.dart"]},
-    "src/common/input/Win32InputMode.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/windows_mode.dart"],"tests":["test/upstream_windows_mode_parity_test.dart","test/upstream_core_focused_test.dart"]},
-    "src/common/input/Win32InputMode.test.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/windows_mode.dart"],"tests":["test/upstream_windows_mode_parity_test.dart","test/upstream_core_focused_test.dart"]},
+    "src/common/input/Win32InputMode.ts": {"implementation":["lib/src/core/engine.dart","lib/src/core/windows_mode.dart"],"tests":["test/upstream_win32_input_mode_parity_test.dart","test/upstream_windows_mode_parity_test.dart","test/upstream_core_focused_test.dart"]},
+    "src/common/input/Win32InputMode.test.ts": {"implementation":["lib/src/core/windows_mode.dart"],"tests":["test/upstream_win32_input_mode_parity_test.dart"]},
     "src/common/input/WriteBuffer.ts": {"implementation":["lib/src/core/terminal.dart"],"tests":["test/xterm_core_parity_test.dart"]},
     "src/common/input/WriteBuffer.test.ts": {"implementation":["lib/src/core/terminal.dart"],"tests":["test/xterm_core_parity_test.dart"]},
     "src/common/parser/EscapeSequenceParser.ts": {"implementation":["lib/src/core/parser.dart","lib/src/core/apc_parser.dart","lib/src/core/dcs_parser.dart","lib/src/core/osc_parser.dart"],"tests":["test/xterm_core_parity_test.dart","test/upstream_apc_parser_parity_test.dart","test/upstream_dcs_parser_parity_test.dart","test/upstream_osc_parser_parity_test.dart"]},
@@ -5777,6 +5777,326 @@
     "unit:src/common/input/KittyKeyboard.test.ts:KittyKeyboard shouldUseProtocol should return true when any flag is set": {
       "dartTestFile": "test/upstream_kitty_keyboard_parity_test.dart",
       "dartTestName": "xterm KittyKeyboard 164",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent basic key encoding Enter key": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 00",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent basic key encoding Escape key": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 01",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent basic key encoding Space key": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 02",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent basic key encoding digit key": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 03",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent basic key encoding letter key press": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 04",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent basic key encoding letter key release": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 05",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent ctrl+letter control characters Ctrl+A produces 0x01": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 06",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent ctrl+letter control characters Ctrl+Alt+C does not produce control char": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 07",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent ctrl+letter control characters Ctrl+C produces 0x03 (ETX)": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 08",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent ctrl+letter control characters Ctrl+Shift+A (uppercase) produces 0x01": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 09",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent ctrl+letter control characters Ctrl+Shift+C (uppercase) produces 0x03": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 10",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent ctrl+letter control characters Ctrl+Z produces 0x1A": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 11",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent function keys Ctrl+F1": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 12",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent function keys F1": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 13",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent function keys F12": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 14",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent function keys F5": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 15",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent meta key MetaLeft": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 16",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent meta key MetaRight": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 17",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent modifier encoding alt left": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 18",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent modifier encoding alt right": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 19",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent modifier encoding ctrl left": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 20",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent modifier encoding ctrl right": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 21",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent modifier encoding multiple modifiers": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 22",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent modifier encoding shift": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 23",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) ArrowDown": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 24",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) ArrowLeft": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 25",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) ArrowRight": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 26",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) ArrowUp": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 27",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) Backspace": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 28",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) Delete": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 29",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) End": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 30",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) Home": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 31",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) Insert": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 32",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) PageDown": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 33",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) PageUp": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 34",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent navigation keys (ENHANCED_KEY) Tab": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 35",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys Numpad0": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 36",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys NumpadAdd": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 37",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys NumpadDecimal": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 38",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys NumpadDivide (ENHANCED)": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 39",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys NumpadEnter (ENHANCED)": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 40",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys NumpadMultiply": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 41",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent numpad keys NumpadSubtract": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 42",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent problem keys from spec Ctrl+Alt+/": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 43",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent problem keys from spec Ctrl+Backspace produces DEL (0x7F)": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 44",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent problem keys from spec Ctrl+Break": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 45",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent problem keys from spec Ctrl+Enter produces LF (0x0A)": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 46",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent problem keys from spec Ctrl+Space": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 47",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent problem keys from spec Shift+Enter": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 48",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent scan codes Escape": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 49",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent scan codes letter A": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 50",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent sequence format valid CSI format": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 51",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys AltLeft": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 52",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys AltRight": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 53",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys ControlLeft": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 54",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys ControlRight": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 55",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys ShiftLeft": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 56",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys ShiftRight": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 57",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent standalone modifier keys modifier release": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 58",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent unicode character extended ASCII": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 59",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent unicode character non-printable is 0": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 60",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent unicode character printable": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 61",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent unicode character shifted": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 62",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/input/Win32InputMode.test.ts:Win32InputMode evaluateKeyboardEvent unicode character symbol": {
+      "dartTestFile": "test/upstream_win32_input_mode_parity_test.dart",
+      "dartTestName": "xterm Win32InputMode 63",
       "dartTestKind": "test"
     }
   }

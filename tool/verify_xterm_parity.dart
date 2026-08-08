@@ -116,7 +116,38 @@ void main() {
   _checkFixtureHashes(package, snapshot, failures);
   _checkPinnedLigatureFonts(package, failures);
   _checkPinnedKittyKeyboardCases(package, failures);
+  _checkPinnedWin32InputModeCases(package, failures);
   _finish(failures);
+}
+
+void _checkPinnedWin32InputModeCases(
+  Directory package,
+  List<String> failures,
+) {
+  final fixture = File(
+    '${package.path}/test/fixtures/xterm/win32_input_mode_cases.json',
+  );
+  if (!fixture.existsSync()) {
+    failures.add('pinned Win32 input mode cases are missing');
+    return;
+  }
+  final result = Process.runSync('git', <String>[
+    'hash-object',
+    '--no-filters',
+    fixture.path,
+  ]);
+  if (result.exitCode != 0 ||
+      (result.stdout as String).trim() !=
+          '26ace6e49e5206e4d2739b85597230e4b61627d7') {
+    failures.add('pinned Win32 input mode cases changed');
+  }
+  final document = jsonDecode(fixture.readAsStringSync());
+  if (document is! Map<String, Object?> ||
+      document['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb' ||
+      document['cases'] is! List<Object?> ||
+      (document['cases']! as List<Object?>).length != 64) {
+    failures.add('pinned Win32 input mode case identity changed');
+  }
 }
 
 void _checkPinnedKittyKeyboardCases(

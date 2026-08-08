@@ -675,6 +675,7 @@ final class Terminal extends DisposableStore {
   bool _isDisposing = false;
   final AddonManager _addonManager = AddonManager();
   final KittyKeyboard _kittyKeyboard = KittyKeyboard();
+  final Win32InputMode _win32InputMode = Win32InputMode();
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
   final Map<int, TerminalCharacterJoiner> _characterJoiners =
       <int, TerminalCharacterJoiner>{};
@@ -900,6 +901,15 @@ final class Terminal extends DisposableStore {
     kittyKeyboardFlags,
     eventType: eventType,
     macOptionAsAlt: options.macOptionIsMeta,
+  );
+
+  /// Encodes one native keyboard event with DECSET 9001 Win32 input mode.
+  KittyKeyboardResult evaluateWin32Keyboard(
+    KittyKeyboardEvent event, {
+    required bool isKeyDown,
+  }) => _win32InputMode.evaluateKeyboardEvent(
+    event,
+    isKeyDown: isKeyDown,
   );
 
   /// xterm-compatible `handleWheelEvent` API.

@@ -1162,32 +1162,45 @@ final class _TerminalViewState extends State<TerminalView> {
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     final keyboard = HardwareKeyboard.instance;
     final kittyFlags = widget.terminal.kittyKeyboardFlags;
-    if (event is KeyUpEvent && !KittyKeyboard.shouldUseProtocol(kittyFlags)) {
+    final useWin32 = widget.terminal.modes.win32InputMode;
+    if (event is KeyUpEvent &&
+        !useWin32 &&
+        !KittyKeyboard.shouldUseProtocol(kittyFlags)) {
       return KeyEventResult.ignored;
     }
-    if (event is! KeyUpEvent) {
-      final allowed = widget.terminal.handleKeyEvent(
-        TerminalKeyEvent(
-          key: event.logicalKey.keyLabel,
-          shift: keyboard.isShiftPressed,
-          alt: keyboard.isAltPressed,
-          control: keyboard.isControlPressed,
-          meta: keyboard.isMetaPressed,
-        ),
+    final allowed = widget.terminal.handleKeyEvent(
+      TerminalKeyEvent(
+        key: event.logicalKey.keyLabel,
+        shift: keyboard.isShiftPressed,
+        alt: keyboard.isAltPressed,
+        control: keyboard.isControlPressed,
+        meta: keyboard.isMetaPressed,
+      ),
+    );
+    if (!allowed) return KeyEventResult.handled;
+    final protocolEvent = KittyKeyboardEvent(
+      key: _kittyKey(event.logicalKey),
+      code: _kittyCode(event.physicalKey),
+      type: event is KeyUpEvent ? 'keyup' : 'keydown',
+      shiftKey: keyboard.isShiftPressed,
+      altKey: keyboard.isAltPressed,
+      ctrlKey: keyboard.isControlPressed,
+      metaKey: keyboard.isMetaPressed,
+    );
+    if (useWin32) {
+      final result = widget.terminal.evaluateWin32Keyboard(
+        protocolEvent,
+        isKeyDown: event is! KeyUpEvent,
       );
-      if (!allowed) return KeyEventResult.handled;
+      final sequence = result.key;
+      if (sequence != null) widget.terminal.input(sequence);
+      return result.cancel || sequence != null
+          ? KeyEventResult.handled
+          : KeyEventResult.ignored;
     }
     if (KittyKeyboard.shouldUseProtocol(kittyFlags)) {
       final result = widget.terminal.evaluateKittyKeyboard(
-        KittyKeyboardEvent(
-          key: _kittyKey(event.logicalKey),
-          code: _kittyCode(event.physicalKey),
-          type: event is KeyUpEvent ? 'keyup' : 'keydown',
-          shiftKey: keyboard.isShiftPressed,
-          altKey: keyboard.isAltPressed,
-          ctrlKey: keyboard.isControlPressed,
-          metaKey: keyboard.isMetaPressed,
-        ),
+        protocolEvent,
         eventType: event is KeyUpEvent
             ? KittyKeyboardEventType.release
             : event is KeyRepeatEvent
