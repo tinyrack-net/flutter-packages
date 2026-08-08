@@ -118,6 +118,35 @@ void main() {
       ).foreground,
       const Color(0x00000000),
     );
+    final extended = List<String>.filled(241, '#123456');
+    expect(
+      TerminalThemes.resolve(
+        TerminalColorTheme(
+          foreground: 'not-a-color',
+          background: '#not-hex',
+          extendedAnsi: extended,
+        ),
+      ).palette,
+      hasLength(256),
+    );
+  });
+
+  test('detached controller methods are safe no-ops', () {
+    final controller = TerminalViewController();
+    addTearDown(controller.dispose);
+    controller
+      ..requestKeyboard()
+      ..clearSelection()
+      ..selectAll()
+      ..selectLines(0, 1)
+      ..select(0, 0, 1)
+      ..scrollLines(1)
+      ..scrollPages(1)
+      ..scrollToTop()
+      ..scrollToBottom();
+    expect(controller.hasSelection, isFalse);
+    expect(controller.selectedText, isNull);
+    expect(controller.selection, isNull);
   });
 
   testWidgets('exposes visible terminal rows in screen reader mode', (
