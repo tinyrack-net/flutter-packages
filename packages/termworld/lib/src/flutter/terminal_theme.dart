@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/terminal.dart';
+import 'package:termworld/src/flutter/css_color_parser.dart';
 
 /// Cursor shape rendered by the Flutter terminal view.
 enum TerminalCursorType {
@@ -284,7 +285,10 @@ abstract final class TerminalThemes {
     final match = RegExp(
       r'^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)$',
     ).firstMatch(value);
-    if (match == null) return null;
+    if (match == null) {
+      final browserColor = parseBrowserCssColor(value);
+      return browserColor == null ? null : Color(browserColor);
+    }
     final red = int.parse(match.group(1)!).clamp(0, 255);
     final green = int.parse(match.group(2)!).clamp(0, 255);
     final blue = int.parse(match.group(3)!).clamp(0, 255);

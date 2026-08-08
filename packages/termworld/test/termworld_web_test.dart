@@ -1,12 +1,35 @@
 @TestOn('browser')
 library;
 
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_web_fonts.dart';
 import 'package:termworld/addon_webgl.dart';
-import 'package:termworld/termworld_headless.dart';
+import 'package:termworld/termworld.dart';
 
 void main() {
+  test('browser theme parsing accepts opaque CSS color syntax', () {
+    expect(
+      TerminalThemes.resolve(
+        const TerminalColorTheme(
+          foreground: 'rebeccapurple',
+          background: 'hsl(120, 100%, 25%)',
+        ),
+      ),
+      isA<TerminalTheme>()
+          .having(
+            (theme) => theme.foreground,
+            'foreground',
+            const Color(0xff663399),
+          )
+          .having(
+            (theme) => theme.background,
+            'background',
+            const Color(0xff008000),
+          ),
+    );
+  });
+
   test('web fonts refresh after browser font readiness', () async {
     final terminal = Terminal();
     final addon = WebFontsAddon(initialRelayout: false);
