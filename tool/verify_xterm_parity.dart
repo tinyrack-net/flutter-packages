@@ -225,7 +225,7 @@ void _checkMappings(
       final literal = RegExp(
         '\\b${RegExp.escape(kind! as String)}\\s*\\('
         r'(?:\s|//[^\n]*(?:\n|$)|/\*[\s\S]*?\*/)*'
-        "['\"]${RegExp.escape(name)}['\"]",
+        "r?['\"]${RegExp.escape(name)}['\"]",
       );
       if (!literal.hasMatch(source.readAsStringSync())) {
         failures.add('mapped Dart test is not executable: ${entry.key}');
