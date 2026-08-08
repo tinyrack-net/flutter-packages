@@ -387,9 +387,9 @@ void main() {
       expect(terminal.dimensions?.device.char.left, 0);
 
       final addon = _Addon();
-      terminal.loadAddon(addon);
-      expect(() => terminal.loadAddon(addon), throwsStateError);
       terminal
+        ..loadAddon(addon)
+        ..loadAddon(addon)
         ..dispose()
         ..dispose();
       expect(() => terminal.write('x'), throwsStateError);

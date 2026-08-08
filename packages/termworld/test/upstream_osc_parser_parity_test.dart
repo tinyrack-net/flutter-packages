@@ -393,11 +393,11 @@ void _registerFactory(
     OscHandler(
       asynchronous
           ? (data) async {
-              reports.add(<Object?>[?label, data]);
+              reports.add(label == null ? data : <Object?>[label, data]);
               return returns;
             }
           : (data) {
-              reports.add(<Object?>[?label, data]);
+              reports.add(label == null ? data : <Object?>[label, data]);
               return returns;
             },
     ),
