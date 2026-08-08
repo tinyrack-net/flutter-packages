@@ -1,7 +1,138 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/src/addons/ligature_tables.dart';
 
+TerminalLigatureLookupResult _lookup(int glyph, [int index = 0]) =>
+    TerminalLigatureLookupResult(
+      substitutions: <int?>[glyph],
+      length: 1,
+      index: index,
+      subIndex: 0,
+      contextRange: const (0, 1),
+    );
+
+TerminalLigatureLookupEntry _entry(int glyph, [int index = 0]) =>
+    TerminalLigatureLookupEntry(lookup: _lookup(glyph, index));
+
+List<Object> _treeShape(TerminalLigatureLookupTree tree) => <Object>[
+  <int, int?>{
+    for (final item in tree.individual.entries)
+      item.key: item.value.lookup?.substitutions.single,
+  },
+  <((int, int), int?)>[
+    for (final item in tree.ranges)
+      (item.range, item.entry.lookup?.substitutions.single),
+  ],
+];
+
 void main() {
+  test('combines disjoint trees', () {
+    final result = mergeTerminalLigatureTrees(<TerminalLigatureLookupTree>[
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: _entry(1)},
+      ),
+      TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((2, 4), _entry(2)),
+        ],
+      ),
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{5: _entry(3)},
+      ),
+      TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((8, 10), _entry(4)),
+        ],
+      ),
+    ]);
+    expect(_treeShape(result), <Object>[
+      <int, int?>{1: 1, 5: 3},
+      <((int, int), int?)>[((2, 4), 2), ((8, 10), 4)],
+    ]);
+  });
+
+  test('merges matching individual glyphs', () {
+    final result = mergeTerminalLigatureTrees(<TerminalLigatureLookupTree>[
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: _entry(1, 1)},
+      ),
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: _entry(2)},
+      ),
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: _entry(3, 2)},
+      ),
+    ]);
+    expect(_treeShape(result), <Object>[
+      <int, int?>{1: 2},
+      <Object>[],
+    ]);
+  });
+
+  test('merges range glyphs overlapping individual glyphs', () {
+    final result = mergeTerminalLigatureTrees(<TerminalLigatureLookupTree>[
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: _entry(1)},
+      ),
+      TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((0, 4), _entry(2, 1)),
+        ],
+      ),
+    ]);
+    expect(_treeShape(result), <Object>[
+      <int, int?>{1: 1, 0: 2},
+      <((int, int), int?)>[((2, 4), 2)],
+    ]);
+  });
+
+  test('merges individual glyphs overlapping range glyphs', () {
+    final result = mergeTerminalLigatureTrees(<TerminalLigatureLookupTree>[
+      TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((0, 4), _entry(2, 1)),
+        ],
+      ),
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: _entry(1)},
+      ),
+    ]);
+    expect(_treeShape(result), <Object>[
+      <int, int?>{1: 1, 0: 2},
+      <((int, int), int?)>[((2, 4), 2)],
+    ]);
+  });
+
+  test('merges multiple overlapping ranges', () {
+    final result = mergeTerminalLigatureTrees(<TerminalLigatureLookupTree>[
+      TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((0, 3), _entry(1, 2)),
+          TerminalLigatureLookupRange((6, 12), _entry(2, 1)),
+          TerminalLigatureLookupRange((15, 20), _entry(5, 3)),
+          TerminalLigatureLookupRange((20, 22), _entry(7, 4)),
+        ],
+      ),
+      TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((2, 8), _entry(3)),
+          TerminalLigatureLookupRange((10, 13), _entry(4)),
+          TerminalLigatureLookupRange((16, 21), _entry(6)),
+        ],
+      ),
+    ]);
+    expect(_treeShape(result), <Object>[
+      <int, int?>{2: 3, 12: 4, 15: 5, 20: 6, 21: 7},
+      <((int, int), int?)>[
+        ((0, 2), 1),
+        ((6, 8), 3),
+        ((3, 6), 3),
+        ((8, 10), 2),
+        ((10, 12), 4),
+        ((16, 20), 6),
+      ],
+    ]);
+  });
+
   test('lookup trees flatten ranges and walk forward and reverse context', () {
     const direct = TerminalLigatureLookupResult(
       substitutions: <int?>[10],

@@ -51,7 +51,9 @@ void main() {
 
     test('handles escaped characters in strings', () {
       expect(
-        parseTerminalFontFamilies(r'"quote \" slash \\ slashquote \\"", serif'),
+        parseTerminalFontFamilies(
+          r'"quote \" slash \\ slashquote \\\"", serif',
+        ),
         <String>[r'quote " slash \ slashquote \"', 'serif'],
       );
     });

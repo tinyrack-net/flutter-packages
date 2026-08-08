@@ -73,6 +73,309 @@ final class TerminalLigatureLookupTree {
   final List<TerminalLigatureLookupRange> ranges;
 }
 
+/// Merges lookup trees using xterm's lookup/subtable priority rules.
+TerminalLigatureLookupTree mergeTerminalLigatureTrees(
+  List<TerminalLigatureLookupTree> trees,
+) {
+  final result = TerminalLigatureLookupTree();
+  final mergedEntries =
+      HashMap<
+        TerminalLigatureLookupEntry,
+        Set<TerminalLigatureLookupEntry>
+      >.identity();
+  for (final tree in trees) {
+    _mergeTerminalLigatureSubtree(result, tree, mergedEntries);
+  }
+  return result;
+}
+
+void _mergeTerminalLigatureSubtree(
+  TerminalLigatureLookupTree mainTree,
+  TerminalLigatureLookupTree mergeTree,
+  Map<TerminalLigatureLookupEntry, Set<TerminalLigatureLookupEntry>> merged,
+) {
+  for (final item in mergeTree.individual.entries) {
+    final glyph = item.key;
+    final value = item.value;
+    final existing = mainTree.individual[glyph];
+    if (existing != null) {
+      _mergeTerminalLigatureEntry(existing, value, merged);
+      continue;
+    }
+    var matched = false;
+    for (var index = 0; index < mainTree.ranges.length; index++) {
+      final ranged = mainTree.ranges[index];
+      final overlap = _terminalIndividualOverlap(glyph, ranged.range);
+      if (overlap.both == null) continue;
+      matched = true;
+      final target = _cloneTerminalLigatureEntry(ranged.entry);
+      mainTree.individual[glyph] = value;
+      _mergeTerminalLigatureEntry(value, target, merged);
+      mainTree.ranges.removeAt(index);
+      index--;
+      _addTerminalSelectors(mainTree, overlap.second, ranged.entry);
+    }
+    if (!matched) mainTree.individual[glyph] = value;
+  }
+
+  for (final rangedToMerge in mergeTree.ranges) {
+    var remaining = <TerminalGlyphSelector>[rangedToMerge.range];
+    for (var index = 0; index < mainTree.ranges.length; index++) {
+      final current = mainTree.ranges[index];
+      for (
+        var remainingIndex = 0;
+        remainingIndex < remaining.length;
+        remainingIndex++
+      ) {
+        final selector = remaining[remainingIndex];
+        if (selector is (int, int)) {
+          final overlap = _terminalRangeOverlap(selector, current.range);
+          if (overlap.both == null) continue;
+          mainTree.ranges.removeAt(index);
+          index--;
+          final entry = _cloneTerminalLigatureEntry(current.entry);
+          _addTerminalSelector(mainTree, overlap.both!, entry);
+          _mergeTerminalLigatureEntry(
+            entry,
+            _cloneTerminalLigatureEntry(rangedToMerge.entry),
+            merged,
+          );
+          _addTerminalSelectors(mainTree, overlap.second, current.entry);
+          remaining = overlap.first;
+        } else {
+          final glyph = selector as int;
+          final overlap = _terminalIndividualOverlap(glyph, current.range);
+          if (overlap.both == null) continue;
+          final entry = _cloneTerminalLigatureEntry(rangedToMerge.entry);
+          mainTree.individual[glyph] = entry;
+          _mergeTerminalLigatureEntry(
+            entry,
+            _cloneTerminalLigatureEntry(current.entry),
+            merged,
+          );
+          mainTree.ranges.removeAt(index);
+          index--;
+          _addTerminalSelectors(mainTree, overlap.second, current.entry);
+          remaining
+            ..removeAt(remainingIndex)
+            ..insertAll(remainingIndex, overlap.first);
+          break;
+        }
+      }
+    }
+    for (final glyph in mainTree.individual.keys.toList()) {
+      for (var index = 0; index < remaining.length; index++) {
+        final selector = remaining[index];
+        if (selector is (int, int)) {
+          final overlap = _terminalIndividualOverlap(glyph, selector);
+          if (overlap.both == null) continue;
+          _mergeTerminalLigatureEntry(
+            mainTree.individual[glyph]!,
+            _cloneTerminalLigatureEntry(rangedToMerge.entry),
+            merged,
+          );
+          remaining
+            ..removeAt(index)
+            ..insertAll(index, overlap.second);
+          break;
+        }
+        if (glyph == selector) {
+          _mergeTerminalLigatureEntry(
+            mainTree.individual[glyph]!,
+            _cloneTerminalLigatureEntry(rangedToMerge.entry),
+            merged,
+          );
+          break;
+        }
+      }
+    }
+    _addTerminalSelectors(mainTree, remaining, rangedToMerge.entry);
+  }
+}
+
+void _mergeTerminalLigatureEntry(
+  TerminalLigatureLookupEntry mainEntry,
+  TerminalLigatureLookupEntry mergeEntry,
+  Map<TerminalLigatureLookupEntry, Set<TerminalLigatureLookupEntry>> merged,
+) {
+  final mergedSet = merged.putIfAbsent(
+    mainEntry,
+    HashSet<TerminalLigatureLookupEntry>.identity,
+  );
+  if (!mergedSet.add(mergeEntry)) return;
+  final incoming = mergeEntry.lookup;
+  final current = mainEntry.lookup;
+  if (incoming != null &&
+      (current == null ||
+          current.index > incoming.index ||
+          current.index == incoming.index &&
+              current.subIndex > incoming.subIndex)) {
+    mainEntry.lookup = incoming;
+  }
+  final incomingForward = mergeEntry.forward;
+  if (incomingForward != null) {
+    final currentForward = mainEntry.forward;
+    if (currentForward == null) {
+      mainEntry.forward = incomingForward;
+    } else {
+      _mergeTerminalLigatureSubtree(currentForward, incomingForward, merged);
+    }
+  }
+  final incomingReverse = mergeEntry.reverse;
+  if (incomingReverse != null) {
+    final currentReverse = mainEntry.reverse;
+    if (currentReverse == null) {
+      mainEntry.reverse = incomingReverse;
+    } else {
+      _mergeTerminalLigatureSubtree(currentReverse, incomingReverse, merged);
+    }
+  }
+}
+
+typedef _TerminalRangeOverlap = ({
+  List<TerminalGlyphSelector> first,
+  List<TerminalGlyphSelector> second,
+  TerminalGlyphSelector? both,
+});
+
+_TerminalRangeOverlap _terminalRangeOverlap(
+  (int, int) first,
+  (int, int) second,
+) {
+  final firstOnly = <TerminalGlyphSelector>[];
+  final secondOnly = <TerminalGlyphSelector>[];
+  TerminalGlyphSelector? both;
+  if (first.$1 < second.$2 && second.$1 < first.$2) {
+    both = _terminalRangeOrIndividual(
+      first.$1 > second.$1 ? first.$1 : second.$1,
+      first.$2 < second.$2 ? first.$2 : second.$2,
+    );
+  }
+  if (first.$1 < second.$1) {
+    firstOnly.add(
+      _terminalRangeOrIndividual(
+        first.$1,
+        second.$1 < first.$2 ? second.$1 : first.$2,
+      ),
+    );
+  } else if (second.$1 < first.$1) {
+    secondOnly.add(
+      _terminalRangeOrIndividual(
+        second.$1,
+        second.$2 < first.$1 ? second.$2 : first.$1,
+      ),
+    );
+  }
+  if (first.$2 > second.$2) {
+    firstOnly.add(
+      _terminalRangeOrIndividual(
+        first.$1 > second.$2 ? first.$1 : second.$2,
+        first.$2,
+      ),
+    );
+  } else if (second.$2 > first.$2) {
+    secondOnly.add(
+      _terminalRangeOrIndividual(
+        first.$2 > second.$1 ? first.$2 : second.$1,
+        second.$2,
+      ),
+    );
+  }
+  return (first: firstOnly, second: secondOnly, both: both);
+}
+
+_TerminalRangeOverlap _terminalIndividualOverlap(
+  int first,
+  (int, int) second,
+) {
+  if (first < second.$1 || first > second.$2) {
+    return (
+      first: <TerminalGlyphSelector>[first],
+      second: [second],
+      both: null,
+    );
+  }
+  final secondOnly = <TerminalGlyphSelector>[];
+  if (second.$1 < first) {
+    secondOnly.add(_terminalRangeOrIndividual(second.$1, first));
+  }
+  if (second.$2 > first) {
+    secondOnly.add(_terminalRangeOrIndividual(first + 1, second.$2));
+  }
+  return (
+    first: const <TerminalGlyphSelector>[],
+    second: secondOnly,
+    both: first,
+  );
+}
+
+TerminalGlyphSelector _terminalRangeOrIndividual(int start, int end) =>
+    end - start == 1 ? start : (start, end);
+
+void _addTerminalSelectors(
+  TerminalLigatureLookupTree tree,
+  Iterable<TerminalGlyphSelector> selectors,
+  TerminalLigatureLookupEntry entry,
+) {
+  for (final selector in selectors) {
+    _addTerminalSelector(tree, selector, _cloneTerminalLigatureEntry(entry));
+  }
+}
+
+void _addTerminalSelector(
+  TerminalLigatureLookupTree tree,
+  TerminalGlyphSelector selector,
+  TerminalLigatureLookupEntry entry,
+) {
+  if (selector is int) {
+    tree.individual[selector] = entry;
+  } else {
+    tree.ranges.add(TerminalLigatureLookupRange(selector as (int, int), entry));
+  }
+}
+
+TerminalLigatureLookupEntry _cloneTerminalLigatureEntry(
+  TerminalLigatureLookupEntry entry, [
+  Map<TerminalLigatureLookupEntry, TerminalLigatureLookupEntry>? visited,
+]) {
+  final known =
+      visited ??
+      HashMap<
+        TerminalLigatureLookupEntry,
+        TerminalLigatureLookupEntry
+      >.identity();
+  final cached = known[entry];
+  if (cached != null) return cached;
+  final result = TerminalLigatureLookupEntry(lookup: entry.lookup);
+  known[entry] = result;
+  final forward = entry.forward;
+  if (forward != null) {
+    result.forward = _cloneTerminalLigatureTree(forward, known);
+  }
+  final reverse = entry.reverse;
+  if (reverse != null) {
+    result.reverse = _cloneTerminalLigatureTree(reverse, known);
+  }
+  return result;
+}
+
+TerminalLigatureLookupTree _cloneTerminalLigatureTree(
+  TerminalLigatureLookupTree tree,
+  Map<TerminalLigatureLookupEntry, TerminalLigatureLookupEntry> visited,
+) => TerminalLigatureLookupTree(
+  individual: <int, TerminalLigatureLookupEntry>{
+    for (final item in tree.individual.entries)
+      item.key: _cloneTerminalLigatureEntry(item.value, visited),
+  },
+  ranges: <TerminalLigatureLookupRange>[
+    for (final item in tree.ranges)
+      TerminalLigatureLookupRange(
+        item.range,
+        _cloneTerminalLigatureEntry(item.entry, visited),
+      ),
+  ],
+);
+
 /// One lookup node after range expansion.
 final class TerminalFlattenedLigatureEntry {
   /// Best substitution terminating at this node.

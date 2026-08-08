@@ -77,14 +77,18 @@ void main() {
         ..error('error', <Object?>[4]);
 
       expect(
-        logger.records,
-        <(TerminalLogLevel, String, List<Object?>)>[
-          (TerminalLogLevel.trace, 'trace', <Object?>[0]),
-          (TerminalLogLevel.debug, 'debug', <Object?>[1]),
-          (TerminalLogLevel.info, 'info', <Object?>[2]),
-          (TerminalLogLevel.warning, 'warn', <Object?>[3]),
-          (TerminalLogLevel.error, 'error', <Object?>[4]),
+        logger.records.map((record) => (record.$1, record.$2)),
+        <(TerminalLogLevel, String)>[
+          (TerminalLogLevel.trace, 'trace'),
+          (TerminalLogLevel.debug, 'debug'),
+          (TerminalLogLevel.info, 'info'),
+          (TerminalLogLevel.warning, 'warn'),
+          (TerminalLogLevel.error, 'error'),
         ],
+      );
+      expect(
+        logger.records.map((record) => record.$3.single),
+        <Object?>[0, 1, 2, 3, 4],
       );
     });
   });
