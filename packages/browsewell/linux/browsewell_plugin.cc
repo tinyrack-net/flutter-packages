@@ -166,6 +166,35 @@ void SendPointer(WebKitWebView* webview, GdkEventType type, double x, double y,
   gdk_event_free(event);
 }
 
+void EnterPointer(WebKitWebView* webview, double x, double y) {
+  GtkWidget* widget = GTK_WIDGET(webview);
+  GdkWindow* window = gtk_widget_get_window(widget);
+  if (window == nullptr) return;
+  GdkDisplay* display = gtk_widget_get_display(widget);
+  GdkDevice* device =
+      gdk_seat_get_pointer(gdk_display_get_default_seat(display));
+  gint root_x = 0;
+  gint root_y = 0;
+  gdk_window_get_root_coords(window, static_cast<gint>(x),
+                             static_cast<gint>(y), &root_x, &root_y);
+  GdkEvent* event = gdk_event_new(GDK_ENTER_NOTIFY);
+  event->crossing.window = GDK_WINDOW(g_object_ref(window));
+  event->crossing.send_event = FALSE;
+  event->crossing.subwindow = nullptr;
+  event->crossing.time = GDK_CURRENT_TIME;
+  event->crossing.x = x;
+  event->crossing.y = y;
+  event->crossing.x_root = root_x;
+  event->crossing.y_root = root_y;
+  event->crossing.mode = GDK_CROSSING_NORMAL;
+  event->crossing.detail = GDK_NOTIFY_ANCESTOR;
+  event->crossing.focus = TRUE;
+  event->crossing.state = static_cast<GdkModifierType>(0);
+  event->crossing.device = device;
+  gtk_main_do_event(event);
+  gdk_event_free(event);
+}
+
 bool RectCenter(FlValue* rect, double* x, double* y) {
   if (rect == nullptr || fl_value_get_type(rect) != FL_VALUE_TYPE_MAP)
     return false;
@@ -310,6 +339,7 @@ void HandleMethodCall(BrowsewellPlugin* self, FlMethodCall* call) {
       RespondError(call, "internal", "Element bounds are missing.");
       return;
     }
+    EnterPointer(webview, x, y);
     SendPointer(webview, GDK_MOTION_NOTIFY, x, y);
     if (strcmp(method, "click") == 0) {
       SendPointer(webview, GDK_BUTTON_PRESS, x, y, 1);

@@ -89,6 +89,54 @@ jobs:
       - run: flutter pub get
       - run: dart run tool/verify_coverage.dart
 
+  browsewell-fast:
+    name: Browsewell fast (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            platform: windows
+            device: windows
+          - os: macos-15
+            platform: macos
+            device: macos
+          - os: ubuntu-latest
+            platform: linux
+            device: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Install the Linux WebKit test toolchain
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev libgtest-dev xvfb \
+            libwebkit2gtk-4.1-dev libsoup-3.0-dev dbus-x11
+      - run: flutter pub get
+      - run: flutter pub get
+        working-directory: packages/browsewell/example
+      - name: L3 ${{ matrix.platform }} browsewell fast native tests
+        run: dart run tool/run_native_tests.dart ${{ matrix.platform }} browsewell
+      - name: L4 ${{ matrix.platform }} browsewell fast conformance suite
+        if: runner.os != 'Linux'
+        run: flutter test integration_test/conformance_test.dart -d ${{ matrix.device }}
+        working-directory: packages/browsewell/example
+      - name: L4 linux browsewell fast conformance suite
+        if: runner.os == 'Linux'
+        run: >-
+          xvfb-run -a dbus-run-session --
+          flutter test integration_test/conformance_test.dart -d linux
+        working-directory: packages/browsewell/example
+      - name: L5 ${{ matrix.platform }} browsewell fast release build
+        run: flutter build ${{ matrix.platform }} --release
+        working-directory: packages/browsewell/example
+
   windows:
     name: Windows (${{ matrix.os }})
     strategy:
@@ -98,6 +146,7 @@ jobs:
           - windows-2025
           - windows-2022
     runs-on: ${{ matrix.os }}
+    needs: browsewell-fast
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -160,6 +209,7 @@ jobs:
           - macos-15
           - macos-15-intel
     runs-on: ${{ matrix.os }}
+    needs: browsewell-fast
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -218,6 +268,7 @@ jobs:
           - ubuntu-latest
           - ubuntu-22.04
     runs-on: ${{ matrix.os }}
+    needs: browsewell-fast
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2

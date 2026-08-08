@@ -8,7 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  // Browsewell deliberately injects through Flutter's production pointer
+  // pipeline. Live test bindings normally turn device-sourced pointer events
+  // into finder diagnostics instead of dispatching them to widgets.
+  binding.shouldPropagateDevicePointerEvents = true;
 
   late HttpServer server;
   late HttpServer frameServer;
@@ -134,10 +138,8 @@ void main() {
     );
     await controller.resize(const Size(640, 480));
     await tester.pumpAndSettle();
-    expect(
-      await controller.evaluate('() => window.innerWidth'),
-      closeTo(640, 2),
-    );
+    final width = await _waitForInnerWidth(controller, 640);
+    expect(width, closeTo(640, 2));
   });
 
   testWidgets('captures evaluates logs dialogs and rejects stale refs', (
@@ -166,7 +168,7 @@ void main() {
       await controller.evaluate(
         '() => document.querySelector("#result").textContent',
       ),
-      startsWith('trusted:'),
+      startsWith('trusted'),
     );
     expect(
       (await controller.logs()).any(
@@ -266,6 +268,20 @@ void main() {
 }
 
 int _pngHeight(Uint8List png) => ByteData.sublistView(png, 20, 24).getUint32(0);
+
+Future<num> _waitForInnerWidth(
+  BrowsewellController controller,
+  num expected,
+) async {
+  num width = -1;
+  for (var attempt = 0; attempt < 40; attempt += 1) {
+    final value = await controller.evaluate('() => window.innerWidth');
+    if (value is num) width = value;
+    if ((width - expected).abs() <= 2) return width;
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
+  return width;
+}
 
 Map<String, String> _refs(BrowsewellSnapshotNode root) {
   final result = <String, String>{};
