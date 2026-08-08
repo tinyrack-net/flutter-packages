@@ -14,7 +14,7 @@ abstract class ManagedTerminalAddon extends TerminalAddon {
   bool get isActive => _terminal != null;
 
   @override
-  void activate(covariant Terminal terminal) {
+  void activate(Terminal terminal) {
     if (isDisposed) throw StateError('Cannot activate a disposed addon');
     if (_terminal != null) throw StateError('Addon is already loaded');
     _terminal = terminal;

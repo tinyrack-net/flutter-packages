@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/src/core/addon.dart';
 import 'package:termworld/src/core/addon_manager.dart';
+import 'package:termworld/src/core/terminal.dart';
 
 void main() {
   group('AddonManager', () {
@@ -8,8 +9,9 @@ void main() {
       test('should call addon constructor', () {
         final manager = AddonManager();
         final addon = _Addon();
-        manager.loadAddon('foo', addon);
-        expect(addon.terminal, 'foo');
+        final terminal = Terminal();
+        manager.loadAddon(terminal, addon);
+        expect(addon.terminal, same(terminal));
       });
     });
 
@@ -18,7 +20,7 @@ void main() {
         final manager = AddonManager();
         final addons = <_Addon>[_Addon(), _Addon(), _Addon()];
         for (final addon in addons) {
-          manager.loadAddon(Object(), addon);
+          manager.loadAddon(Terminal(), addon);
         }
         expect(manager.loadedAddonCount, 3);
         manager.dispose();
@@ -30,11 +32,11 @@ void main() {
 }
 
 final class _Addon extends TerminalAddon {
-  Object? terminal;
+  Terminal? terminal;
   int disposeCalls = 0;
 
   @override
-  void activate(covariant Object terminal) => this.terminal = terminal;
+  void activate(Terminal terminal) => this.terminal = terminal;
 
   @override
   void dispose() {

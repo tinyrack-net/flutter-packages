@@ -1,5 +1,6 @@
 import 'package:termworld/src/core/addon.dart';
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/terminal.dart';
 
 final class _LoadedAddon {
   _LoadedAddon(this.instance);
@@ -18,7 +19,7 @@ final class AddonManager implements Disposable {
   int get loadedAddonCount => _addons.length;
 
   /// Activates and begins tracking [instance].
-  void loadAddon(Object terminal, TerminalAddon instance) {
+  void loadAddon(Terminal terminal, TerminalAddon instance) {
     final loadedAddon = _LoadedAddon(instance);
     _addons.add(loadedAddon);
     loadedAddon.disposeListener = instance.addDisposeListener(

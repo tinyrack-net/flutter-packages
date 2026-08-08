@@ -1,11 +1,12 @@
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/terminal.dart';
 
 /// Extension loaded into a terminal instance.
 abstract class TerminalAddon extends DisposableStore {
   final List<void Function()> _disposeListeners = <void Function()>[];
 
   /// Activates this addon. It is called at most once.
-  void activate(covariant Object terminal);
+  void activate(Terminal terminal);
 
   /// Registers an internal notification used by the addon manager.
   Disposable addDisposeListener(void Function() listener) {
