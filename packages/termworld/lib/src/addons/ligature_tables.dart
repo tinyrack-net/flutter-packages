@@ -716,3 +716,344 @@ Map<TerminalGlyphSelector, int?> terminalRangeSubstitutionGlyphs(
       current;
   return result;
 }
+
+/// One GSUB contextual substitution lookup reference.
+final class TerminalSubstitutionLookupRecord {
+  /// Creates a reference to a single-substitution lookup.
+  const TerminalSubstitutionLookupRecord({
+    required this.sequenceIndex,
+    required this.lookupListIndex,
+  });
+
+  /// Input position to replace.
+  final int sequenceIndex;
+
+  /// Index in the font's lookup list.
+  final int lookupListIndex;
+}
+
+/// Temporary tree entry and the substitutions accumulated along its path.
+final class TerminalLigatureEntryMetadata {
+  /// Creates path metadata.
+  const TerminalLigatureEntryMetadata(this.entry, this.substitutions);
+
+  /// Current lookup-tree node.
+  final TerminalLigatureLookupEntry entry;
+
+  /// Replacement glyph for each input position.
+  final List<int?> substitutions;
+}
+
+/// A GSUB format 6.3 coverage-based chaining-context table.
+final class TerminalChainingCoverageTable {
+  /// Creates a coverage-based chaining table.
+  const TerminalChainingCoverageTable({
+    required this.inputCoverage,
+    required this.lookaheadCoverage,
+    required this.backtrackCoverage,
+    required this.lookupRecords,
+  });
+
+  /// Coverage for each consumed input position.
+  final List<TerminalCoverageTable> inputCoverage;
+
+  /// Coverage following the consumed input.
+  final List<TerminalCoverageTable> lookaheadCoverage;
+
+  /// Coverage preceding the consumed input.
+  final List<TerminalCoverageTable> backtrackCoverage;
+
+  /// Substitutions applied to the input positions.
+  final List<TerminalSubstitutionLookupRecord> lookupRecords;
+}
+
+/// A GSUB format 8.1 reverse-chaining single-substitution table.
+final class TerminalReverseChainingTable {
+  /// Creates a reverse chaining table.
+  const TerminalReverseChainingTable({
+    required this.coverage,
+    required this.lookaheadCoverage,
+    required this.backtrackCoverage,
+    required this.substitutes,
+  });
+
+  /// Glyphs replaced by this lookup.
+  final TerminalCoverageTable coverage;
+
+  /// Required following context.
+  final List<TerminalCoverageTable> lookaheadCoverage;
+
+  /// Required preceding context.
+  final List<TerminalCoverageTable> backtrackCoverage;
+
+  /// Replacements in coverage order.
+  final List<int> substitutes;
+}
+
+/// Node and optional replacement produced while adding an input selector.
+typedef TerminalInputTreeResult = ({
+  TerminalLigatureLookupEntry entry,
+  int? substitution,
+});
+
+/// Adds one input selector to a lookup tree and resolves its substitution.
+List<TerminalInputTreeResult> terminalLigatureInputTree(
+  TerminalLigatureLookupTree tree,
+  List<TerminalSubstitutionLookupRecord> substitutions,
+  List<List<TerminalSubstitutionTable>> lookups,
+  int inputIndex,
+  TerminalGlyphSelector glyph,
+) {
+  final result = <TerminalInputTreeResult>[];
+  if (glyph is int) {
+    final entry = TerminalLigatureLookupEntry();
+    tree.individual[glyph] = entry;
+    result.add((
+      entry: entry,
+      substitution: _terminalSubstitutionAtPosition(
+        substitutions,
+        lookups,
+        inputIndex,
+        glyph,
+      ),
+    ));
+    return result;
+  }
+  final range = glyph as (int, int);
+  final rangeSubstitutions = _terminalSubstitutionAtPositionRange(
+    substitutions,
+    lookups,
+    inputIndex,
+    range,
+  );
+  for (final item in rangeSubstitutions.entries) {
+    final entry = TerminalLigatureLookupEntry();
+    final selector = item.key;
+    if (selector is (int, int)) {
+      tree.ranges.add(TerminalLigatureLookupRange(selector, entry));
+    } else {
+      // Preserve the pinned xterm implementation's detached range-individual
+      // entry behavior here; lookup traversal observes this exact structure.
+      tree.individual[selector as int] = TerminalLigatureLookupEntry();
+    }
+    result.add((entry: entry, substitution: item.value));
+  }
+  return result;
+}
+
+/// Extends lookup paths with a consumed input position.
+List<TerminalLigatureEntryMetadata> terminalProcessInputPosition(
+  List<TerminalGlyphSelector> glyphs,
+  int position,
+  List<TerminalLigatureEntryMetadata> currentEntries,
+  List<TerminalSubstitutionLookupRecord> lookupRecords,
+  List<List<TerminalSubstitutionTable>> lookups,
+) {
+  final nextEntries = <TerminalLigatureEntryMetadata>[];
+  for (final current in currentEntries) {
+    final forward = TerminalLigatureLookupTree();
+    current.entry.forward = forward;
+    for (final glyph in glyphs) {
+      for (final next in terminalLigatureInputTree(
+        forward,
+        lookupRecords,
+        lookups,
+        position,
+        glyph,
+      )) {
+        nextEntries.add(
+          TerminalLigatureEntryMetadata(next.entry, <int?>[
+            ...current.substitutions,
+            next.substitution,
+          ]),
+        );
+      }
+    }
+  }
+  return nextEntries;
+}
+
+/// Extends lookup paths with a non-consuming lookahead position.
+List<TerminalLigatureEntryMetadata> terminalProcessLookaheadPosition(
+  List<TerminalGlyphSelector> glyphs,
+  List<TerminalLigatureEntryMetadata> currentEntries,
+) => _terminalProcessContextPosition(glyphs, currentEntries, reverse: false);
+
+/// Extends lookup paths with a non-consuming backtrack position.
+List<TerminalLigatureEntryMetadata> terminalProcessBacktrackPosition(
+  List<TerminalGlyphSelector> glyphs,
+  List<TerminalLigatureEntryMetadata> currentEntries,
+) => _terminalProcessContextPosition(glyphs, currentEntries, reverse: true);
+
+List<TerminalLigatureEntryMetadata> _terminalProcessContextPosition(
+  List<TerminalGlyphSelector> glyphs,
+  List<TerminalLigatureEntryMetadata> currentEntries, {
+  required bool reverse,
+}) {
+  final nextEntries = <TerminalLigatureEntryMetadata>[];
+  final processed = HashSet<TerminalLigatureLookupEntry>.identity();
+  for (final current in currentEntries) {
+    if (!processed.add(current.entry)) continue;
+    final tree = reverse
+        ? (current.entry.reverse ??= TerminalLigatureLookupTree())
+        : (current.entry.forward ??= TerminalLigatureLookupTree());
+    final sharedEntry = TerminalLigatureLookupEntry();
+    for (final glyph in glyphs) {
+      if (glyph is (int, int)) {
+        tree.ranges.add(TerminalLigatureLookupRange(glyph, sharedEntry));
+      } else {
+        tree.individual[glyph as int] = sharedEntry;
+      }
+    }
+    nextEntries.add(
+      TerminalLigatureEntryMetadata(sharedEntry, current.substitutions),
+    );
+  }
+  return nextEntries;
+}
+
+/// Builds xterm's GSUB type 6 format 3 lookup tree.
+TerminalLigatureLookupTree buildTerminalChainingCoverageTree(
+  TerminalChainingCoverageTable table,
+  List<List<TerminalSubstitutionTable>> lookups,
+  int tableIndex,
+) {
+  final result = TerminalLigatureLookupTree();
+  final firstCoverage = table.inputCoverage.first;
+  for (final first in terminalCoverageGlyphs(firstCoverage)) {
+    var current =
+        terminalLigatureInputTree(
+              result,
+              table.lookupRecords,
+              lookups,
+              0,
+              first.glyph,
+            )
+            .map(
+              (item) => TerminalLigatureEntryMetadata(
+                item.entry,
+                <int?>[item.substitution],
+              ),
+            )
+            .toList();
+    for (var index = 1; index < table.inputCoverage.length; index++) {
+      current = terminalProcessInputPosition(
+        terminalCoverageGlyphs(
+          table.inputCoverage[index],
+        ).map((item) => item.glyph).toList(),
+        index,
+        current,
+        table.lookupRecords,
+        lookups,
+      );
+    }
+    for (final coverage in table.lookaheadCoverage) {
+      current = terminalProcessLookaheadPosition(
+        terminalCoverageGlyphs(coverage).map((item) => item.glyph).toList(),
+        current,
+      );
+    }
+    for (final coverage in table.backtrackCoverage) {
+      current = terminalProcessBacktrackPosition(
+        terminalCoverageGlyphs(coverage).map((item) => item.glyph).toList(),
+        current,
+      );
+    }
+    for (final metadata in current) {
+      metadata.entry.lookup = TerminalLigatureLookupResult(
+        substitutions: metadata.substitutions,
+        length: table.inputCoverage.length,
+        index: tableIndex,
+        subIndex: 0,
+        contextRange: (
+          -table.backtrackCoverage.length,
+          table.inputCoverage.length + table.lookaheadCoverage.length,
+        ),
+      );
+    }
+  }
+  return result;
+}
+
+/// Builds xterm's GSUB type 8 format 1 lookup tree.
+TerminalLigatureLookupTree buildTerminalReverseChainingTree(
+  TerminalReverseChainingTable table,
+  int tableIndex,
+) {
+  final result = TerminalLigatureLookupTree();
+  for (final glyph in terminalCoverageGlyphs(table.coverage)) {
+    final entry = TerminalLigatureLookupEntry();
+    final selector = glyph.glyph;
+    if (selector is (int, int)) {
+      result.ranges.add(TerminalLigatureLookupRange(selector, entry));
+    } else {
+      result.individual[selector as int] = entry;
+    }
+    var current = <TerminalLigatureEntryMetadata>[
+      TerminalLigatureEntryMetadata(entry, <int?>[
+        table.substitutes[glyph.index],
+      ]),
+    ];
+    for (final coverage in table.lookaheadCoverage) {
+      current = terminalProcessLookaheadPosition(
+        terminalCoverageGlyphs(coverage).map((item) => item.glyph).toList(),
+        current,
+      );
+    }
+    for (final coverage in table.backtrackCoverage) {
+      current = terminalProcessBacktrackPosition(
+        terminalCoverageGlyphs(coverage).map((item) => item.glyph).toList(),
+        current,
+      );
+    }
+    for (final metadata in current) {
+      metadata.entry.lookup = TerminalLigatureLookupResult(
+        substitutions: metadata.substitutions,
+        length: 1,
+        index: tableIndex,
+        subIndex: 0,
+        contextRange: (
+          -table.backtrackCoverage.length,
+          1 + table.lookaheadCoverage.length,
+        ),
+      );
+    }
+  }
+  return result;
+}
+
+Map<TerminalGlyphSelector, int?> _terminalSubstitutionAtPositionRange(
+  List<TerminalSubstitutionLookupRecord> records,
+  List<List<TerminalSubstitutionTable>> lookups,
+  int position,
+  (int, int) range,
+) {
+  for (final record in records.where(
+    (record) => record.sequenceIndex == position,
+  )) {
+    for (final table in lookups[record.lookupListIndex]) {
+      final substitutions = terminalRangeSubstitutionGlyphs(table, range);
+      if (!substitutions.values.every((value) => value != null)) {
+        return substitutions;
+      }
+    }
+  }
+  return <TerminalGlyphSelector, int?>{range: null};
+}
+
+int? _terminalSubstitutionAtPosition(
+  List<TerminalSubstitutionLookupRecord> records,
+  List<List<TerminalSubstitutionTable>> lookups,
+  int position,
+  int glyph,
+) {
+  for (final record in records.where(
+    (record) => record.sequenceIndex == position,
+  )) {
+    for (final table in lookups[record.lookupListIndex]) {
+      final substitution = terminalSubstitutionGlyph(table, glyph);
+      if (substitution != null) return substitution;
+    }
+  }
+  return null;
+}

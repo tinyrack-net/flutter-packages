@@ -233,4 +233,72 @@ void main() {
       <Object, int?>{(1, 3): 10, (1, 4): 10, (1, 5): 10},
     );
   });
+
+  test('GSUB format 6.3 and 8.1 build contextual lookup trees', () {
+    const one = TerminalCoverageGlyphs(<int>[1]);
+    const two = TerminalCoverageGlyphs(<int>[2]);
+    const three = TerminalCoverageGlyphs(<int>[3]);
+    const zero = TerminalCoverageGlyphs(<int>[0]);
+    const chaining = TerminalChainingCoverageTable(
+      inputCoverage: <TerminalCoverageTable>[one, two],
+      lookaheadCoverage: <TerminalCoverageTable>[three],
+      backtrackCoverage: <TerminalCoverageTable>[zero],
+      lookupRecords: <TerminalSubstitutionLookupRecord>[
+        TerminalSubstitutionLookupRecord(
+          sequenceIndex: 0,
+          lookupListIndex: 0,
+        ),
+        TerminalSubstitutionLookupRecord(
+          sequenceIndex: 1,
+          lookupListIndex: 1,
+        ),
+      ],
+    );
+    final chainingTree = flattenTerminalLigatureTree(
+      buildTerminalChainingCoverageTree(
+        chaining,
+        const <List<TerminalSubstitutionTable>>[
+          <TerminalSubstitutionTable>[
+            TerminalDeltaSubstitution(one, 10),
+          ],
+          <TerminalSubstitutionTable>[
+            TerminalDeltaSubstitution(two, 20),
+          ],
+        ],
+        7,
+      ),
+    );
+    final match = walkTerminalLigatureTree(
+      chainingTree,
+      <int>[0, 1, 2, 3],
+      1,
+      1,
+    );
+    expect(match?.substitutions, <int?>[11, 22]);
+    expect(match?.contextRange, (-1, 3));
+    expect(match?.index, 7);
+
+    const reverse = TerminalReverseChainingTable(
+      coverage: TerminalCoverageGlyphs(<int>[5]),
+      lookaheadCoverage: <TerminalCoverageTable>[
+        TerminalCoverageGlyphs(<int>[6]),
+      ],
+      backtrackCoverage: <TerminalCoverageTable>[
+        TerminalCoverageGlyphs(<int>[4]),
+      ],
+      substitutes: <int>[9],
+    );
+    final reverseTree = flattenTerminalLigatureTree(
+      buildTerminalReverseChainingTree(reverse, 8),
+    );
+    final reverseMatch = walkTerminalLigatureTree(
+      reverseTree,
+      <int>[4, 5, 6],
+      1,
+      1,
+    );
+    expect(reverseMatch?.substitutions, <int?>[9]);
+    expect(reverseMatch?.contextRange, (-1, 2));
+    expect(reverseMatch?.index, 8);
+  });
 }
