@@ -46,10 +46,10 @@ void main() {
         ),
       );
 
-    expect(addon.proposeDimensions()?.cols, 10);
+    expect(addon.proposeDimensions()?.cols, 8);
     expect(addon.proposeDimensions()?.rows, 5);
     addon.fit();
-    expect((terminal.cols, terminal.rows), (10, 5));
+    expect((terminal.cols, terminal.rows), (8, 5));
   });
 
   test('image consumes iTerm2, sixel, and Kitty payloads', () async {

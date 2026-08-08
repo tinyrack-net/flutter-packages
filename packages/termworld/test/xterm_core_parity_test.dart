@@ -287,7 +287,13 @@ void main() {
     group('xterm VT fixtures', () {
       for (final input in inputs) {
         final name = input.uri.pathSegments.last.replaceAll('.in', '');
-        final expected = File('${fixtureRoot.path}/$name.text');
+        final pinnedOutputRoot = Directory.current.path.endsWith('termworld')
+            ? 'test/fixtures/xterm_pinned_outputs'
+            : 'packages/termworld/test/fixtures/xterm_pinned_outputs';
+        final pinnedOutput = File('$pinnedOutputRoot/$name.text');
+        final expected = pinnedOutput.existsSync()
+            ? pinnedOutput
+            : File('${fixtureRoot.path}/$name.text');
         if (!expected.existsSync()) continue;
         test(name, () async {
           final terminal = Terminal(

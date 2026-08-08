@@ -138,7 +138,8 @@ void main() {
       expect(terminal.modes.sendFocusMode, isTrue);
       expect(terminal.modes.bracketedPasteMode, isTrue);
       expect(terminal.modes.synchronizedOutputMode, isTrue);
-      expect(terminal.modes.win32InputMode, isTrue);
+      // DECSET 9001 is ignored unless the opt-in vtExtension is enabled.
+      expect(terminal.modes.win32InputMode, isFalse);
       expect(terminal.modes.mouseTrackingMode, 'vt200');
 
       await terminal.writeAndWait('\u001b[?1000l\u001b[?9h');
