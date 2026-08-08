@@ -100,6 +100,7 @@ final class _TerminalViewState extends State<TerminalView> {
   bool _cursorVisible = true;
   TerminalMouseButton _pressedMouseButton = TerminalMouseButton.none;
   TerminalCellOffset? _selectionAnchor;
+  double _wheelPartialScroll = 0;
 
   @override
   void initState() {
@@ -432,15 +433,18 @@ final class _TerminalViewState extends State<TerminalView> {
 
   void _onPointerSignal(PointerSignalEvent event) {
     if (event is! PointerScrollEvent) return;
+    final keyboard = HardwareKeyboard.instance;
     final wheel = TerminalWheelEvent(
       deltaX: event.scrollDelta.dx,
       deltaY: event.scrollDelta.dy,
-      shift: HardwareKeyboard.instance.isShiftPressed,
-      alt: HardwareKeyboard.instance.isAltPressed,
-      control: HardwareKeyboard.instance.isControlPressed,
-      meta: HardwareKeyboard.instance.isMetaPressed,
+      shift: keyboard.isShiftPressed,
+      alt: keyboard.isAltPressed,
+      control: keyboard.isControlPressed,
+      meta: keyboard.isMetaPressed,
     );
     if (!widget.terminal.handleWheelEvent(wheel)) return;
+    final lines = _consumeWheel(event.scrollDelta.dy, wheel);
+    if (lines == 0) return;
     final cell = _cellAt(event.localPosition);
     final action = event.scrollDelta.dx.abs() > event.scrollDelta.dy.abs()
         ? event.scrollDelta.dx < 0
@@ -450,9 +454,32 @@ final class _TerminalViewState extends State<TerminalView> {
         ? TerminalMouseAction.up
         : TerminalMouseAction.down;
     if (_reportPointer(event, cell, TerminalMouseButton.wheel, action)) return;
-    if (event.scrollDelta.dy != 0) {
-      widget.terminal.scrollLines(event.scrollDelta.dy < 0 ? -3 : 3);
+    if (widget.terminal.buffer.active.baseY > 0) {
+      widget.terminal.scrollLines(lines);
+      return;
     }
+    final sequence =
+        '\u001b${widget.terminal.modes.applicationCursorKeysMode ? 'O' : '['}'
+        '${event.scrollDelta.dy < 0 ? 'A' : 'B'}';
+    widget.terminal.input(sequence);
+  }
+
+  int _consumeWheel(double deltaY, TerminalWheelEvent event) {
+    if (deltaY == 0 || event.shift) return 0;
+    final dimensions = widget.terminal.dimensions;
+    if (dimensions == null || dimensions.cellHeight <= 0) return 0;
+    var amount = deltaY * widget.terminal.options.scrollSensitivity;
+    if (event.alt || event.control || event.shift) {
+      amount *= widget.terminal.options.fastScrollSensitivity;
+    }
+    amount /= dimensions.cellHeight;
+    if (deltaY.abs() < 50) amount *= 0.3;
+    _wheelPartialScroll += amount;
+    final whole = _wheelPartialScroll.abs().floor();
+    if (whole == 0) return 0;
+    final lines = _wheelPartialScroll > 0 ? whole : -whole;
+    _wheelPartialScroll %= 1;
+    return lines;
   }
 
   bool _reportPointer(

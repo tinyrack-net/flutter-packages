@@ -27,7 +27,10 @@ void main() {
     expect(overridden.foreground, const Color(0xff123456));
     expect(overridden.selection, const Color(0x80010203));
     expect(overridden.selectionForeground, const Color(0xff040506));
-    expect(overridden.selectionInactive, const Color(0x4d112233));
+    expect(overridden.selectionInactive.a, closeTo(0.3, 0.000001));
+    expect(overridden.selectionInactive.r, closeTo(0x11 / 255, 0.000001));
+    expect(overridden.selectionInactive.g, closeTo(0x22 / 255, 0.000001));
+    expect(overridden.selectionInactive.b, closeTo(0x33 / 255, 0.000001));
     expect(overridden.cursorAccent, const Color(0xff010203));
     expect(overridden.cursor, const Color(0xff808080));
     expect(overridden.palette[1], const Color(0xffaabbcc));

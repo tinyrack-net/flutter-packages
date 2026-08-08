@@ -625,7 +625,7 @@ void main() {
 
         expect(reports, <String>[
           '\u001b]4;1;rgb:1111/2222/3333\u001b\\',
-          '\u001b]4;2;rgb:aaaa/bbbb/cccc\u001b\\',
+          '\u001b]4;2;rgb:a0a0/b0b0/c0c0\u001b\\',
           '\u001b]10;rgb:f0f0/f0f0/f0f0\u001b\\',
           '\u001b]11;rgb:0000/1111/2222\u001b\\',
           '\u001b]12;rgb:1212/3434/5656\u001b\\',
@@ -645,6 +645,94 @@ void main() {
         expect(terminal.colorOverrides.cursor, isNull);
       },
     );
+
+    test('XParseColor accepts all widths and rejects invalid forms', () async {
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      final cases = <String, int>{
+        'rgb:0/0/0': 0x000000,
+        'rgb:f/f/f': 0xffffff,
+        'rgb:1/2/3': 0x112233,
+        'rgb:00/00/00': 0x000000,
+        'rgb:ff/ff/ff': 0xffffff,
+        'rgb:11/22/33': 0x112233,
+        'rgb:000/000/000': 0x000000,
+        'rgb:fff/fff/fff': 0xffffff,
+        'rgb:111/222/333': 0x112233,
+        'rgb:0000/0000/0000': 0x000000,
+        'rgb:ffff/ffff/ffff': 0xffffff,
+        'rgb:1111/2222/3333': 0x112233,
+        '#000': 0x000000,
+        '#fff': 0xf0f0f0,
+        '#123': 0x102030,
+        '#000000': 0x000000,
+        '#ffffff': 0xffffff,
+        '#112233': 0x112233,
+        '#000000000': 0x000000,
+        '#fffffffff': 0xffffff,
+        '#111222333': 0x112233,
+        '#000000000000': 0x000000,
+        '#ffffffffffff': 0xffffff,
+        '#111122223333': 0x112233,
+        'RGB:0/A/F': 0x00aaff,
+        '#FFF': 0xf0f0f0,
+      };
+      var index = 0;
+      for (final entry in cases.entries) {
+        await terminal.writeAndWait('\u001b]4;$index;${entry.key}\u001b\\');
+        expect(terminal.colorOverrides.indexed[index], entry.value);
+        index++;
+      }
+      for (final invalid in <String>[
+        '',
+        'rgb:0/11/222',
+        'rgb:/1/2',
+        'rgb:00000/1/2',
+        'rgbi:00/11/22',
+        '#aabbbcc',
+        '#aabbgg',
+        'rgb:aa/bb/gg',
+      ]) {
+        await terminal.writeAndWait('\u001b]4;$index;$invalid\u001b\\');
+        expect(terminal.colorOverrides.indexed, isNot(contains(index)));
+        index++;
+      }
+    });
+
+    test('OSC color reports resolve all default palette regions', () async {
+      final terminal = Terminal(
+        options: TerminalOptions(
+          theme: const TerminalColorTheme(
+            foreground: '#abc',
+            background: 'rgb(1, 2, 3)',
+            cursor: '#11223344',
+            extendedAnsi: <String>['#040506'],
+          ),
+        ),
+      );
+      addTearDown(terminal.dispose);
+      final reports = <String>[];
+      terminal.onData.listen(reports.add);
+      await terminal.writeAndWait(
+        '\u001b]4;0;?;16;?;17;?;231;?;232;?;255;?\u001b\\'
+        '\u001b]10;?;?;?\u001b\\',
+      );
+      expect(reports, <String>[
+        '\u001b]4;0;rgb:2e2e/3434/3636\u001b\\',
+        '\u001b]4;16;rgb:0404/0505/0606\u001b\\',
+        '\u001b]4;17;rgb:0000/0000/5f5f\u001b\\',
+        '\u001b]4;231;rgb:ffff/ffff/ffff\u001b\\',
+        '\u001b]4;232;rgb:0808/0808/0808\u001b\\',
+        '\u001b]4;255;rgb:eeee/eeee/eeee\u001b\\',
+        '\u001b]10;rgb:aaaa/bbbb/cccc\u001b\\',
+        '\u001b]11;rgb:0101/0202/0303\u001b\\',
+        '\u001b]12;rgb:1111/2222/3333\u001b\\',
+      ]);
+
+      await terminal.writeAndWait('\u001b]4;1;#123456;2;#654321\u001b\\');
+      terminal.options.theme = const TerminalColorTheme();
+      expect(terminal.colorOverrides.indexed, isEmpty);
+    });
 
     test('OSC 8 rejects unsafe protocols unless explicitly allowed', () async {
       final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
