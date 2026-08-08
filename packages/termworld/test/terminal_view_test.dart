@@ -551,6 +551,14 @@ void main() {
           .any((region) => region.cursor == SystemMouseCursors.click),
       isTrue,
     );
+    provider.decorations.pointerCursor = false;
+    await tester.pump();
+    expect(
+      tester
+          .widgetList<MouseRegion>(find.byType(MouseRegion))
+          .any((region) => region.cursor == SystemMouseCursors.click),
+      isFalse,
+    );
 
     await mouse.down(linkedCell);
     await tester.pump();
@@ -609,6 +617,7 @@ void main() {
 }
 
 final class _TrackingLinkProvider implements TerminalLinkProvider {
+  final TerminalLinkDecorations decorations = TerminalLinkDecorations();
   final List<int> requestedLines = <int>[];
   int activated = 0;
   int hovered = 0;
@@ -626,6 +635,7 @@ final class _TrackingLinkProvider implements TerminalLinkProvider {
           end: TerminalBufferPosition(4, 1),
         ),
         text: 'link',
+        decorations: decorations,
         activate: (_, _) => activated++,
         hover: (_, _) => hovered++,
         leave: (_, _) => left++,

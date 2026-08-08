@@ -89,6 +89,7 @@ final class _TerminalViewState extends State<TerminalView> {
   Disposable? _scrollListener;
   Disposable? _selectionListener;
   TerminalLink? _hoveredLink;
+  Disposable? _linkDecorationListener;
   TerminalLink? _pointerDownLink;
   List<List<TerminalLink>>? _activeLinkReplies;
   int _activeLinkLine = -1;
@@ -309,9 +310,17 @@ final class _TerminalViewState extends State<TerminalView> {
     if (!mounted) return;
     if (identical(link, _hoveredLink)) return;
     final previous = _hoveredLink;
+    _linkDecorationListener?.dispose();
+    _linkDecorationListener = null;
     _hoveredLink = link;
     previous?.leave?.call(event, previous.text);
     link?.hover?.call(event, link.text);
+    final decorations = link?.decorations;
+    if (decorations != null) {
+      _linkDecorationListener = decorations.onChange(() {
+        if (mounted && identical(_hoveredLink, link)) setState(() {});
+      });
+    }
     setState(() {});
   }
 
@@ -380,6 +389,8 @@ final class _TerminalViewState extends State<TerminalView> {
   void _leaveLink(PointerExitEvent event) {
     final previous = _hoveredLink;
     if (previous == null) return;
+    _linkDecorationListener?.dispose();
+    _linkDecorationListener = null;
     _hoveredLink = null;
     previous.leave?.call(event, previous.text);
     if (mounted) setState(() {});
@@ -397,6 +408,8 @@ final class _TerminalViewState extends State<TerminalView> {
   void _clearLinkCache() {
     _linkRequestGeneration++;
     final previous = _hoveredLink;
+    _linkDecorationListener?.dispose();
+    _linkDecorationListener = null;
     _hoveredLink = null;
     _pointerDownLink = null;
     _activeLinkLine = -1;

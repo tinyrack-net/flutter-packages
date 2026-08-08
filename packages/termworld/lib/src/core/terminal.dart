@@ -272,13 +272,42 @@ final class TerminalLink {
 /// Mutable visual state associated with a resolved link.
 final class TerminalLinkDecorations {
   /// Creates link decoration state using xterm's enabled defaults.
-  TerminalLinkDecorations({this.pointerCursor = true, this.underline = true});
+  TerminalLinkDecorations({
+    this._pointerCursor = true,
+    this._underline = true,
+  });
+
+  bool _pointerCursor;
+  bool _underline;
+  final List<void Function()> _listeners = <void Function()>[];
 
   /// Whether hovering requests a pointer cursor.
-  bool pointerCursor;
+  bool get pointerCursor => _pointerCursor;
+  set pointerCursor(bool value) {
+    if (value == _pointerCursor) return;
+    _pointerCursor = value;
+    _notifyListeners();
+  }
 
   /// Whether hovering underlines the link.
-  bool underline;
+  bool get underline => _underline;
+  set underline(bool value) {
+    if (value == _underline) return;
+    _underline = value;
+    _notifyListeners();
+  }
+
+  /// Observes live decoration changes while a renderer owns the link.
+  Disposable onChange(void Function() listener) {
+    _listeners.add(listener);
+    return CallbackDisposable(() => _listeners.remove(listener));
+  }
+
+  void _notifyListeners() {
+    for (final listener in List<void Function()>.of(_listeners)) {
+      listener();
+    }
+  }
 }
 
 /// Resolves links for one 1-based buffer line.
