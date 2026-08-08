@@ -243,6 +243,14 @@
       "implementation": ["lib/src/core/event.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
     },
+    "src/common/CircularList.ts": {
+      "implementation": ["lib/src/core/circular_list.dart"],
+      "tests": ["test/upstream_circular_list_parity_test.dart"]
+    },
+    "src/common/CircularList.test.ts": {
+      "implementation": ["lib/src/core/circular_list.dart"],
+      "tests": ["test/upstream_circular_list_parity_test.dart"]
+    },
     "src/common/Lifecycle.ts": {
       "implementation": ["lib/src/core/disposable.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
@@ -656,6 +664,101 @@
     "unit:src/common/WindowsMode.test.ts:WindowsMode updateWindowsModeWrappedState should not mark the next line wrapped when the previous line ends in whitespace": {
       "dartTestFile": "test/upstream_windows_mode_parity_test.dart",
       "dartTestName": "should not mark the next line wrapped when the previous line ends in whitespace",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList length should return the current length of the list, capped at the maximum length": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should return the current length of the list, capped at the maximum length",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList maxLength should increase the size of the list": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should increase the size of the list",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList maxLength should return the maximum length of the list": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should return the maximum length of the list",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList push should push old values from the start out of the array when max length is reached": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should push old values from the start out of the array when max length is reached",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList push should push values onto the array": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should push values onto the array",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should not mutate the list when count is 0": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should not mutate the list when count is 0",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should shift an element backwards": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should shift an element backwards",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should shift an element forward": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should shift an element forward",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should shift elements backwards": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should shift elements backwards",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should shift elements forward": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should shift elements forward",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should shift elements forward, expanding the list if needed": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should shift elements forward, expanding the list if needed",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should shift elements forward, wrapping the list if needed": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should shift elements forward, wrapping the list if needed",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList shiftElements should throw for invalid args": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should throw for invalid args",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList splice should delete items": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should delete items",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList splice should delete items then insert items": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should delete items then insert items",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList splice should insert items": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should insert items",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList splice should wrap the array correctly when more items are inserted than deleted": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should wrap the array correctly when more items are inserted than deleted",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList trimStart should remove all items if the requested trim amount is larger than the list's length": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should remove all items if the requested trim amount is larger than the list's length",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/CircularList.test.ts:CircularList trimStart should remove items from the beginning of the list": {
+      "dartTestFile": "test/upstream_circular_list_parity_test.dart",
+      "dartTestName": "should remove items from the beginning of the list",
       "dartTestKind": "test"
     }
   }
