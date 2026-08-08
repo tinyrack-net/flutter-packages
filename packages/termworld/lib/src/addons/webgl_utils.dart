@@ -1,5 +1,36 @@
 import 'dart:typed_data';
 
+/// Matrix translating normalized top-left coordinates into WebGL clip space.
+final Float32List terminalWebglProjectionMatrix = Float32List.fromList(
+  <double>[
+    2,
+    0,
+    0,
+    0,
+    0,
+    -2,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+    -1,
+    1,
+    0,
+    1,
+  ],
+);
+
+/// Doubles a WebGL float buffer without exceeding [maximumLength].
+Float32List expandTerminalFloat32List(
+  Float32List source,
+  int maximumLength,
+) {
+  final newLength = (source.length * 2).clamp(0, maximumLength);
+  return Float32List(newLength)..setRange(0, source.length, source);
+}
+
 /// xterm's typed-array slice fallback, preserving the concrete list type.
 T sliceTerminalTypedArray<T extends List<num>>(
   T array, {

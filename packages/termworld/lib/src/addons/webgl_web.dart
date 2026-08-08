@@ -5,6 +5,59 @@ import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/terminal.dart';
 import 'package:web/web.dart';
 
+WebGLShader _createShader(
+  WebGL2RenderingContext context,
+  int type,
+  String source,
+) {
+  final shader = context.createShader(type);
+  if (shader == null) throw StateError('WebGL shader creation failed');
+  context
+    ..shaderSource(shader, source)
+    ..compileShader(shader);
+  if (context
+          .getShaderParameter(shader, WebGL2RenderingContext.COMPILE_STATUS)
+          .dartify()
+      case true) {
+    return shader;
+  }
+  final message = context.getShaderInfoLog(shader);
+  context.deleteShader(shader);
+  throw StateError(message ?? 'WebGL shader compilation failed');
+}
+
+WebGLProgram _createProgram(WebGL2RenderingContext context) {
+  final program = context.createProgram();
+  if (program == null) throw StateError('WebGL program creation failed');
+  final vertexShader = _createShader(
+    context,
+    WebGL2RenderingContext.VERTEX_SHADER,
+    '#version 300 es\nin vec2 a_position;\n'
+    'void main(){gl_Position=vec4(a_position,0.0,1.0);}',
+  );
+  final fragmentShader = _createShader(
+    context,
+    WebGL2RenderingContext.FRAGMENT_SHADER,
+    '#version 300 es\nprecision mediump float;\nout vec4 color;\n'
+    'void main(){color=vec4(0.0);}',
+  );
+  context
+    ..attachShader(program, vertexShader)
+    ..attachShader(program, fragmentShader)
+    ..linkProgram(program)
+    ..deleteShader(vertexShader)
+    ..deleteShader(fragmentShader);
+  if (context
+          .getProgramParameter(program, WebGL2RenderingContext.LINK_STATUS)
+          .dartify()
+      case true) {
+    return program;
+  }
+  final message = context.getProgramInfoLog(program);
+  context.deleteProgram(program);
+  throw StateError(message ?? 'WebGL program linking failed');
+}
+
 /// Opaque handle identifying the current renderer texture atlas generation.
 final class TerminalTextureAtlas {
   /// Creates an atlas handle.
@@ -63,6 +116,7 @@ final class WebglAddon extends ManagedTerminalAddon {
   TerminalTextureAtlas? _textureAtlas;
   HTMLCanvasElement? _canvas;
   WebGL2RenderingContext? _context;
+  WebGLProgram? _program;
   EventListener? _contextLostListener;
   EventListener? _contextRestoredListener;
   int _generation = 0;
@@ -140,6 +194,8 @@ final class WebglAddon extends ManagedTerminalAddon {
       ..viewport(0, 0, canvas.width, canvas.height)
       ..clearColor(0, 0, 0, 0)
       ..clear(WebGL2RenderingContext.COLOR_BUFFER_BIT);
+    final program = _createProgram(context);
+    context.useProgram(program);
     _contextLostListener = ((Event event) {
       event.preventDefault();
       if (isActive) _onContextLoss.fire(TerminalVoid.value);
@@ -152,6 +208,7 @@ final class WebglAddon extends ManagedTerminalAddon {
       ..addEventListener('webglcontextrestored', _contextRestoredListener);
     _canvas = canvas;
     _context = context;
+    _program = program;
     _textureAtlas = TerminalTextureAtlas(++_generation, canvas);
     _onAddTextureAtlas.fire(_textureAtlas!);
   }
@@ -162,6 +219,9 @@ final class WebglAddon extends ManagedTerminalAddon {
     final atlas = _textureAtlas;
     if (atlas != null) _onRemoveTextureAtlas.fire(atlas);
     final canvas = _canvas;
+    final context = _context;
+    final program = _program;
+    if (context != null && program != null) context.deleteProgram(program);
     if (canvas != null) {
       final contextLostListener = _contextLostListener;
       final contextRestoredListener = _contextRestoredListener;
@@ -177,6 +237,7 @@ final class WebglAddon extends ManagedTerminalAddon {
     }
     _textureAtlas = null;
     _context = null;
+    _program = null;
     _canvas = null;
     _contextLostListener = null;
     _contextRestoredListener = null;

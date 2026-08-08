@@ -4,6 +4,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/src/addons/webgl_utils.dart';
 
 void main() {
+  test('projection matrix and float expansion preserve xterm layout', () {
+    expect(terminalWebglProjectionMatrix.length, 16);
+    expect(
+      terminalWebglProjectionMatrix,
+      <double>[2, 0, 0, 0, 0, -2, 0, 0, 0, 0, 1, 0, -1, 1, 0, 1],
+    );
+    expect(
+      expandTerminalFloat32List(Float32List.fromList(<double>[1, 2]), 4),
+      <double>[1, 2, 0, 0],
+    );
+  });
+
   group('polyfill conformance tests', () {
     group('TypedArray.slice', () {
       group('should work with all typed array types', () {
