@@ -4,6 +4,7 @@ library;
 import 'dart:async';
 
 import 'package:termworld/src/addons/managed_addon.dart';
+import 'package:termworld/src/addons/search_engine.dart';
 import 'package:termworld/src/addons/search_line_cache.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
@@ -93,9 +94,6 @@ final class SearchAddon extends ManagedTerminalAddon {
     }
   }
 
-  static const String _nonWordCharacters =
-      ' ~!@#\$%^&*()+`-=[]{}|\\;:"\',./<>?';
-
   /// Maximum number of results retained for decoration and result events.
   final int highlightLimit;
   final TerminalEventEmitter<TerminalVoid> _onBeforeSearch =
@@ -112,6 +110,7 @@ final class SearchAddon extends ManagedTerminalAddon {
   TerminalSearchOptions? _lastOptions;
   Timer? _refreshTimer;
   late SearchLineCache _lineCache;
+  late SearchEngine _searchEngine;
 
   /// Fired synchronously immediately before each search.
   TerminalEvent<TerminalVoid> get onBeforeSearch => _onBeforeSearch.event;
@@ -126,6 +125,7 @@ final class SearchAddon extends ManagedTerminalAddon {
   @override
   void onActivate(Terminal terminal) {
     _lineCache = add(SearchLineCache(terminal));
+    _searchEngine = SearchEngine(terminal, _lineCache);
     add(terminal.onWriteParsed.listen((_) => _scheduleRefresh()));
     add(terminal.onResize.listen((_) => _scheduleRefresh()));
   }
@@ -261,96 +261,36 @@ final class SearchAddon extends ManagedTerminalAddon {
   }
 
   List<_SearchMatch> _collect(String term, TerminalSearchOptions options) {
-    final pattern = RegExp(
-      options.regex ? term : RegExp.escape(term),
+    final engineOptions = SearchEngineOptions(
+      regex: options.regex,
+      wholeWord: options.wholeWord,
       caseSensitive: options.caseSensitive,
-      multiLine: true,
     );
     final result = <_SearchMatch>[];
-    for (final line in _logicalLines()) {
-      for (final match in pattern.allMatches(line.text)) {
-        if (match.start == match.end) continue;
-        final matchedTerm = match.group(0)!;
-        if (options.wholeWord &&
-            !_isWholeWord(line.text, match.start, matchedTerm.length)) {
-          continue;
-        }
-        final linearStart = line.boundaries[match.start];
-        final linearEnd = line.boundaries[match.end];
-        result.add(
-          _SearchMatch(
-            linearStart ~/ terminal.cols,
-            linearStart % terminal.cols,
-            linearEnd - linearStart,
-            linearStart,
-          ),
-        );
-      }
+    var row = 0;
+    var column = 0;
+    while (row < terminal.buffer.active.length) {
+      final match = _searchEngine.find(
+        term,
+        row,
+        column,
+        options: engineOptions,
+      );
+      if (match == null) break;
+      final linearStart = match.row * terminal.cols + match.column;
+      result.add(
+        _SearchMatch(
+          match.row,
+          match.column,
+          match.size,
+          linearStart,
+        ),
+      );
+      final next = linearStart + match.size.clamp(1, 0x7fffffff);
+      row = next ~/ terminal.cols;
+      column = next % terminal.cols;
     }
     return result;
-  }
-
-  Iterable<_LogicalLine> _logicalLines() sync* {
-    final buffer = terminal.buffer.active;
-    final lineCache = _lineCache..initLinesCache();
-    var row = 0;
-    while (row < buffer.length) {
-      if (buffer.getLine(row)!.isWrapped) {
-        row++;
-        continue;
-      }
-      var entry = lineCache.getLineFromCache(row);
-      if (entry == null) {
-        entry = lineCache.translateBufferLineToStringWithWrap(
-          row,
-          trimRight: true,
-        );
-        lineCache.setLineInCache(row, entry);
-      }
-      final boundaries = <int>[row * terminal.cols];
-      var currentRow = row;
-      while (currentRow < buffer.length) {
-        final line = buffer.getLine(currentRow)!;
-        final next = buffer.getLine(currentRow + 1);
-        final wraps = next?.isWrapped ?? false;
-        var lastCell = line.length;
-        if (!wraps) {
-          while (lastCell > 0) {
-            final cell = line.getCell(lastCell - 1)!;
-            if (cell.width == 0 || cell.chars.isNotEmpty) break;
-            lastCell--;
-          }
-        } else if (lastCell > 0 &&
-            line.getCell(lastCell - 1)!.code == 0 &&
-            line.getCell(lastCell - 1)!.width == 1 &&
-            next?.getCell(0)?.width == 2) {
-          lastCell--;
-        }
-        for (var column = 0; column < lastCell; column++) {
-          final cell = line.getCell(column)!;
-          if (cell.width == 0) continue;
-          final value = cell.chars.isEmpty ? ' ' : cell.chars;
-          for (var unit = 0; unit < value.length; unit++) {
-            boundaries.add(
-              unit == value.length - 1
-                  ? currentRow * terminal.cols + column + cell.width
-                  : currentRow * terminal.cols + column,
-            );
-          }
-        }
-        if (!wraps) break;
-        currentRow++;
-      }
-      yield _LogicalLine(entry.line, boundaries);
-      row = currentRow + 1;
-    }
-  }
-
-  bool _isWholeWord(String line, int index, int length) {
-    final before = index == 0 || _nonWordCharacters.contains(line[index - 1]);
-    final end = index + length;
-    final after = end == line.length || _nonWordCharacters.contains(line[end]);
-    return before && after;
   }
 
   void _replaceHighlights(
@@ -470,13 +410,6 @@ final class SearchAddon extends ManagedTerminalAddon {
     _onDidChangeResults.dispose();
     super.dispose();
   }
-}
-
-final class _LogicalLine {
-  const _LogicalLine(this.text, this.boundaries);
-
-  final String text;
-  final List<int> boundaries;
 }
 
 final class _SearchMatch {
