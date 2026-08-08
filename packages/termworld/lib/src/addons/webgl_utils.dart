@@ -430,6 +430,87 @@ final class TerminalCharAtlasConfig {
   final List<int> ansi;
 }
 
+/// Disposable atlas contract stored in [TerminalCharAtlasCache].
+abstract interface class TerminalDisposableCharAtlas {
+  /// Whether the atlas has released its resources.
+  bool get isDisposed;
+
+  /// Releases atlas resources.
+  void dispose();
+}
+
+final class _TerminalCharAtlasCacheEntry<
+  T extends TerminalDisposableCharAtlas
+> {
+  _TerminalCharAtlasCacheEntry(this.atlas, this.config, this.owners);
+
+  final T atlas;
+  final TerminalCharAtlasConfig config;
+  final List<Object> owners;
+}
+
+/// Shares compatible atlases between terminal owners using identity semantics.
+final class TerminalCharAtlasCache<T extends TerminalDisposableCharAtlas> {
+  final List<_TerminalCharAtlasCacheEntry<T>> _entries =
+      <_TerminalCharAtlasCacheEntry<T>>[];
+
+  /// Number of distinct atlas configurations currently retained.
+  int get length => _entries.length;
+
+  /// Reuses an owner's atlas, shares a compatible atlas, or creates one.
+  T acquire(
+    Object owner,
+    TerminalCharAtlasConfig config,
+    T Function() create,
+  ) {
+    for (var index = 0; index < _entries.length; index++) {
+      final entry = _entries[index];
+      final ownerIndex = entry.owners.indexWhere(
+        (candidate) => identical(candidate, owner),
+      );
+      if (ownerIndex < 0) continue;
+      if (terminalCharAtlasConfigEquals(entry.config, config)) {
+        return entry.atlas;
+      }
+      if (entry.owners.length == 1) {
+        entry.atlas.dispose();
+        _entries.removeAt(index);
+      } else {
+        entry.owners.removeAt(ownerIndex);
+      }
+      break;
+    }
+    for (final entry in _entries) {
+      if (!terminalCharAtlasConfigEquals(entry.config, config)) continue;
+      entry.owners.add(owner);
+      return entry.atlas;
+    }
+    final atlas = create();
+    _entries.add(
+      _TerminalCharAtlasCacheEntry<T>(atlas, config, <Object>[owner]),
+    );
+    return atlas;
+  }
+
+  /// Removes the first atlas reference owned by [owner].
+  void removeOwner(Object owner) {
+    for (var index = 0; index < _entries.length; index++) {
+      final entry = _entries[index];
+      final ownerIndex = entry.owners.indexWhere(
+        (candidate) => identical(candidate, owner),
+      );
+      if (ownerIndex < 0) continue;
+      if (entry.owners.length == 1) {
+        entry.atlas.dispose();
+        _entries.removeAt(index);
+      } else {
+        entry.owners.removeAt(ownerIndex);
+      }
+      break;
+    }
+  }
+}
+
 /// Whether two snapshots can share the same WebGL character atlas.
 bool terminalCharAtlasConfigEquals(
   TerminalCharAtlasConfig left,

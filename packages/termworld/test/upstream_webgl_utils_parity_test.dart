@@ -186,6 +186,30 @@ void main() {
     expect(part.strokeWidth, 3);
     expect(part.scaleType, TerminalCustomGlyphScaleType.character);
   });
+
+  test('character atlas cache shares, replaces and disposes by owner', () {
+    final cache = TerminalCharAtlasCache<_Atlas>();
+    final firstOwner = Object();
+    final secondOwner = Object();
+    final first = cache.acquire(firstOwner, _config(), _Atlas.new);
+    expect(cache.acquire(firstOwner, _config(), _Atlas.new), same(first));
+    expect(cache.acquire(secondOwner, _config(), _Atlas.new), same(first));
+    expect(cache.length, 1);
+
+    final replacement = cache.acquire(
+      firstOwner,
+      _config(deviceCellWidth: 11),
+      _Atlas.new,
+    );
+    expect(replacement, isNot(same(first)));
+    expect(first.disposed, isFalse);
+    expect(cache.length, 2);
+    cache.removeOwner(secondOwner);
+    expect(first.disposed, isTrue);
+    cache.removeOwner(firstOwner);
+    expect(replacement.disposed, isTrue);
+    expect(cache.length, 0);
+  });
 }
 
 void _expectTypedSlices<T extends List<num>>(T values, int largeStart) {
@@ -208,3 +232,13 @@ TerminalCharAtlasConfig _config({
   deviceCellWidth: deviceCellWidth,
   deviceCellHeight: deviceCellHeight,
 );
+
+final class _Atlas implements TerminalDisposableCharAtlas {
+  bool disposed = false;
+
+  @override
+  bool get isDisposed => disposed;
+
+  @override
+  void dispose() => disposed = true;
+}
