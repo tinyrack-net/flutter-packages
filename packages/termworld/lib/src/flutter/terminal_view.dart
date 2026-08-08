@@ -12,6 +12,8 @@ import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
 
+enum _PointerSelectionMode { normal, word, line }
+
 /// Flutter renderer and input surface for a headless [Terminal].
 class TerminalView extends StatefulWidget {
   /// Creates a terminal view. The caller retains ownership of [terminal].
@@ -103,6 +105,11 @@ final class _TerminalViewState extends State<TerminalView> {
   bool _cursorBlinkIdle = false;
   TerminalMouseButton _pressedMouseButton = TerminalMouseButton.none;
   TerminalCellOffset? _selectionAnchor;
+  TerminalCellOffset? _selectionAnchorEnd;
+  _PointerSelectionMode _pointerSelectionMode = _PointerSelectionMode.normal;
+  TerminalCellOffset? _lastClickCell;
+  Duration? _lastClickTime;
+  int _clickCount = 0;
   double _wheelPartialScroll = 0;
 
   @override
@@ -429,12 +436,55 @@ final class _TerminalViewState extends State<TerminalView> {
     _pressedMouseButton = button;
     final cell = _cellAt(event.localPosition);
     if (_reportPointer(event, cell, button, TerminalMouseAction.down)) return;
-    if (button != TerminalMouseButton.left) return;
-    _selectionAnchor = TerminalCellOffset(
+    final bufferCell = TerminalCellOffset(
       cell.x,
       widget.terminal.viewportY + cell.y,
     );
-    widget.terminal.select(cell.x, widget.terminal.viewportY + cell.y, 0);
+    if (button == TerminalMouseButton.right) {
+      if (widget.terminal.options.rightClickSelectsWord &&
+          !widget.terminal.hasSelection()) {
+        final range = _wordRange(bufferCell, allowWhitespaceOnly: false);
+        if (range != null) _selectRange(range);
+      }
+      return;
+    }
+    if (button != TerminalMouseButton.left) return;
+    if (HardwareKeyboard.instance.isShiftPressed) {
+      final existing = widget.terminal.getSelectionPosition();
+      if (existing != null) {
+        _selectionAnchor = TerminalCellOffset(
+          existing.start.x,
+          existing.start.y,
+        );
+        _selectionAnchorEnd = TerminalCellOffset(
+          existing.end.x,
+          existing.end.y,
+        );
+        _pointerSelectionMode = _PointerSelectionMode.normal;
+        _extendSelection(bufferCell);
+        return;
+      }
+    }
+    _updateClickCount(bufferCell, event.timeStamp);
+    if (_clickCount > 3) return;
+    final range = switch (_clickCount) {
+      2 => _wordRange(bufferCell, allowWhitespaceOnly: true),
+      >= 3 => _wrappedLineRange(bufferCell.y),
+      _ => null,
+    };
+    if (range == null) {
+      _pointerSelectionMode = _PointerSelectionMode.normal;
+      _selectionAnchor = bufferCell;
+      _selectionAnchorEnd = bufferCell;
+      widget.terminal.select(bufferCell.x, bufferCell.y, 0);
+      return;
+    }
+    _pointerSelectionMode = _clickCount == 2
+        ? _PointerSelectionMode.word
+        : _PointerSelectionMode.line;
+    _selectionAnchor = TerminalCellOffset(range.start.x, range.start.y);
+    _selectionAnchorEnd = TerminalCellOffset(range.end.x, range.end.y);
+    _selectRange(range);
   }
 
   void _onPointerMove(PointerMoveEvent event) {
@@ -451,18 +501,151 @@ final class _TerminalViewState extends State<TerminalView> {
     if (anchor == null || _pressedMouseButton != TerminalMouseButton.left) {
       return;
     }
-    final current = TerminalCellOffset(
-      cell.x,
-      widget.terminal.viewportY + cell.y,
+    _extendSelection(
+      TerminalCellOffset(
+        cell.x,
+        widget.terminal.viewportY + cell.y,
+      ),
     );
+  }
+
+  void _extendSelection(TerminalCellOffset current) {
+    final anchor = _selectionAnchor;
+    final anchorEnd = _selectionAnchorEnd;
+    if (anchor == null || anchorEnd == null) return;
+    final currentRange = switch (_pointerSelectionMode) {
+      _PointerSelectionMode.normal => TerminalBufferRange(
+        start: TerminalBufferPosition(current.x, current.y),
+        end: TerminalBufferPosition(current.x + 1, current.y),
+      ),
+      _PointerSelectionMode.word => _wordRange(
+        current,
+        allowWhitespaceOnly: true,
+      ),
+      _PointerSelectionMode.line => _wrappedLineRange(current.y),
+    };
+    if (currentRange == null) return;
     final columns = widget.terminal.cols;
     final anchorOffset = anchor.y * columns + anchor.x;
-    final currentOffset = current.y * columns + current.x;
-    final start = anchorOffset <= currentOffset ? anchor : current;
+    final currentOffset = currentRange.start.y * columns + currentRange.start.x;
+    final range = anchorOffset <= currentOffset
+        ? TerminalBufferRange(
+            start: TerminalBufferPosition(anchor.x, anchor.y),
+            end: currentRange.end,
+          )
+        : TerminalBufferRange(
+            start: currentRange.start,
+            end: TerminalBufferPosition(anchorEnd.x, anchorEnd.y),
+          );
+    _selectRange(range);
+  }
+
+  void _updateClickCount(TerminalCellOffset cell, Duration time) {
+    final lastTime = _lastClickTime;
+    if (_lastClickCell == cell &&
+        lastTime != null &&
+        time - lastTime <= const Duration(milliseconds: 500)) {
+      _clickCount++;
+    } else {
+      _clickCount = 1;
+    }
+    _lastClickCell = cell;
+    _lastClickTime = time;
+  }
+
+  TerminalBufferRange? _wordRange(
+    TerminalCellOffset position, {
+    required bool allowWhitespaceOnly,
+  }) {
+    final terminal = widget.terminal;
+    final buffer = terminal.buffer.active;
+    final line = buffer.getLine(position.y);
+    if (line == null || position.x >= terminal.cols) return null;
+    var column = position.x;
+    while (column > 0 && line.getCell(column)?.width == 0) {
+      column--;
+    }
+    final initial = line.getCell(column);
+    if (initial == null) return null;
+    final spaces = initial.chars == ' ';
+    bool matches(TerminalCell? cell) {
+      if (cell == null) return false;
+      if (spaces) return cell.chars == ' ';
+      if (cell.width == 0) return true;
+      return !terminal.options.wordSeparator.contains(cell.chars);
+    }
+
+    if (!spaces && !matches(initial)) {
+      if (!allowWhitespaceOnly) return null;
+    }
+    var startRow = position.y;
+    var startColumn = column;
+    while (true) {
+      if (startColumn > 0) {
+        final previous = buffer.getLine(startRow)?.getCell(startColumn - 1);
+        if (!matches(previous)) break;
+        startColumn--;
+        continue;
+      }
+      final currentLine = buffer.getLine(startRow);
+      if (startRow == 0 || !(currentLine?.isWrapped ?? false)) break;
+      final previous = buffer.getLine(startRow - 1)?.getCell(terminal.cols - 1);
+      if (!matches(previous)) break;
+      startRow--;
+      startColumn = terminal.cols - 1;
+    }
+    var endRow = position.y;
+    var endColumn = column;
+    while (true) {
+      if (endColumn + 1 < terminal.cols) {
+        final next = buffer.getLine(endRow)?.getCell(endColumn + 1);
+        if (!matches(next)) break;
+        endColumn++;
+        continue;
+      }
+      final nextLine = buffer.getLine(endRow + 1);
+      if (nextLine == null ||
+          !nextLine.isWrapped ||
+          !matches(nextLine.getCell(0))) {
+        break;
+      }
+      endRow++;
+      endColumn = 0;
+    }
+    final onlyWhitespace = spaces || initial.chars.trim().isEmpty;
+    if (!allowWhitespaceOnly && onlyWhitespace) return null;
+    return TerminalBufferRange(
+      start: TerminalBufferPosition(startColumn, startRow),
+      end: TerminalBufferPosition(endColumn + 1, endRow),
+    );
+  }
+
+  TerminalBufferRange? _wrappedLineRange(int row) {
+    final buffer = widget.terminal.buffer.active;
+    if (buffer.getLine(row) == null) return null;
+    var first = row;
+    while (first > 0 && (buffer.getLine(first)?.isWrapped ?? false)) {
+      first--;
+    }
+    var last = row;
+    while (last + 1 < buffer.length &&
+        (buffer.getLine(last + 1)?.isWrapped ?? false)) {
+      last++;
+    }
+    return TerminalBufferRange(
+      start: TerminalBufferPosition(0, first),
+      end: TerminalBufferPosition(widget.terminal.cols, last),
+    );
+  }
+
+  void _selectRange(TerminalBufferRange range) {
+    final columns = widget.terminal.cols;
+    final start = range.start.y * columns + range.start.x;
+    final end = range.end.y * columns + range.end.x;
     widget.terminal.select(
-      start.x,
-      start.y,
-      (anchorOffset - currentOffset).abs() + 1,
+      range.start.x,
+      range.start.y,
+      (end - start).clamp(0, 0x7fffffff),
     );
   }
 
@@ -476,11 +659,13 @@ final class _TerminalViewState extends State<TerminalView> {
     );
     _pressedMouseButton = TerminalMouseButton.none;
     _selectionAnchor = null;
+    _selectionAnchorEnd = null;
   }
 
   void _onPointerCancel(PointerCancelEvent event) {
     _pressedMouseButton = TerminalMouseButton.none;
     _selectionAnchor = null;
+    _selectionAnchorEnd = null;
   }
 
   void _onPointerHover(PointerHoverEvent event) {

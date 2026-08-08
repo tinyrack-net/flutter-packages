@@ -763,6 +763,67 @@ void main() {
     await mouse.removePointer();
   });
 
+  testWidgets('double and triple clicks select words and wrapped lines', (
+    tester,
+  ) async {
+    final terminal = Terminal(options: TerminalOptions(cols: 8, rows: 3));
+    addTearDown(terminal.dispose);
+    await terminal.writeAndWait('one two');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: TerminalView(terminal: terminal, autoResize: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final dimensions = terminal.dimensions!;
+    final origin = tester.getTopLeft(find.byType(TerminalView));
+    final word =
+        origin +
+        Offset(dimensions.cellWidth * 5.5, dimensions.cellHeight * 0.5);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: word);
+    for (var count = 0; count < 2; count++) {
+      await mouse.down(word);
+      await mouse.up();
+    }
+    await tester.pump();
+    expect(terminal.getSelection(), 'two');
+
+    await mouse.down(word);
+    await mouse.up();
+    await tester.pump();
+    expect(terminal.getSelection(), 'one two');
+    await mouse.removePointer();
+
+    terminal
+      ..clearSelection()
+      ..reset();
+    await terminal.writeAndWait('abcdefghijk');
+    await tester.pump();
+    final wrapped =
+        origin +
+        Offset(dimensions.cellWidth * 1.5, dimensions.cellHeight * 1.5);
+    final wrappedMouse = await tester.createGesture(
+      kind: PointerDeviceKind.mouse,
+    );
+    await wrappedMouse.addPointer(location: wrapped);
+    for (var count = 0; count < 3; count++) {
+      await wrappedMouse.down(wrapped);
+      await wrappedMouse.up();
+    }
+    await tester.pump();
+    expect(terminal.getSelection(), 'abcdefghijk');
+    await wrappedMouse.removePointer();
+  });
+
   testWidgets(
     'reattaches when terminal, focus, controller, or readonly changes',
     (
