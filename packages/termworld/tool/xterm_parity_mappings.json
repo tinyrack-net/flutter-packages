@@ -1394,8 +1394,8 @@
     "src/browser/services/KeyboardService.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/terminal_view_test.dart","test/upstream_core_focused_test.dart"]},
     "src/browser/services/LinkProviderService.ts": {"implementation":["lib/src/core/terminal.dart"],"tests":["test/upstream_osc_link_provider_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/services/MouseCoordsService.ts": {"implementation":["lib/src/core/mouse_coordinates.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_mouse_coordinates_parity_test.dart","test/terminal_view_test.dart"]},
-    "src/browser/services/MouseService.ts": {"implementation":["lib/src/core/mouse_state_service.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_mouse_state_service_parity_test.dart","test/terminal_view_test.dart"]},
-    "src/browser/services/MouseService.test.ts": {"implementation":["lib/src/core/mouse_state_service.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_mouse_state_service_parity_test.dart","test/terminal_view_test.dart"]},
+    "src/browser/services/MouseService.ts": {"implementation":["lib/src/core/mouse_state_service.dart","lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_mouse_service_parity_test.dart","test/terminal_view_test.dart"]},
+    "src/browser/services/MouseService.test.ts": {"implementation":["lib/src/core/mouse_state_service.dart","lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_mouse_service_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/services/RenderService.ts": {"implementation":["lib/src/core/render_debouncer.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/upstream_render_debouncer_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/services/SelectionService.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart"]},
     "src/browser/services/SelectionService.test.ts": {"implementation":["lib/src/core/terminal.dart","lib/src/flutter/terminal_view.dart"],"tests":["test/xterm_core_parity_test.dart","test/terminal_view_test.dart"]},
@@ -1506,6 +1506,56 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent ANY": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 00",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent DRAG": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 01",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent NONE": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 02",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent VT200": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 03",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent X10": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 04",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent coords DEFAULT encoding": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 05",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent coords SGR encoding": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 06",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent coords SGR_PIXELS encoding": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 07",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService _triggerMouseEvent eventCodes with modifiers (DEFAULT encoding)": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 08",
+      "dartTestKind": "test"
+    },
+    "unit:src/browser/services/MouseService.test.ts:MouseService mouseEventsRequireAlt should strip alt modifier from forwarded mouse reports": {
+      "dartTestFile": "test/upstream_mouse_service_parity_test.dart",
+      "dartTestName": "xterm MouseService 09",
+      "dartTestKind": "test"
+    },
     "playwright:59a45aaace915dfdf752-13c35b36ab68e5b50e67": {
       "dartTestFile": "test/upstream_char_width_parity_test.dart",
       "dartTestName": "xterm CharWidth 00",
