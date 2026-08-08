@@ -283,6 +283,14 @@
       ],
       "tests": ["test/upstream_platform_parity_test.dart"]
     },
+    "src/common/parser/ApcParser.ts": {
+      "implementation": ["lib/src/core/apc_parser.dart"],
+      "tests": ["test/upstream_apc_parser_parity_test.dart"]
+    },
+    "src/common/parser/ApcParser.test.ts": {
+      "implementation": ["lib/src/core/apc_parser.dart"],
+      "tests": ["test/upstream_apc_parser_parity_test.dart"]
+    },
     "src/common/parser/Params.ts": {
       "implementation": ["lib/src/core/params.dart"],
       "tests": ["test/upstream_params_parity_test.dart"]
@@ -944,6 +952,118 @@
     "unit:src/common/Color.test.ts:Color toPaddedHex should convert numbers to 2-digit hex values": {
       "dartTestFile": "test/upstream_color_parity_test.dart",
       "dartTestName": "should convert numbers to 2-digit hex values",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser handler registration setApcHandler": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "setApcHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser handler registration clearApcHandler": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "clearApcHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser handler registration addApcHandler": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "addApcHandler",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser handler registration addApcHandler with return false": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "addApcHandler with return false",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser handler registration dispose handlers": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "dispose handlers",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser ApcHandlerFactory should be called once on end(true)": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should be called once on end(true)",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser/ApcHandlerFactory/should be called once on end(true)"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser ApcHandlerFactory should not be called on end(false)": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should not be called on end(false)",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser/ApcHandlerFactory/should not be called on end(false)"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser ApcHandlerFactory should be disposable": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should be disposable",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser/ApcHandlerFactory/should be disposable"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser ApcHandlerFactory should respect return false": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should respect return false",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser/ApcHandlerFactory/should respect return false"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser ApcHandlerFactory should work up to payload limit": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should work up to payload limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser ApcHandlerFactory should abort for payload limit +1": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should abort for payload limit +1",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed sync | async | sync first should run, cleanup action for others": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "first should run, cleanup action for others",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/sync | async | sync/first should run, cleanup action for others"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed sync | async | sync all should run": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "all should run",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/sync | async | sync/all should run"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed async | sync | async first should run, cleanup action for others": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "first should run, cleanup action for others",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/async | sync | async/first should run, cleanup action for others"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed async | sync | async all should run": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "all should run",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/async | sync | async/all should run"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed ApcHandlerFactory should be called once on end(true)": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should be called once on end(true)",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/ApcHandlerFactory/should be called once on end(true)"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed ApcHandlerFactory should not be called on end(false)": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should not be called on end(false)",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/ApcHandlerFactory/should not be called on end(false)"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed ApcHandlerFactory should be disposable": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should be disposable",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/ApcHandlerFactory/should be disposable"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests sync and async mixed ApcHandlerFactory should respect return false": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should respect return false",
+      "dartTestKind": "test",
+      "dartTestPath": "ApcParser - async tests/sync and async mixed/ApcHandlerFactory/should respect return false"
+    },
+    "unit:src/common/parser/ApcParser.test.ts:ApcParser - async tests reset should abort active handlers with end(false) when reset during payload": {
+      "dartTestFile": "test/upstream_apc_parser_parity_test.dart",
+      "dartTestName": "should abort active handlers with end(false) when reset during payload",
       "dartTestKind": "test"
     },
     "unit:src/common/parser/Params.test.ts:Params Params.fromArray --> toArray": {
