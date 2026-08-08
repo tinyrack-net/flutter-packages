@@ -1387,7 +1387,12 @@ final class _TerminalCoreEngine {
     _rows = rows;
     marginTop = 0;
     marginBottom = rows - 1;
-    buffer.resize(columns, rows, _eraseAttributes);
+    buffer.resize(
+      columns,
+      rows,
+      _eraseAttributes,
+      reflowCursorLine: options.reflowCursorLine,
+    );
     _resetTabStops();
   }
 

@@ -180,4 +180,87 @@ void main() {
     atEnd.dispose();
     aboveEnd.dispose();
   });
+
+  test('column resize reflows logical lines and preserves wide cells', () {
+    final erase = TerminalCellAttributes();
+    final buffers = TerminalBufferNamespace(
+      columns: 5,
+      rows: 5,
+      scrollback: 10,
+    );
+    for (var column = 0; column < 5; column++) {
+      buffers.normal
+          .getLine(0)!
+          .setCell(
+            column,
+            String.fromCharCode(0x61 + column),
+            1,
+            erase,
+          );
+      buffers.normal
+          .getLine(1)!
+          .setCell(
+            column,
+            String.fromCharCode(0x66 + column),
+            1,
+            erase,
+          );
+    }
+    buffers.normal
+      ..cursorY = 4
+      ..getLine(1)!.isWrapped = true;
+
+    buffers.resize(10, 5, erase);
+    expect(
+      buffers.normal.getLine(0)!.translateToString(trimRight: true),
+      'abcdefghij',
+    );
+    expect(buffers.normal.getLine(1)!.isWrapped, isFalse);
+
+    buffers.normal.getLine(0)!
+      ..erase(0, 10, erase)
+      ..setCell(0, '界', 2, erase)
+      ..setCell(2, 'a', 1, erase)
+      ..setCell(3, 'b', 1, erase);
+    buffers.resize(3, 5, erase);
+    expect(buffers.normal.getLine(0)!.translateToString(), '界a');
+    expect(
+      buffers.normal.getLine(1)!.translateToString(trimRight: true),
+      'b',
+    );
+    expect(buffers.normal.getLine(1)!.isWrapped, isTrue);
+    buffers.dispose();
+  });
+
+  test('cursor logical line reflows only with reflowCursorLine', () {
+    TerminalBufferNamespace createBuffer() {
+      final value = TerminalBufferNamespace(
+        columns: 5,
+        rows: 3,
+        scrollback: 10,
+      );
+      final erase = TerminalCellAttributes();
+      for (var column = 0; column < 5; column++) {
+        value.normal.getLine(0)!.setCell(column, 'a', 1, erase);
+        value.normal.getLine(1)!.setCell(column, 'b', 1, erase);
+      }
+      value.normal.getLine(1)!.isWrapped = true;
+      return value;
+    }
+
+    final preserved = createBuffer();
+    final reflowed = createBuffer();
+    final erase = TerminalCellAttributes();
+    preserved.resize(10, 3, erase);
+    reflowed.resize(10, 3, erase, reflowCursorLine: true);
+
+    expect(preserved.normal.getLine(1)!.isWrapped, isTrue);
+    expect(
+      reflowed.normal.getLine(0)!.translateToString(trimRight: true),
+      'aaaaabbbbb',
+    );
+    expect(reflowed.normal.getLine(1)!.isWrapped, isFalse);
+    preserved.dispose();
+    reflowed.dispose();
+  });
 }

@@ -560,8 +560,12 @@ final class TerminalBuffer {
   void resize(
     int columns,
     int rows,
-    TerminalCellAttributes eraseAttributes,
-  ) {
+    TerminalCellAttributes eraseAttributes, {
+    bool reflowCursorLine = false,
+  }) {
+    if (type == TerminalBufferType.normal && columns != _columns) {
+      _reflow(columns, eraseAttributes, reflowCursorLine);
+    }
     final oldRows = _rows;
     final oldBase = baseY;
     final absoluteCursor = oldBase + cursorY;
@@ -708,6 +712,140 @@ final class TerminalBuffer {
       );
   }
 
+  void _reflow(
+    int newColumns,
+    TerminalCellAttributes eraseAttributes,
+    bool reflowCursorLine,
+  ) {
+    final oldColumns = _columns;
+    var cursorAbsolute = absoluteCursorY;
+    var groupStart = 0;
+    while (groupStart < _lines.length) {
+      var groupEnd = groupStart;
+      while (groupEnd + 1 < _lines.length && _lines[groupEnd + 1].isWrapped) {
+        groupEnd++;
+      }
+      final containsCursor =
+          cursorAbsolute >= groupStart && cursorAbsolute <= groupEnd;
+      final lastLength = _trimmedLength(_lines[groupEnd]);
+      final needsReflow =
+          groupEnd > groupStart ||
+          (newColumns < oldColumns && lastLength > newColumns);
+      if (!needsReflow || containsCursor && !reflowCursorLine) {
+        groupStart = groupEnd + 1;
+        continue;
+      }
+
+      final firstWasWrapped = _lines[groupStart].isWrapped;
+      final cells = <_CellData>[];
+      var cursorOffset = 0;
+      for (var row = groupStart; row <= groupEnd; row++) {
+        final line = _lines[row];
+        var used = row == groupEnd ? lastLength : oldColumns;
+        if (row < groupEnd &&
+            used > 0 &&
+            line._cells[used - 1].chars.isEmpty &&
+            line._cells[used - 1].width == 1 &&
+            _lines[row + 1]._cells.first.width == 2) {
+          used--;
+        }
+        if (containsCursor && row < cursorAbsolute) cursorOffset += used;
+        if (containsCursor && row == cursorAbsolute) {
+          cursorOffset += cursorX.clamp(0, used);
+        }
+        for (var column = 0; column < used; column++) {
+          final cell = line._cells[column];
+          if (cell.width == 0) continue;
+          cells.add(
+            _CellData(
+              chars: cell.chars,
+              width: cell.width,
+              attributes: cell.attributes,
+            ),
+          );
+        }
+      }
+
+      final layout = _layoutReflowedCells(
+        cells,
+        newColumns,
+        eraseAttributes,
+        firstWasWrapped,
+        containsCursor ? cursorOffset : null,
+      );
+      final oldCount = groupEnd - groupStart + 1;
+      _lines.replaceRange(groupStart, groupEnd + 1, layout.lines);
+      final delta = layout.lines.length - oldCount;
+      if (containsCursor) {
+        cursorAbsolute = groupStart + layout.cursorRow;
+        cursorX = layout.cursorColumn;
+      } else if (groupEnd < cursorAbsolute) {
+        cursorAbsolute += delta;
+      }
+      groupStart += layout.lines.length;
+    }
+    cursorY = (cursorAbsolute - baseY).clamp(0, _rows - 1);
+  }
+
+  _ReflowLayout _layoutReflowedCells(
+    List<_CellData> cells,
+    int columns,
+    TerminalCellAttributes eraseAttributes,
+    bool firstWasWrapped,
+    int? cursorOffset,
+  ) {
+    final lines = <TerminalBufferLine>[
+      TerminalBufferLine(columns, attributes: eraseAttributes)
+        ..isWrapped = firstWasWrapped,
+    ];
+    var row = 0;
+    var column = 0;
+    var consumed = 0;
+    var cursorRow = 0;
+    var cursorColumn = 0;
+    var cursorCaptured = cursorOffset == null;
+
+    void captureCursor() {
+      if (cursorCaptured || consumed < cursorOffset!) return;
+      cursorRow = row;
+      cursorColumn = column;
+      cursorCaptured = true;
+    }
+
+    for (final cell in cells) {
+      captureCursor();
+      final width = cell.width == 2 ? 2 : 1;
+      if (column + width > columns) {
+        lines.add(
+          TerminalBufferLine(columns, attributes: eraseAttributes)
+            ..isWrapped = true,
+        );
+        row++;
+        column = 0;
+        captureCursor();
+      }
+      lines[row].setCell(column, cell.chars, width, cell.attributes);
+      column += width;
+      consumed += width;
+    }
+    captureCursor();
+    if (!cursorCaptured) {
+      cursorRow = row;
+      cursorColumn = column;
+    }
+    return _ReflowLayout(lines, cursorRow, cursorColumn);
+  }
+
+  int _trimmedLength(TerminalBufferLine line) {
+    var result = line.length;
+    while (result > 0) {
+      final cell = line._cells[result - 1];
+      if (cell.width == 0 || cell.chars.isNotEmpty) break;
+      result--;
+    }
+    return result;
+  }
+
   void _trim() {
     final maximum =
         _rows + (type == TerminalBufferType.normal ? scrollback : 0);
@@ -717,6 +855,14 @@ final class TerminalBuffer {
   }
 
   static int _initialScrollback(int value) => value;
+}
+
+final class _ReflowLayout {
+  const _ReflowLayout(this.lines, this.cursorRow, this.cursorColumn);
+
+  final List<TerminalBufferLine> lines;
+  final int cursorRow;
+  final int cursorColumn;
 }
 
 /// Normal, alternate, and active buffers.
@@ -786,9 +932,15 @@ final class TerminalBufferNamespace {
   void resize(
     int columns,
     int rows,
-    TerminalCellAttributes eraseAttributes,
-  ) {
-    normal.resize(columns, rows, eraseAttributes);
+    TerminalCellAttributes eraseAttributes, {
+    bool reflowCursorLine = false,
+  }) {
+    normal.resize(
+      columns,
+      rows,
+      eraseAttributes,
+      reflowCursorLine: reflowCursorLine,
+    );
     alternate.resize(columns, rows, eraseAttributes);
   }
 
