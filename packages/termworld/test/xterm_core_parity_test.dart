@@ -614,6 +614,74 @@ void main() {
       expect(await terminal.linkProviders.first.provideLinks(1), hasLength(1));
     });
 
+    test('mouse protocols emit default binary and SGR data reports', () async {
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      final binary = <String>[];
+      final data = <String>[];
+      terminal
+        ..onBinary.listen(binary.add)
+        ..onData.listen(data.add);
+      await terminal.writeAndWait('\u001b[?1000h');
+      expect(
+        terminal.reportMouseEvent(
+          const TerminalMouseEvent(
+            column: 4,
+            row: 2,
+            button: TerminalMouseButton.left,
+            action: TerminalMouseAction.down,
+            shift: true,
+          ),
+        ),
+        isTrue,
+      );
+      expect(binary.single, '\u001b[M\u0024\u0025\u0023');
+
+      await terminal.writeAndWait('\u001b[?1006h');
+      expect(
+        terminal.reportMouseEvent(
+          const TerminalMouseEvent(
+            column: 4,
+            row: 2,
+            button: TerminalMouseButton.left,
+            action: TerminalMouseAction.up,
+            control: true,
+          ),
+        ),
+        isTrue,
+      );
+      expect(data.last, '\u001b[<16;5;3m');
+    });
+
+    test(
+      'mouse protocol restrictions and pixel debounce match xterm',
+      () async {
+        final terminal = Terminal(
+          options: TerminalOptions(
+            cols: 10,
+            rows: 5,
+            mouseEventsRequireAlt: true,
+          ),
+        );
+        addTearDown(terminal.dispose);
+        final data = <String>[];
+        terminal.onData.listen(data.add);
+        await terminal.writeAndWait('\u001b[?1003h\u001b[?1016h');
+        const event = TerminalMouseEvent(
+          column: 1,
+          row: 1,
+          pixelX: 12,
+          pixelY: 30,
+          button: TerminalMouseButton.none,
+          action: TerminalMouseAction.move,
+          alt: true,
+        );
+        expect(terminal.reportMouseEvent(event), isTrue);
+        expect(terminal.reportMouseEvent(event), isFalse);
+        expect(data.single, '\u001b[<35;12;30M');
+      },
+    );
+
     test('DECRQSS reports protected, margins, SGR and cursor style', () async {
       final terminal = Terminal(
         options: TerminalOptions(

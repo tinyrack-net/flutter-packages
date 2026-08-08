@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:termworld/src/core/buffer.dart';
@@ -97,6 +98,8 @@ final class _TerminalViewState extends State<TerminalView> {
   int _linkRequestGeneration = 0;
   Timer? _cursorBlinkTimer;
   bool _cursorVisible = true;
+  TerminalMouseButton _pressedMouseButton = TerminalMouseButton.none;
+  TerminalCellOffset? _selectionAnchor;
 
   @override
   void initState() {
@@ -232,86 +235,100 @@ final class _TerminalViewState extends State<TerminalView> {
       final composingText = _inputKey.currentState?.composingText ?? '';
       final padding = widget.padding ?? EdgeInsets.zero;
       final dimensions = widget.terminal.dimensions;
-      final view = MouseRegion(
-        cursor: _linkUsesPointer(_hoveredLink)
-            ? SystemMouseCursors.click
-            : MouseCursor.defer,
-        onHover: (event) {
-          unawaited(_updateHoveredLink(event, _cellAt(event.localPosition)));
-        },
-        onExit: _leaveLink,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTap: _requestKeyboard,
-          onTapDown: (details) {
-            unawaited(
-              _recordPointerDownLink(
+      final view = Listener(
+        onPointerDown: _onPointerDown,
+        onPointerMove: _onPointerMove,
+        onPointerUp: _onPointerUp,
+        onPointerCancel: _onPointerCancel,
+        onPointerHover: _onPointerHover,
+        onPointerSignal: _onPointerSignal,
+        child: MouseRegion(
+          cursor: _linkUsesPointer(_hoveredLink)
+              ? SystemMouseCursors.click
+              : MouseCursor.defer,
+          onHover: (event) {
+            if (widget.terminal.modes.mouseTrackingMode == 'none') {
+              unawaited(
+                _updateHoveredLink(event, _cellAt(event.localPosition)),
+              );
+            }
+          },
+          onExit: _leaveLink,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: _requestKeyboard,
+            onTapDown: (details) {
+              if (widget.terminal.modes.mouseTrackingMode != 'none') return;
+              unawaited(
+                _recordPointerDownLink(
+                  details,
+                  _cellAt(details.localPosition),
+                ),
+              );
+            },
+            onTapUp: (details) {
+              final cell = _cellAt(details.localPosition);
+              widget.onTapUp?.call(details, cell);
+              if (widget.terminal.modes.mouseTrackingMode != 'none') return;
+              unawaited(_activatePointerDownLink(details, cell));
+            },
+            onTapCancel: () => _pointerDownLink = null,
+            onSecondaryTapDown: (details) {
+              widget.onSecondaryTapDown?.call(
                 details,
                 _cellAt(details.localPosition),
-              ),
-            );
-          },
-          onTapUp: (details) {
-            final cell = _cellAt(details.localPosition);
-            widget.onTapUp?.call(details, cell);
-            unawaited(_activatePointerDownLink(details, cell));
-          },
-          onTapCancel: () => _pointerDownLink = null,
-          onSecondaryTapDown: (details) {
-            widget.onSecondaryTapDown?.call(
-              details,
-              _cellAt(details.localPosition),
-            );
-          },
-          onSecondaryTapUp: (details) {
-            widget.onSecondaryTapUp?.call(
-              details,
-              _cellAt(details.localPosition),
-            );
-          },
-          child: _TerminalTextInput(
-            key: _inputKey,
-            focusNode: _focusNode,
-            autofocus: widget.autofocus,
-            readOnly: widget.readOnly,
-            terminal: widget.terminal,
-            onKeyEvent: _onKeyEvent,
-            onComposingChanged: () {
-              if (mounted) setState(() {});
+              );
             },
-            child: Stack(
-              fit: StackFit.expand,
-              children: <Widget>[
-                renderer,
-                if (composingText.isNotEmpty && dimensions != null)
-                  Positioned(
-                    left:
-                        padding.left +
-                        widget.terminal.buffer.active.cursorX *
-                            dimensions.cellWidth,
-                    top:
-                        padding.top +
-                        widget.terminal.buffer.active.cursorY *
-                            dimensions.cellHeight,
-                    child: IgnorePointer(
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: theme.background,
-                          border: Border(
-                            bottom: BorderSide(color: theme.foreground),
+            onSecondaryTapUp: (details) {
+              widget.onSecondaryTapUp?.call(
+                details,
+                _cellAt(details.localPosition),
+              );
+            },
+            child: _TerminalTextInput(
+              key: _inputKey,
+              focusNode: _focusNode,
+              autofocus: widget.autofocus,
+              readOnly: widget.readOnly,
+              terminal: widget.terminal,
+              onKeyEvent: _onKeyEvent,
+              onComposingChanged: () {
+                if (mounted) setState(() {});
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  renderer,
+                  if (composingText.isNotEmpty && dimensions != null)
+                    Positioned(
+                      left:
+                          padding.left +
+                          widget.terminal.buffer.active.cursorX *
+                              dimensions.cellWidth,
+                      top:
+                          padding.top +
+                          widget.terminal.buffer.active.cursorY *
+                              dimensions.cellHeight,
+                      child: IgnorePointer(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: theme.background,
+                            border: Border(
+                              bottom: BorderSide(color: theme.foreground),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          composingText,
-                          key: const ValueKey<String>('termworld-preedit'),
-                          style: style.toTextStyle(
-                            color: theme.foreground,
+                          child: Text(
+                            composingText,
+                            key: const ValueKey<String>('termworld-preedit'),
+                            style: style.toTextStyle(
+                              color: theme.foreground,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -338,6 +355,135 @@ final class _TerminalViewState extends State<TerminalView> {
         widget.terminal.rows - 1,
       ),
     );
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    final button = _mouseButton(event.buttons);
+    _pressedMouseButton = button;
+    final cell = _cellAt(event.localPosition);
+    if (_reportPointer(event, cell, button, TerminalMouseAction.down)) return;
+    if (button != TerminalMouseButton.left) return;
+    _selectionAnchor = TerminalCellOffset(
+      cell.x,
+      widget.terminal.viewportY + cell.y,
+    );
+    widget.terminal.select(cell.x, widget.terminal.viewportY + cell.y, 0);
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    final cell = _cellAt(event.localPosition);
+    if (_reportPointer(
+      event,
+      cell,
+      _pressedMouseButton,
+      TerminalMouseAction.move,
+    )) {
+      return;
+    }
+    final anchor = _selectionAnchor;
+    if (anchor == null || _pressedMouseButton != TerminalMouseButton.left) {
+      return;
+    }
+    final current = TerminalCellOffset(
+      cell.x,
+      widget.terminal.viewportY + cell.y,
+    );
+    final columns = widget.terminal.cols;
+    final anchorOffset = anchor.y * columns + anchor.x;
+    final currentOffset = current.y * columns + current.x;
+    final start = anchorOffset <= currentOffset ? anchor : current;
+    widget.terminal.select(
+      start.x,
+      start.y,
+      (anchorOffset - currentOffset).abs() + 1,
+    );
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    final cell = _cellAt(event.localPosition);
+    _reportPointer(
+      event,
+      cell,
+      _pressedMouseButton,
+      TerminalMouseAction.up,
+    );
+    _pressedMouseButton = TerminalMouseButton.none;
+    _selectionAnchor = null;
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _pressedMouseButton = TerminalMouseButton.none;
+    _selectionAnchor = null;
+  }
+
+  void _onPointerHover(PointerHoverEvent event) {
+    final cell = _cellAt(event.localPosition);
+    _reportPointer(
+      event,
+      cell,
+      TerminalMouseButton.none,
+      TerminalMouseAction.move,
+    );
+  }
+
+  void _onPointerSignal(PointerSignalEvent event) {
+    if (event is! PointerScrollEvent) return;
+    final wheel = TerminalWheelEvent(
+      deltaX: event.scrollDelta.dx,
+      deltaY: event.scrollDelta.dy,
+      shift: HardwareKeyboard.instance.isShiftPressed,
+      alt: HardwareKeyboard.instance.isAltPressed,
+      control: HardwareKeyboard.instance.isControlPressed,
+      meta: HardwareKeyboard.instance.isMetaPressed,
+    );
+    if (!widget.terminal.handleWheelEvent(wheel)) return;
+    final cell = _cellAt(event.localPosition);
+    final action = event.scrollDelta.dx.abs() > event.scrollDelta.dy.abs()
+        ? event.scrollDelta.dx < 0
+              ? TerminalMouseAction.wheelLeft
+              : TerminalMouseAction.wheelRight
+        : event.scrollDelta.dy < 0
+        ? TerminalMouseAction.up
+        : TerminalMouseAction.down;
+    if (_reportPointer(event, cell, TerminalMouseButton.wheel, action)) return;
+    if (event.scrollDelta.dy != 0) {
+      widget.terminal.scrollLines(event.scrollDelta.dy < 0 ? -3 : 3);
+    }
+  }
+
+  bool _reportPointer(
+    PointerEvent event,
+    TerminalCellOffset cell,
+    TerminalMouseButton button,
+    TerminalMouseAction action,
+  ) {
+    final padding = widget.padding ?? EdgeInsets.zero;
+    return widget.terminal.reportMouseEvent(
+      TerminalMouseEvent(
+        column: cell.x,
+        row: cell.y,
+        pixelX: ((event.localPosition.dx - padding.left).floor() + 1).clamp(
+          1,
+          0x7fffffff,
+        ),
+        pixelY: ((event.localPosition.dy - padding.top).floor() + 1).clamp(
+          1,
+          0x7fffffff,
+        ),
+        button: button,
+        action: action,
+        shift: HardwareKeyboard.instance.isShiftPressed,
+        alt: HardwareKeyboard.instance.isAltPressed,
+        control: HardwareKeyboard.instance.isControlPressed,
+      ),
+    );
+  }
+
+  TerminalMouseButton _mouseButton(int buttons) {
+    if (buttons & kPrimaryMouseButton != 0) return TerminalMouseButton.left;
+    if (buttons & kMiddleMouseButton != 0) return TerminalMouseButton.middle;
+    if (buttons & kSecondaryMouseButton != 0) return TerminalMouseButton.right;
+    return TerminalMouseButton.none;
   }
 
   TerminalStyle get _effectiveStyle {

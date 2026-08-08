@@ -216,6 +216,85 @@ final class TerminalWheelEvent {
   final bool meta;
 }
 
+/// Mouse buttons understood by xterm's core mouse protocols.
+enum TerminalMouseButton {
+  /// Primary button.
+  left,
+
+  /// Middle button.
+  middle,
+
+  /// Secondary button.
+  right,
+
+  /// Motion without a pressed button.
+  none,
+
+  /// Wheel pseudo-button.
+  wheel,
+}
+
+/// Mouse actions understood by xterm's core mouse protocols.
+enum TerminalMouseAction {
+  /// Button release or upward wheel motion.
+  up,
+
+  /// Button press or downward wheel motion.
+  down,
+
+  /// Leftward wheel motion.
+  wheelLeft,
+
+  /// Rightward wheel motion.
+  wheelRight,
+
+  /// Pointer motion.
+  move,
+}
+
+/// Renderer-independent mouse event using zero-based cell coordinates.
+final class TerminalMouseEvent {
+  /// Creates a core mouse event.
+  const TerminalMouseEvent({
+    required this.column,
+    required this.row,
+    required this.button,
+    required this.action,
+    this.pixelX = 1,
+    this.pixelY = 1,
+    this.shift = false,
+    this.alt = false,
+    this.control = false,
+  });
+
+  /// Zero-based viewport column.
+  final int column;
+
+  /// Zero-based viewport row.
+  final int row;
+
+  /// One-based horizontal pixel position for SGR-pixels mode.
+  final int pixelX;
+
+  /// One-based vertical pixel position for SGR-pixels mode.
+  final int pixelY;
+
+  /// Reported button.
+  final TerminalMouseButton button;
+
+  /// Reported action.
+  final TerminalMouseAction action;
+
+  /// Shift modifier state.
+  final bool shift;
+
+  /// Alt modifier state.
+  final bool alt;
+
+  /// Control modifier state.
+  final bool control;
+}
+
 /// Character join range, inclusive at [start] and exclusive at [end].
 final class TerminalCharacterJoin {
   /// xterm-compatible `TerminalCharacterJoin` API.
@@ -532,6 +611,7 @@ final class Terminal extends DisposableStore {
   void Function()? _focus;
   void Function()? _blur;
   bool _hasFocus = false;
+  String? _lastMouseReportKey;
 
   void _handleBufferTrim(int amount) {
     for (final marker in List<TerminalMarker>.of(_markers)) {
@@ -742,6 +822,125 @@ final class Terminal extends DisposableStore {
   /// xterm-compatible `handleWheelEvent` API.
   bool handleWheelEvent(TerminalWheelEvent event) =>
       _customWheelHandler?.call(event) ?? true;
+
+  /// Encodes and emits a mouse event according to the active DEC modes.
+  bool reportMouseEvent(TerminalMouseEvent event) {
+    final engine = _engine;
+    if (engine.mouseMode == TerminalMouseTrackingMode.none ||
+        event.column < 0 ||
+        event.column >= cols ||
+        event.row < 0 ||
+        event.row >= rows) {
+      return false;
+    }
+    if (event.button == TerminalMouseButton.wheel &&
+            event.action == TerminalMouseAction.move ||
+        event.button == TerminalMouseButton.none &&
+            event.action != TerminalMouseAction.move ||
+        event.button != TerminalMouseButton.wheel &&
+            (event.action == TerminalMouseAction.wheelLeft ||
+                event.action == TerminalMouseAction.wheelRight)) {
+      return false;
+    }
+    var shift = event.shift;
+    var alt = event.alt;
+    var control = event.control;
+    switch (engine.mouseMode) {
+      case TerminalMouseTrackingMode.none:
+        return false;
+      case TerminalMouseTrackingMode.x10:
+        if (event.button == TerminalMouseButton.wheel ||
+            event.action != TerminalMouseAction.down) {
+          return false;
+        }
+        shift = false;
+        alt = false;
+        control = false;
+      case TerminalMouseTrackingMode.vt200:
+        if (event.action == TerminalMouseAction.move) return false;
+      case TerminalMouseTrackingMode.drag:
+        if (event.action == TerminalMouseAction.move &&
+            event.button == TerminalMouseButton.none) {
+          return false;
+        }
+      case TerminalMouseTrackingMode.any:
+        break;
+    }
+    if (event.button != TerminalMouseButton.wheel &&
+        options.mouseEventsRequireAlt) {
+      if (!alt) return false;
+      alt = false;
+    }
+    final column = event.column + 1;
+    final row = event.row + 1;
+    final reportKey = engine.sgrPixelsMouseMode
+        ? '${event.pixelX};${event.pixelY};${event.button};${event.action}'
+        : '$column;$row;${event.button};${event.action}';
+    if (event.action == TerminalMouseAction.move &&
+        reportKey == _lastMouseReportKey) {
+      return false;
+    }
+    final code = _mouseEventCode(
+      event,
+      shift: shift,
+      alt: alt,
+      control: control,
+      sgr: engine.sgrMouseMode || engine.sgrPixelsMouseMode,
+    );
+    late final String report;
+    if (engine.sgrMouseMode || engine.sgrPixelsMouseMode) {
+      final x = engine.sgrPixelsMouseMode ? event.pixelX : column;
+      final y = engine.sgrPixelsMouseMode ? event.pixelY : row;
+      final finalByte =
+          event.action == TerminalMouseAction.up &&
+              event.button != TerminalMouseButton.wheel
+          ? 'm'
+          : 'M';
+      report = '\u001b[<$code;$x;$y$finalByte';
+      _triggerData(report);
+    } else {
+      final parameters = <int>[code + 32, column + 32, row + 32];
+      if (parameters.any((value) => value > 255)) return false;
+      report = '\u001b[M${String.fromCharCodes(parameters)}';
+      _onBinary.fire(report);
+    }
+    _lastMouseReportKey = reportKey;
+    return true;
+  }
+
+  int _mouseEventCode(
+    TerminalMouseEvent event, {
+    required bool shift,
+    required bool alt,
+    required bool control,
+    required bool sgr,
+  }) {
+    var code = (shift ? 4 : 0) | (alt ? 8 : 0) | (control ? 16 : 0);
+    if (event.button == TerminalMouseButton.wheel) {
+      return code |
+          64 |
+          switch (event.action) {
+            TerminalMouseAction.up => 0,
+            TerminalMouseAction.down => 1,
+            TerminalMouseAction.wheelLeft => 2,
+            TerminalMouseAction.wheelRight => 3,
+            TerminalMouseAction.move => 0,
+          };
+    }
+    code |= switch (event.button) {
+      TerminalMouseButton.left => 0,
+      TerminalMouseButton.middle => 1,
+      TerminalMouseButton.right => 2,
+      TerminalMouseButton.none => 3,
+      TerminalMouseButton.wheel => 0,
+    };
+    if (event.action == TerminalMouseAction.move) {
+      code |= 32;
+    } else if (event.action == TerminalMouseAction.up && !sgr) {
+      code |= 3;
+    }
+    return code;
+  }
 
   /// xterm-compatible `registerLinkProvider` API.
   Disposable registerLinkProvider(TerminalLinkProvider provider) {

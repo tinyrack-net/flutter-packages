@@ -627,6 +627,52 @@ void main() {
     await mouse.removePointer();
   });
 
+  testWidgets('routes tracked mouse events and local drag selection', (
+    tester,
+  ) async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+    addTearDown(terminal.dispose);
+    await terminal.writeAndWait('abcdefghij');
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: TerminalView(terminal: terminal, autoResize: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final dimensions = terminal.dimensions!;
+    final origin = tester.getTopLeft(find.byType(TerminalView));
+    final start =
+        origin +
+        Offset(dimensions.cellWidth * 0.5, dimensions.cellHeight * 0.5);
+    final end =
+        origin +
+        Offset(dimensions.cellWidth * 3.5, dimensions.cellHeight * 0.5);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: start);
+    await mouse.down(start);
+    await mouse.moveTo(end);
+    await mouse.up();
+    await tester.pump();
+    expect(terminal.getSelection(), 'abcd');
+
+    final reports = <String>[];
+    terminal.onData.listen(reports.add);
+    await terminal.writeAndWait('\u001b[?1000h\u001b[?1006h');
+    await mouse.down(start);
+    await mouse.up();
+    await tester.pump();
+    expect(reports, <String>['\u001b[<0;1;1M', '\u001b[<0;1;1m']);
+    await mouse.removePointer();
+  });
+
   testWidgets(
     'reattaches when terminal, focus, controller, or readonly changes',
     (
