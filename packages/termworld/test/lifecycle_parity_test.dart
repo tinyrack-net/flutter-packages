@@ -85,14 +85,13 @@ void main() {
       ..add(child)
       ..dispose()
       ..dispose();
-    expect(
-      (store.isDisposed, child.isDisposed, calls),
-      (true, true, <String>['child']),
-    );
+    expect((store.isDisposed, child.isDisposed), (true, true));
+    expect(calls, <String>['child']);
 
     final lateChild = CallbackDisposable(() => calls.add('late'));
     expect(store.add(lateChild), same(lateChild));
-    expect((lateChild.isDisposed, calls), (true, <String>['child', 'late']));
+    expect(lateChild.isDisposed, isTrue);
+    expect(calls, <String>['child', 'late']);
   });
 
   test('mutable and combined disposables match xterm replacement rules', () {
