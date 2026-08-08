@@ -271,6 +271,14 @@
       "implementation": ["lib/src/core/multi_key_map.dart"],
       "tests": ["test/upstream_multi_key_map_parity_test.dart"]
     },
+    "src/common/Platform.ts": {
+      "implementation": [
+        "lib/src/core/platform_defaults.dart",
+        "lib/src/core/platform_defaults_io.dart",
+        "lib/src/core/platform_defaults_web.dart"
+      ],
+      "tests": ["test/upstream_platform_parity_test.dart"]
+    },
     "src/common/SortedList.ts": {
       "implementation": ["lib/src/core/sorted_list.dart"],
       "tests": ["test/upstream_sorted_list_parity_test.dart"]
