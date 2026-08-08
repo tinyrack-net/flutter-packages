@@ -1,14 +1,20 @@
+import 'dart:js_interop';
+
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/terminal.dart';
+import 'package:web/web.dart';
 
 /// Opaque handle identifying the current renderer texture atlas generation.
 final class TerminalTextureAtlas {
   /// Creates an atlas handle.
-  const TerminalTextureAtlas(this.generation);
+  const TerminalTextureAtlas(this.generation, [this.canvas]);
 
   /// Monotonically increasing atlas generation.
   final int generation;
+
+  /// The browser canvas that owns the WebGL2 texture atlas.
+  final Object? canvas;
 }
 
 /// Exposes WebGL atlas lifecycle events on Flutter web.
@@ -34,6 +40,10 @@ final class WebglAddon extends ManagedTerminalAddon {
   final TerminalEventEmitter<TerminalVoid> _onContextLoss =
       TerminalEventEmitter<TerminalVoid>();
   TerminalTextureAtlas? _textureAtlas;
+  HTMLCanvasElement? _canvas;
+  WebGL2RenderingContext? _context;
+  EventListener? _contextLostListener;
+  EventListener? _contextRestoredListener;
   int _generation = 0;
 
   /// Fires when atlas contents change.
@@ -44,8 +54,16 @@ final class WebglAddon extends ManagedTerminalAddon {
   TerminalEvent<TerminalTextureAtlas> get onAddTextureAtlas =>
       _onAddTextureAtlas.event;
 
+  /// xterm-compatible texture atlas canvas creation event.
+  TerminalEvent<TerminalTextureAtlas> get onAddTextureAtlasCanvas =>
+      _onAddTextureAtlas.event;
+
   /// Fires when an atlas is removed.
   TerminalEvent<TerminalTextureAtlas> get onRemoveTextureAtlas =>
+      _onRemoveTextureAtlas.event;
+
+  /// xterm-compatible texture atlas canvas removal event.
+  TerminalEvent<TerminalTextureAtlas> get onRemoveTextureAtlasCanvas =>
       _onRemoveTextureAtlas.event;
 
   /// Fires when WebGL reports context loss.
@@ -56,8 +74,7 @@ final class WebglAddon extends ManagedTerminalAddon {
 
   @override
   void onActivate(Terminal terminal) {
-    _textureAtlas = TerminalTextureAtlas(++_generation);
-    _onAddTextureAtlas.fire(_textureAtlas!);
+    _createRendererSurface();
   }
 
   /// Drops the current atlas and forces a complete refresh.
@@ -67,7 +84,16 @@ final class WebglAddon extends ManagedTerminalAddon {
     }
     final previous = _textureAtlas;
     if (previous != null) _onRemoveTextureAtlas.fire(previous);
-    _textureAtlas = TerminalTextureAtlas(++_generation);
+    final canvas = _canvas;
+    final context = _context;
+    if (canvas == null || context == null) {
+      throw StateError('The WebGL2 renderer context is not available');
+    }
+    context
+      ..viewport(0, 0, canvas.width, canvas.height)
+      ..clearColor(0, 0, 0, 0)
+      ..clear(WebGL2RenderingContext.COLOR_BUFFER_BIT);
+    _textureAtlas = TerminalTextureAtlas(++_generation, canvas);
     _onAddTextureAtlas.fire(_textureAtlas!);
     _onChangeTextureAtlas.fire(_textureAtlas!);
     terminal.clearTextureAtlas();
@@ -79,11 +105,63 @@ final class WebglAddon extends ManagedTerminalAddon {
     _onContextLoss.fire(TerminalVoid.value);
   }
 
+  void _createRendererSurface() {
+    final canvas = HTMLCanvasElement()
+      ..width = 1024
+      ..height = 1024;
+    final options = <String, Object?>{
+      'antialias': false,
+      'depth': false,
+      'preserveDrawingBuffer': preserveDrawingBuffer,
+    }.jsify();
+    final renderingContext = canvas.getContext('webgl2', options);
+    if (renderingContext == null ||
+        !renderingContext.isA<WebGL2RenderingContext>()) {
+      throw UnsupportedError('WebGL2 is not available in this browser');
+    }
+    final context = (renderingContext as WebGL2RenderingContext)
+      ..viewport(0, 0, canvas.width, canvas.height)
+      ..clearColor(0, 0, 0, 0)
+      ..clear(WebGL2RenderingContext.COLOR_BUFFER_BIT);
+    _contextLostListener = ((Event event) {
+      event.preventDefault();
+      if (isActive) _onContextLoss.fire(TerminalVoid.value);
+    }).toJS;
+    _contextRestoredListener = ((Event event) {
+      if (isActive) clearTextureAtlas();
+    }).toJS;
+    canvas
+      ..addEventListener('webglcontextlost', _contextLostListener)
+      ..addEventListener('webglcontextrestored', _contextRestoredListener);
+    _canvas = canvas;
+    _context = context;
+    _textureAtlas = TerminalTextureAtlas(++_generation, canvas);
+    _onAddTextureAtlas.fire(_textureAtlas!);
+  }
+
   @override
   void dispose() {
     final atlas = _textureAtlas;
     if (atlas != null) _onRemoveTextureAtlas.fire(atlas);
+    final canvas = _canvas;
+    if (canvas != null) {
+      final contextLostListener = _contextLostListener;
+      final contextRestoredListener = _contextRestoredListener;
+      if (contextLostListener != null) {
+        canvas.removeEventListener('webglcontextlost', contextLostListener);
+      }
+      if (contextRestoredListener != null) {
+        canvas.removeEventListener(
+          'webglcontextrestored',
+          contextRestoredListener,
+        );
+      }
+    }
     _textureAtlas = null;
+    _context = null;
+    _canvas = null;
+    _contextLostListener = null;
+    _contextRestoredListener = null;
     _onChangeTextureAtlas.dispose();
     _onAddTextureAtlas.dispose();
     _onRemoveTextureAtlas.dispose();

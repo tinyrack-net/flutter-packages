@@ -5,10 +5,13 @@ import 'package:termworld/src/core/terminal.dart';
 /// Opaque handle identifying the current renderer texture atlas generation.
 final class TerminalTextureAtlas {
   /// Creates an atlas handle.
-  const TerminalTextureAtlas(this.generation);
+  const TerminalTextureAtlas(this.generation, [this.canvas]);
 
   /// Monotonically increasing atlas generation.
   final int generation;
+
+  /// Platform atlas canvas. This is never created off the web.
+  final Object? canvas;
 }
 
 /// Explicitly unsupported WebGL capability on non-web platforms.
@@ -38,8 +41,16 @@ final class WebglAddon extends ManagedTerminalAddon {
   TerminalEvent<TerminalTextureAtlas> get onAddTextureAtlas =>
       _atlasEvents.event;
 
+  /// xterm-compatible texture atlas canvas creation event.
+  TerminalEvent<TerminalTextureAtlas> get onAddTextureAtlasCanvas =>
+      _atlasEvents.event;
+
   /// Atlas removal events; never emitted on unsupported platforms.
   TerminalEvent<TerminalTextureAtlas> get onRemoveTextureAtlas =>
+      _atlasEvents.event;
+
+  /// xterm-compatible texture atlas canvas removal event.
+  TerminalEvent<TerminalTextureAtlas> get onRemoveTextureAtlasCanvas =>
       _atlasEvents.event;
 
   /// Context-loss events; never emitted on unsupported platforms.
