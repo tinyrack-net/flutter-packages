@@ -15,6 +15,7 @@ void main() {
       expect(options.scrollback, 1000);
       expect(options.fontFamily, 'monospace');
       expect(options.fontSize, 15);
+      expect(options.termName, 'xterm');
       expect(options.cursorStyle, TerminalCursorStyle.block);
       expect(options.tabStopWidth, 8);
       expect(options.wordSeparator, ' ()[]{}\',"`');
@@ -476,6 +477,29 @@ void main() {
         terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
         'abcX',
       );
+    });
+
+    test('device attributes and XTVERSION honor xterm parameters', () async {
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      final reports = <String>[];
+      terminal.onData.listen(reports.add);
+
+      await terminal.writeAndWait(
+        '\u001b[c\u001b[1c'
+        '\u001b[>c\u001b[>1c'
+        '\u001b[>q\u001b[>1q',
+      );
+
+      expect(reports, <String>[
+        '\u001b[?1;2c',
+        '\u001b[>0;276;0c',
+        '\u001bP>|xterm.js(6.0.0)\u001b\\',
+      ]);
+
+      terminal.options.termName = 'linux';
+      await terminal.writeAndWait('\u001b[c\u001b[>c');
+      expect(reports.skip(3), <String>['\u001b[?6c', '0c']);
     });
 
     test(

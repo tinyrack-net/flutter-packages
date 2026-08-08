@@ -445,6 +445,7 @@ final class TerminalOptions {
     TerminalScrollbarOptions scrollbar = const TerminalScrollbarOptions(),
     int smoothScrollDuration = 0,
     int tabStopWidth = 8,
+    String termName = 'xterm',
     TerminalColorTheme theme = const TerminalColorTheme(),
     TerminalVtExtensions vtExtensions = const TerminalVtExtensions(),
     TerminalWindowsPtyOptions windowsPty = const TerminalWindowsPtyOptions(),
@@ -482,6 +483,7 @@ final class TerminalOptions {
        _scrollOnUserInput = _initial(scrollOnUserInput),
        _scrollbar = _initial(scrollbar),
        _smoothScrollDuration = _initial(smoothScrollDuration),
+       _termName = _initial(termName),
        _theme = _initial(theme),
        _vtExtensions = _initial(vtExtensions),
        _windowsPty = _initial(windowsPty),
@@ -545,6 +547,7 @@ final class TerminalOptions {
   TerminalScrollbarOptions _scrollbar;
   int _smoothScrollDuration;
   int _tabStopWidth;
+  String _termName;
   TerminalColorTheme _theme;
   TerminalVtExtensions _vtExtensions;
   TerminalWindowsPtyOptions _windowsPty;
@@ -970,6 +973,15 @@ final class TerminalOptions {
     _tabStopWidth,
     _atLeastOne('tabStopWidth', value),
     (next) => _tabStopWidth = next,
+  );
+
+  /// Terminal identifier used by primary and secondary device attributes.
+  String get termName => _termName;
+  set termName(String value) => _setOption(
+    'termName',
+    _termName,
+    value,
+    (next) => _termName = next,
   );
 
   void _set<T>(String name, T oldValue, T newValue, void Function(T) assign) {

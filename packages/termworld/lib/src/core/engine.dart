@@ -496,10 +496,24 @@ final class _TerminalCoreEngine {
           }
         }
       case 'c':
+        if (params[0][0] > 0) return;
+        final termName = options.termName;
         if (prefix == '>') {
-          onData?.call('\u001b[>0;276;0c');
-        } else {
+          if (termName.startsWith('xterm')) {
+            onData?.call('\u001b[>0;276;0c');
+          } else if (termName.startsWith('rxvt-unicode')) {
+            onData?.call('\u001b[>85;95;0c');
+          } else if (termName.startsWith('linux')) {
+            onData?.call('${params[0][0]}c');
+          } else if (termName.startsWith('screen')) {
+            onData?.call('\u001b[>83;40003;0c');
+          }
+        } else if (termName.startsWith('xterm') ||
+            termName.startsWith('rxvt-unicode') ||
+            termName.startsWith('screen')) {
           onData?.call('\u001b[?1;2c');
+        } else if (termName.startsWith('linux')) {
+          onData?.call('\u001b[?6c');
         }
       case 'd':
         _setY(amount - 1);
@@ -516,7 +530,11 @@ final class _TerminalCoreEngine {
       case 'n':
         _deviceStatus(prefix, params[0][0]);
       case 'q':
-        if (intermediates == ' ') _setCursorStyle(params[0][0]);
+        if (prefix == '>' && params[0][0] == 0) {
+          onData?.call('\u001bP>|xterm.js(6.0.0)\u001b\\');
+        } else if (intermediates == ' ') {
+          _setCursorStyle(params[0][0]);
+        }
       case 'r':
         if (prefix.isEmpty) _setMargins(params);
       case 's':
