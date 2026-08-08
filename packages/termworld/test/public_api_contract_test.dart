@@ -10,6 +10,36 @@ import 'package:termworld/termworld_headless.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 void main() {
+  group('AttachAddon', () {
+    test('string', () async {
+      final socket = _FakeSocket();
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(AttachAddon(socket));
+      socket.addIncoming('foo');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        'foo',
+      );
+    });
+
+    test('utf8', () async {
+      final socket = _FakeSocket();
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(AttachAddon(socket));
+      socket.addIncoming(Uint8List.fromList(<int>[102, 111, 111]));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        'foo',
+      );
+    });
+  });
+
   test('options validate mutable values and report effective changes', () {
     final options = TerminalOptions(
       allowProposedApi: true,
@@ -59,14 +89,20 @@ void main() {
       ..cursorWidth = 3
       ..fastScrollSensitivity = 3
       ..lineHeight = 3
-      ..minimumContrastRatio = 99
+      ..minimumContrastRatio = 1.26
       ..scrollback = 20
       ..scrollSensitivity = 3
       ..tabStopWidth = 2
-      ..tabStopWidth = 2;
+      ..tabStopWidth = 2
+      ..fontWeight = 'invalid'
+      ..fontWeightBold = 750
+      ..wordSeparator = '';
 
-    expect(changes, hasLength(8));
-    expect(options.minimumContrastRatio, 21);
+    expect(changes, hasLength(11));
+    expect(options.minimumContrastRatio, 1.3);
+    expect(options.fontWeight, 'normal');
+    expect(options.fontWeightBold, 750);
+    expect(options.wordSeparator, ' ()[]{}\',"`');
     expect(() => options.blinkIntervalDuration = -1, throwsArgumentError);
     expect(() => options.cursorWidth = 0, throwsArgumentError);
     expect(() => options.fastScrollSensitivity = 0, throwsArgumentError);
@@ -74,14 +110,90 @@ void main() {
     expect(() => options.scrollback = -1, throwsArgumentError);
     expect(() => options.scrollSensitivity = 0, throwsArgumentError);
     expect(() => options.tabStopWidth = 0, throwsArgumentError);
-    expect(() => TerminalOptions(cols: -1), throwsArgumentError);
-    expect(() => TerminalOptions(rows: -1), throwsArgumentError);
-    expect(() => TerminalOptions(fontWeight: 0), throwsArgumentError);
-    expect(
-      () => TerminalOptions(fontWeightBold: 'invalid'),
-      throwsArgumentError,
-    );
+    expect(TerminalOptions(cols: -1).cols, -1);
+    expect(TerminalOptions(rows: -1).rows, -1);
+    expect(TerminalOptions(fontWeight: 0).fontWeight, 'normal');
+    expect(TerminalOptions(fontWeightBold: 'invalid').fontWeightBold, 'bold');
   });
+
+  test('every mutable option reports only effective changes', () {
+    final options = TerminalOptions();
+    final changes = <String>[];
+    options.onChange.listen(changes.add);
+
+    options
+      ..allowProposedApi = true
+      ..allowTransparency = true
+      ..altClickMovesCursor = false
+      ..convertEol = true
+      ..cursorBlink = true
+      ..cursorStyle = TerminalCursorStyle.bar
+      ..cursorInactiveStyle = TerminalInactiveCursorStyle.none
+      ..disableStdin = true
+      ..drawBoldTextInBrightColors = false
+      ..fontSize = 16
+      ..fontFamily = 'test'
+      ..ignoreBracketedPasteMode = true
+      ..letterSpacing = 1
+      ..logLevel = TerminalLogLevel.debug
+      ..macOptionIsMeta = true
+      ..macOptionClickForcesSelection = true
+      ..mouseEventsRequireAlt = true
+      ..reflowCursorLine = true
+      ..rescaleOverlappingGlyphs = true
+      ..rightClickSelectsWord = !options.rightClickSelectsWord
+      ..screenReaderMode = true
+      ..scrollOnEraseInDisplay = true
+      ..scrollOnUserInput = false
+      ..smoothScrollDuration = 1
+      ..fontFamily = 'test';
+
+    expect(changes, <String>[
+      'allowProposedApi',
+      'allowTransparency',
+      'altClickMovesCursor',
+      'convertEol',
+      'cursorBlink',
+      'cursorStyle',
+      'cursorInactiveStyle',
+      'disableStdin',
+      'drawBoldTextInBrightColors',
+      'fontSize',
+      'fontFamily',
+      'ignoreBracketedPasteMode',
+      'letterSpacing',
+      'logLevel',
+      'macOptionIsMeta',
+      'macOptionClickForcesSelection',
+      'mouseEventsRequireAlt',
+      'reflowCursorLine',
+      'rescaleOverlappingGlyphs',
+      'rightClickSelectsWord',
+      'screenReaderMode',
+      'scrollOnEraseInDisplay',
+      'scrollOnUserInput',
+      'smoothScrollDuration',
+    ]);
+  });
+
+  test(
+    'live scrollback and tab width changes update the core services',
+    () async {
+      final options = TerminalOptions(cols: 10, rows: 2, scrollback: 10);
+      final terminal = Terminal(options: options);
+      await terminal.writeAndWait('a\r\nb\r\nc\r\nd');
+      expect(terminal.buffer.normal.baseY, 2);
+
+      options.scrollback = 0;
+      expect(terminal.buffer.normal.baseY, 0);
+      expect(terminal.buffer.normal.length, 2);
+
+      terminal.reset();
+      options.tabStopWidth = 4;
+      await terminal.writeAndWait('\t');
+      expect(terminal.buffer.active.cursorX, 4);
+    },
+  );
 
   test('unicode registry covers control, combining, wide, and error cases', () {
     final unicode = TerminalUnicodeHandling();
@@ -94,8 +206,10 @@ void main() {
     expect(provider.width(0x200d), 0);
     expect(provider.width('A'.codeUnitAt(0)), 1);
     expect(provider.width(0xac00), 2);
-    expect(provider.width(0x1f600), 2);
-    expect(provider.charProperties(0xac00, 0), 2);
+    // The built-in core provider is xterm's Unicode 6 table. Applications
+    // opt into newer emoji widths through an official Unicode addon.
+    expect(provider.width(0x1f600), 1);
+    expect(provider.charProperties(0xac00, 0), 4);
     expect(() => unicode.register(provider), throwsArgumentError);
     expect(() => unicode.activeVersion = 'missing', throwsArgumentError);
     unicode
@@ -125,7 +239,10 @@ void main() {
         ' '
         '\u001b[?1;6;7;25;45;66;1000;1004;2004;2026;9001h',
       );
-      expect(events, containsAll(<String>['bell', 'title', 'cursor', 'line']));
+      expect(events, containsAll(<String>['bell', 'title', 'line']));
+      // Cursor events compare the position at parser entry and exit. This
+      // write returns to its starting position when origin mode is enabled.
+      expect(events, isNot(contains('cursor')));
       expect(terminal.modes.applicationCursorKeysMode, isTrue);
       expect(terminal.modes.applicationKeypadMode, isTrue);
       expect(terminal.modes.insertMode, isTrue);
@@ -136,7 +253,8 @@ void main() {
       expect(terminal.modes.sendFocusMode, isTrue);
       expect(terminal.modes.bracketedPasteMode, isTrue);
       expect(terminal.modes.synchronizedOutputMode, isTrue);
-      expect(terminal.modes.win32InputMode, isTrue);
+      // DECSET 9001 is ignored unless the opt-in vtExtension is enabled.
+      expect(terminal.modes.win32InputMode, isFalse);
       expect(terminal.modes.mouseTrackingMode, 'vt200');
 
       await terminal.writeAndWait('\u001b[?1000l\u001b[?9h');
@@ -152,8 +270,8 @@ void main() {
 
       expect(() => terminal.write(1), throwsArgumentError);
       expect(() => terminal.writeAndWait(1), throwsArgumentError);
-      expect(() => terminal.resize(0, 1), throwsArgumentError);
-      expect(() => terminal.resize(1, 0), throwsArgumentError);
+      terminal.resize(0, 0);
+      expect((terminal.cols, terminal.rows), (2, 1));
       terminal
         ..resize(6, 3)
         ..resize(6, 3);
@@ -185,9 +303,9 @@ void main() {
 
       final provider = _LinkProvider();
       final registration = terminal.registerLinkProvider(provider);
-      expect(terminal.linkProviders, <TerminalLinkProvider>[provider]);
+      expect(terminal.linkProviders, contains(provider));
       registration.dispose();
-      expect(terminal.linkProviders, isEmpty);
+      expect(terminal.linkProviders, isNot(contains(provider)));
 
       final firstJoiner = terminal.registerCharacterJoiner(
         (_) => const <TerminalCharacterJoin>[TerminalCharacterJoin(0, 2)],
@@ -226,12 +344,17 @@ void main() {
       expect(terminal.getSelectionPosition(), isNotNull);
       terminal
         ..clearSelection()
-        ..clearSelection();
-      expect(() => terminal.select(-1, 0, 1), throwsArgumentError);
-      expect(() => terminal.select(0, 999, 1), throwsRangeError);
-      expect(() => terminal.selectLines(2, 1), throwsRangeError);
+        ..clearSelection()
+        ..select(0, 0, 0);
+      expect(terminal.hasSelection(), isFalse);
+      expect(terminal.getSelectionPosition(), isNull);
+      terminal.select(-1, 0, 1);
+      expect(terminal.hasSelection(), isTrue);
+      expect(terminal.getSelectionPosition()!.start.x, -1);
+      terminal.select(0, 999, 1);
+      expect(terminal.getSelectionPosition()!.start.y, 999);
       terminal
-        ..selectLines(0, 1)
+        ..selectLines(-1, 999)
         ..selectAll()
         ..scrollToTop()
         ..scrollLines(1)
@@ -256,6 +379,11 @@ void main() {
         ..updateDimensions(dimensions)
         ..updateDimensions(dimensions);
       expect(terminal.dimensions?.devicePixelRatio, 2);
+      expect(terminal.dimensions?.css.canvas.width, 60);
+      expect(terminal.dimensions?.css.cell.height, 10);
+      expect(terminal.dimensions?.device.canvas.width, 120);
+      expect(terminal.dimensions?.device.cell.height, 20);
+      expect(terminal.dimensions?.device.char.left, 0);
 
       final addon = _Addon();
       terminal.loadAddon(addon);
@@ -276,9 +404,19 @@ void main() {
       final terminal = Terminal();
       final addon = AttachAddon(socket);
       addTearDown(terminal.dispose);
-      terminal
-        ..loadAddon(addon)
-        ..input('out');
+      terminal.loadAddon(addon);
+      expect(
+        () => terminal.input('too-early'),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Attach addon was loaded before socket was open',
+          ),
+        ),
+      );
+      await Future<void>.delayed(Duration.zero);
+      terminal.input('out');
       expect(socket.sent, <Object?>['out']);
       socket
         ..addIncoming('one')
@@ -315,7 +453,7 @@ void main() {
     expect(webgl.onChangeTextureAtlas, isNotNull);
     expect(webgl.onRemoveTextureAtlas, isNotNull);
     expect(webgl.onContextLoss, isNotNull);
-    expect(webgl.clearTextureAtlas, throwsStateError);
+    expect(webgl.clearTextureAtlas, throwsUnsupportedError);
     webgl
       ..reportContextLoss()
       ..dispose();

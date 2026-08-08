@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:convert';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:termworld/src/core/addon.dart';
@@ -10,8 +10,8 @@ import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
 import 'package:termworld/src/core/unicode.dart';
-import 'package:termworld/src/core/xterm_parity_terminal.dart';
-import 'package:xterm/core.dart' as xterm;
+
+part 'engine.dart';
 
 /// Terminal viewport size.
 final class TerminalResizeEvent {
@@ -35,6 +35,98 @@ final class TerminalRenderEvent {
 
   /// xterm-compatible `end` API.
   final int end;
+}
+
+/// Renderer-facing snapshot of colors changed by OSC 4/10/11/12.
+///
+/// The values are packed 24-bit RGB integers. Missing values mean that the
+/// corresponding color still comes from [TerminalOptions.theme].
+final class TerminalColorOverrides {
+  /// Creates an immutable dynamic color snapshot.
+  TerminalColorOverrides({
+    required Map<int, int> indexed,
+    this.foreground,
+    this.background,
+    this.cursor,
+  }) : indexed = Map<int, int>.unmodifiable(indexed);
+
+  /// OSC 4 palette overrides keyed by an index in the range 0 through 255.
+  final Map<int, int> indexed;
+
+  /// OSC 10 default foreground override.
+  final int? foreground;
+
+  /// OSC 11 default background override.
+  final int? background;
+
+  /// OSC 12 cursor override.
+  final int? cursor;
+}
+
+/// Width and height in logical or device pixels.
+final class TerminalPixelDimensions {
+  /// Creates immutable dimensions.
+  const TerminalPixelDimensions({required this.width, required this.height});
+
+  /// Horizontal extent.
+  final double width;
+
+  /// Vertical extent.
+  final double height;
+}
+
+/// Character dimensions and its offset within a cell.
+final class TerminalCharacterDimensions {
+  /// Creates immutable character geometry.
+  const TerminalCharacterDimensions({
+    required this.width,
+    required this.height,
+    required this.top,
+    required this.left,
+  });
+
+  /// Character width.
+  final double width;
+
+  /// Character height.
+  final double height;
+
+  /// Offset from the top of the cell.
+  final double top;
+
+  /// Offset from the left of the cell.
+  final double left;
+}
+
+/// Canvas and cell dimensions in one coordinate space.
+final class TerminalRenderDimensionSet {
+  /// Creates a CSS-pixel dimension set.
+  const TerminalRenderDimensionSet({required this.canvas, required this.cell});
+
+  /// Full terminal canvas.
+  final TerminalPixelDimensions canvas;
+
+  /// One terminal cell.
+  final TerminalPixelDimensions cell;
+}
+
+/// Canvas, cell and character dimensions in device pixels.
+final class TerminalDeviceRenderDimensionSet {
+  /// Creates a device-pixel dimension set.
+  const TerminalDeviceRenderDimensionSet({
+    required this.canvas,
+    required this.cell,
+    required this.char,
+  });
+
+  /// Full terminal canvas.
+  final TerminalPixelDimensions canvas;
+
+  /// One terminal cell.
+  final TerminalPixelDimensions cell;
+
+  /// Character box and offset inside a cell.
+  final TerminalCharacterDimensions char;
 }
 
 /// Physical and logical renderer dimensions.
@@ -62,6 +154,34 @@ final class TerminalRenderDimensions {
 
   /// xterm-compatible `devicePixelRatio` API.
   final double devicePixelRatio;
+
+  /// xterm-compatible CSS-pixel canvas and cell dimensions.
+  TerminalRenderDimensionSet get css => TerminalRenderDimensionSet(
+    canvas: TerminalPixelDimensions(width: width, height: height),
+    cell: TerminalPixelDimensions(width: cellWidth, height: cellHeight),
+  );
+
+  /// xterm-compatible device-pixel canvas, cell and character dimensions.
+  TerminalDeviceRenderDimensionSet get device {
+    final ratio = devicePixelRatio;
+    final deviceCell = TerminalPixelDimensions(
+      width: cellWidth * ratio,
+      height: cellHeight * ratio,
+    );
+    return TerminalDeviceRenderDimensionSet(
+      canvas: TerminalPixelDimensions(
+        width: width * ratio,
+        height: height * ratio,
+      ),
+      cell: deviceCell,
+      char: TerminalCharacterDimensions(
+        width: deviceCell.width,
+        height: deviceCell.height,
+        top: 0,
+        left: 0,
+      ),
+    );
+  }
 }
 
 /// A renderer-independent keyboard event.
@@ -122,6 +242,85 @@ final class TerminalWheelEvent {
   final bool meta;
 }
 
+/// Mouse buttons understood by xterm's core mouse protocols.
+enum TerminalMouseButton {
+  /// Primary button.
+  left,
+
+  /// Middle button.
+  middle,
+
+  /// Secondary button.
+  right,
+
+  /// Motion without a pressed button.
+  none,
+
+  /// Wheel pseudo-button.
+  wheel,
+}
+
+/// Mouse actions understood by xterm's core mouse protocols.
+enum TerminalMouseAction {
+  /// Button release or upward wheel motion.
+  up,
+
+  /// Button press or downward wheel motion.
+  down,
+
+  /// Leftward wheel motion.
+  wheelLeft,
+
+  /// Rightward wheel motion.
+  wheelRight,
+
+  /// Pointer motion.
+  move,
+}
+
+/// Renderer-independent mouse event using zero-based cell coordinates.
+final class TerminalMouseEvent {
+  /// Creates a core mouse event.
+  const TerminalMouseEvent({
+    required this.column,
+    required this.row,
+    required this.button,
+    required this.action,
+    this.pixelX = 1,
+    this.pixelY = 1,
+    this.shift = false,
+    this.alt = false,
+    this.control = false,
+  });
+
+  /// Zero-based viewport column.
+  final int column;
+
+  /// Zero-based viewport row.
+  final int row;
+
+  /// One-based horizontal pixel position for SGR-pixels mode.
+  final int pixelX;
+
+  /// One-based vertical pixel position for SGR-pixels mode.
+  final int pixelY;
+
+  /// Reported button.
+  final TerminalMouseButton button;
+
+  /// Reported action.
+  final TerminalMouseAction action;
+
+  /// Shift modifier state.
+  final bool shift;
+
+  /// Alt modifier state.
+  final bool alt;
+
+  /// Control modifier state.
+  final bool control;
+}
+
 /// Character join range, inclusive at [start] and exclusive at [end].
 final class TerminalCharacterJoin {
   /// xterm-compatible `TerminalCharacterJoin` API.
@@ -143,10 +342,14 @@ typedef TerminalCharacterJoiner =
 /// Link returned by a terminal link provider.
 final class TerminalLink {
   /// xterm-compatible `TerminalLink` API.
-  const TerminalLink({
+  TerminalLink({
     required this.range,
     required this.text,
     required this.activate,
+    this.decorations,
+    this.hover,
+    this.leave,
+    this.dispose,
   });
 
   /// xterm-compatible `range` API.
@@ -156,14 +359,67 @@ final class TerminalLink {
   final String text;
 
   /// xterm-compatible `Function` API.
-  final void Function(String text) activate;
+  final void Function(Object? event, String text) activate;
+
+  /// Optional renderer-managed pointer and underline state.
+  TerminalLinkDecorations? decorations;
+
+  /// Invoked when a pointer enters the link.
+  final void Function(Object? event, String text)? hover;
+
+  /// Invoked when a pointer leaves the link.
+  final void Function(Object? event, String text)? leave;
+
+  /// Releases provider-owned link resources.
+  final void Function()? dispose;
 }
 
-/// Resolves links for one 0-based buffer line.
+/// Mutable visual state associated with a resolved link.
+final class TerminalLinkDecorations {
+  /// Creates link decoration state using xterm's enabled defaults.
+  TerminalLinkDecorations({
+    this._pointerCursor = true,
+    this._underline = true,
+  });
+
+  bool _pointerCursor;
+  bool _underline;
+  final List<void Function()> _listeners = <void Function()>[];
+
+  /// Whether hovering requests a pointer cursor.
+  bool get pointerCursor => _pointerCursor;
+  set pointerCursor(bool value) {
+    if (value == _pointerCursor) return;
+    _pointerCursor = value;
+    _notifyListeners();
+  }
+
+  /// Whether hovering underlines the link.
+  bool get underline => _underline;
+  set underline(bool value) {
+    if (value == _underline) return;
+    _underline = value;
+    _notifyListeners();
+  }
+
+  /// Observes live decoration changes while a renderer owns the link.
+  Disposable onChange(void Function() listener) {
+    _listeners.add(listener);
+    return CallbackDisposable(() => _listeners.remove(listener));
+  }
+
+  void _notifyListeners() {
+    for (final listener in List<void Function()>.of(_listeners)) {
+      listener();
+    }
+  }
+}
+
+/// Resolves links for one 1-based buffer line.
 // A named interface allows providers to retain lifecycle-specific state.
 // ignore: one_member_abstracts
 abstract interface class TerminalLinkProvider {
-  /// xterm-compatible `provideLinks` API.
+  /// xterm-compatible `provideLinks` API using a 1-based buffer line number.
   FutureOr<List<TerminalLink>> provideLinks(int bufferLineNumber);
 }
 
@@ -174,81 +430,101 @@ final class TerminalModes {
   final Terminal _terminal;
 
   /// xterm-compatible `applicationCursorKeysMode` API.
-  bool get applicationCursorKeysMode => _terminal._delegate.cursorKeysMode;
+  bool get applicationCursorKeysMode => _terminal._engine.cursorKeysMode;
 
   /// xterm-compatible `applicationKeypadMode` API.
-  bool get applicationKeypadMode => _terminal._delegate.appKeypadMode;
+  bool get applicationKeypadMode => _terminal._engine.appKeypadMode;
 
   /// xterm-compatible `bracketedPasteMode` API.
-  bool get bracketedPasteMode => _terminal._delegate.bracketedPasteMode;
+  bool get bracketedPasteMode => _terminal._engine.bracketedPasteMode;
 
   /// xterm-compatible `insertMode` API.
-  bool get insertMode => _terminal._delegate.insertMode;
+  bool get insertMode => _terminal._engine.insertMode;
 
   /// xterm-compatible `originMode` API.
-  bool get originMode => _terminal._delegate.originMode;
+  bool get originMode => _terminal._engine.originMode;
 
   /// xterm-compatible `sendFocusMode` API.
-  bool get sendFocusMode => _terminal._delegate.reportFocusMode;
+  bool get sendFocusMode => _terminal._engine.reportFocusMode;
 
   /// xterm-compatible `showCursor` API.
-  bool get showCursor => _terminal._delegate.cursorVisibleMode;
+  bool get showCursor => _terminal._engine.cursorVisibleMode;
 
   /// xterm-compatible `wraparoundMode` API.
-  bool get wraparoundMode => _terminal._delegate.autoWrapMode;
+  bool get wraparoundMode => _terminal._engine.autoWrapMode;
 
   /// xterm-compatible `reverseWraparoundMode` API.
-  bool get reverseWraparoundMode => _terminal._reverseWraparoundMode;
+  bool get reverseWraparoundMode => _terminal._engine.reverseWraparoundMode;
 
   /// xterm-compatible `synchronizedOutputMode` API.
-  bool get synchronizedOutputMode => _terminal._synchronizedOutputMode;
+  bool get synchronizedOutputMode => _terminal._engine.synchronizedOutputMode;
 
   /// xterm-compatible `win32InputMode` API.
-  bool get win32InputMode => _terminal._win32InputMode;
+  bool get win32InputMode => _terminal._engine.win32InputMode;
+
+  /// Zero-based top margin of the active DECSTBM scroll region.
+  int get scrollTop => _terminal._engine.marginTop;
+
+  /// Zero-based bottom margin of the active DECSTBM scroll region.
+  int get scrollBottom => _terminal._engine.marginBottom;
 
   /// xterm-compatible `switch` API.
-  String get mouseTrackingMode => switch (_terminal._delegate.mouseMode) {
-    xterm.MouseMode.none => 'none',
-    xterm.MouseMode.clickOnly => 'x10',
-    xterm.MouseMode.upDownScroll => 'vt200',
-    xterm.MouseMode.upDownScrollDrag => 'drag',
-    xterm.MouseMode.upDownScrollMove => 'any',
+  String get mouseTrackingMode => switch (_terminal._engine.mouseMode) {
+    TerminalMouseTrackingMode.none => 'none',
+    TerminalMouseTrackingMode.x10 => 'x10',
+    TerminalMouseTrackingMode.vt200 => 'vt200',
+    TerminalMouseTrackingMode.drag => 'drag',
+    TerminalMouseTrackingMode.any => 'any',
   };
 }
 
-/// xterm-compatible terminal core backed by the mature xterm.dart VT engine.
+/// Standalone terminal core ported from the pinned xterm.js behavior.
 final class Terminal extends DisposableStore {
   /// Creates a terminal with xterm.js defaults.
   Terminal({TerminalOptions? options})
     : options = options ?? TerminalOptions() {
-    _delegate = XtermParityTerminal(
-      maxLines: this.options.scrollback + this.options.rows,
-      reflowEnabled: true,
-      wordSeparators: this.options.wordSeparator.runes.toSet(),
-    );
-    _delegate
-      ..resize(this.options.cols, this.options.rows)
-      ..onBell = () {
-        _onBell.fire(TerminalVoid.value);
-      }
-      ..onTitleChange = _onTitleChange.fire
-      ..onOutput = _triggerData
-      ..onResize = (cols, rows, pixelWidth, pixelHeight) {
-        _onResize.fire(TerminalResizeEvent(cols: cols, rows: rows));
-      };
-    buffer = TerminalBufferNamespace(
-      terminal: _delegate,
-      viewportY: () => _viewportY,
-    );
-    parser = own(TerminalParser());
     unicode = TerminalUnicodeHandling();
+    _engine = _TerminalCoreEngine(
+      options: this.options,
+      unicode: unicode,
+      columns: this.options.cols < 2 ? 2 : this.options.cols,
+      rows: this.options.rows < 1 ? 1 : this.options.rows,
+      scrollback: this.options.scrollback,
+      onBell: () {
+        _onBell.fire(TerminalVoid.value);
+      },
+      onTitle: _onTitleChange.fire,
+      onData: _triggerData,
+      onRequestSendFocus: _reportCurrentFocus,
+      onA11yChar: _onA11yChar.fire,
+      onA11yTab: _onA11yTab.fire,
+      onLineFeed: () => _onLineFeed.fire(TerminalVoid.value),
+      onBufferTrim: _handleBufferTrim,
+      onBufferInsert: _handleBufferInsert,
+      onBufferDelete: _handleBufferDelete,
+    );
+    buffer = _engine.buffer;
+    parser = own(
+      TerminalParser((identifier, parameters) {
+        if (identifier.prefix.isNotEmpty ||
+            identifier.intermediates.isNotEmpty ||
+            identifier.finalByte != 't') {
+          return true;
+        }
+        final operation = parameters.isEmpty ? null : parameters.first;
+        return operation is int && _engine._windowOptionAllowed(operation);
+      }),
+    );
     modes = TerminalModes._(this);
+    _linkProviders.add(_OscLinkProvider(this));
+    own(this.options.onChange.listen(_handleOptionChange));
   }
 
-  late xterm.Terminal _delegate;
+  /// Natural-language strings shared by all terminal instances.
+  static TerminalLocalizableStrings strings =
+      const TerminalLocalizableStrings();
 
-  /// Internal renderer delegate exposed only to termworld's Flutter adapter.
-  xterm.Terminal get rendererDelegate => _delegate;
+  late _TerminalCoreEngine _engine;
 
   /// xterm-compatible `options` API.
   final TerminalOptions options;
@@ -275,6 +551,9 @@ final class Terminal extends DisposableStore {
       TerminalEventEmitter<TerminalKeyEvent>();
   final TerminalEventEmitter<TerminalVoid> _onLineFeed =
       TerminalEventEmitter<TerminalVoid>();
+  final TerminalEventEmitter<String> _onA11yChar =
+      TerminalEventEmitter<String>();
+  final TerminalEventEmitter<int> _onA11yTab = TerminalEventEmitter<int>();
   final TerminalEventEmitter<TerminalRenderEvent> _onRender =
       TerminalEventEmitter<TerminalRenderEvent>();
   final TerminalEventEmitter<TerminalVoid> _onWriteParsed =
@@ -307,6 +586,12 @@ final class Terminal extends DisposableStore {
   /// xterm-compatible `onLineFeed` API.
   TerminalEvent<TerminalVoid> get onLineFeed => _onLineFeed.event;
 
+  /// Characters emitted by the input handler for assistive technology.
+  TerminalEvent<String> get onA11yChar => _onA11yChar.event;
+
+  /// Spaces traversed by HT for assistive technology.
+  TerminalEvent<int> get onA11yTab => _onA11yTab.event;
+
   /// xterm-compatible `onRender` API.
   TerminalEvent<TerminalRenderEvent> get onRender => _onRender.event;
 
@@ -330,10 +615,16 @@ final class Terminal extends DisposableStore {
       _onDimensionsChange.event;
 
   /// xterm-compatible `rows` API.
-  int get rows => _delegate.viewHeight;
+  int get rows => _engine.rows;
 
   /// xterm-compatible `cols` API.
-  int get cols => _delegate.viewWidth;
+  int get cols => _engine.columns;
+
+  /// Current input-handler attributes used for subsequently printed cells.
+  TerminalCellAttributes get currentAttributes => _engine.currentAttributes;
+
+  /// Effective renderer overrides installed by OSC color control sequences.
+  TerminalColorOverrides get colorOverrides => _engine.colorOverrides;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalMarker> get markers => List<TerminalMarker>.unmodifiable(
@@ -345,16 +636,16 @@ final class Terminal extends DisposableStore {
 
   final List<_WriteRequest> _writeQueue = <_WriteRequest>[];
   final _Utf8ChunkDecoder _decoder = _Utf8ChunkDecoder();
+  final _StringChunkDecoder _stringDecoder = _StringChunkDecoder();
   bool _writeScheduled = false;
   bool _draining = false;
   int _viewportY = 0;
   TerminalBufferRange? _selection;
+  bool _selectionColumnMode = false;
   TerminalRenderDimensions? _dimensions;
-  bool _reverseWraparoundMode = false;
-  bool _synchronizedOutputMode = false;
-  bool _win32InputMode = false;
   final List<TerminalMarker> _markers = <TerminalMarker>[];
   final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
+  bool _isDisposing = false;
   final TerminalMarkerFactory _markerFactory = TerminalMarkerFactory();
   final List<TerminalAddon> _addons = <TerminalAddon>[];
   final List<TerminalLinkProvider> _linkProviders = <TerminalLinkProvider>[];
@@ -365,6 +656,41 @@ final class Terminal extends DisposableStore {
   bool Function(TerminalWheelEvent event)? _customWheelHandler;
   void Function()? _focus;
   void Function()? _blur;
+  bool _hasFocus = false;
+  String? _lastMouseReportKey;
+
+  void _handleBufferTrim(int amount) {
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      marker.move(-amount);
+    }
+  }
+
+  void _handleBufferInsert(int index, int amount) {
+    for (final marker in _markers) {
+      if (marker.line >= index) marker.move(amount);
+    }
+  }
+
+  void _handleBufferDelete(int index, int amount) {
+    final end = index + amount;
+    for (final marker in List<TerminalMarker>.of(_markers)) {
+      if (marker.line >= index && marker.line < end) {
+        marker.dispose();
+      } else if (marker.line >= end) {
+        marker.move(-amount);
+      }
+    }
+  }
+
+  void _handleOptionChange(String name) {
+    _engine.handleOptionChange(name);
+    final nextViewport = _viewportY.clamp(0, buffer.normal.baseY);
+    if (nextViewport != _viewportY) {
+      _viewportY = nextViewport;
+      _onScroll.fire(_viewportY);
+    }
+    _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
+  }
 
   /// Queues text or UTF-8 bytes for ordered parsing.
   void write(Object data, {void Function()? onParsed}) {
@@ -377,15 +703,8 @@ final class Terminal extends DisposableStore {
   /// Queues text followed by CRLF.
   void writeln(Object data, {void Function()? onParsed}) {
     _checkData(data);
-    if (data is String) {
-      write('$data\r\n', onParsed: onParsed);
-    } else {
-      final bytes = data as Uint8List;
-      write(
-        Uint8List.fromList(<int>[...bytes, 0x0d, 0x0a]),
-        onParsed: onParsed,
-      );
-    }
+    write(data);
+    write('\r\n', onParsed: onParsed);
   }
 
   /// Queues data and completes after its parser callback fires.
@@ -420,7 +739,7 @@ final class Terminal extends DisposableStore {
       final request = _writeQueue.removeAt(0);
       try {
         final text = request.data is String
-            ? request.data as String
+            ? _stringDecoder.convert(request.data as String)
             : _decoder.convert(request.data as Uint8List);
         await _parse(text);
         request.onParsed?.call();
@@ -440,42 +759,22 @@ final class Terminal extends DisposableStore {
   }
 
   Future<void> _parse(String text) async {
-    final cursorX = _delegate.buffer.cursorX;
-    final cursorY = _delegate.buffer.cursorY;
-    final height = _delegate.buffer.height;
-    _trackModes(text);
+    final cursorX = buffer.active.cursorX;
+    final cursorY = buffer.active.cursorY;
+    final wasAtBottom = _viewportY == buffer.active.baseY;
     await parser.process(text, (filtered) {
-      if (filtered.isNotEmpty) {
-        (_delegate as XtermParityTerminal).writeWithParity(filtered);
-      }
+      if (filtered.isNotEmpty) _engine.write(filtered);
     });
-    buffer.detectChange();
-    _viewportY = _viewportY.clamp(0, buffer.active.baseY);
-    if (_delegate.buffer.cursorX != cursorX ||
-        _delegate.buffer.cursorY != cursorY) {
+    final oldViewport = _viewportY;
+    _viewportY = wasAtBottom
+        ? buffer.active.baseY
+        : _viewportY.clamp(0, buffer.active.baseY);
+    if (_viewportY != oldViewport) _onScroll.fire(_viewportY);
+    if (buffer.active.cursorX != cursorX || buffer.active.cursorY != cursorY) {
       _onCursorMove.fire(TerminalVoid.value);
     }
-    if (_delegate.buffer.height > height || text.contains('\n')) {
-      _onLineFeed.fire(TerminalVoid.value);
-    }
-    if (!_synchronizedOutputMode) {
+    if (!_engine.synchronizedOutputMode) {
       _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
-    }
-  }
-
-  void _trackModes(String text) {
-    for (final match in RegExp(r'\x1b\[\?([0-9;]+)([hl])').allMatches(text)) {
-      final enabled = match.group(2) == 'h';
-      for (final mode in match.group(1)!.split(';')) {
-        switch (mode) {
-          case '45':
-            _reverseWraparoundMode = enabled;
-          case '2026':
-            _synchronizedOutputMode = enabled;
-          case '9001':
-            _win32InputMode = enabled;
-        }
-      }
     }
   }
 
@@ -489,7 +788,7 @@ final class Terminal extends DisposableStore {
   /// Normalizes, sanitizes, and optionally brackets pasted text.
   void paste(String data) {
     var prepared = data.replaceAll(RegExp(r'\r?\n'), '\r');
-    if (_delegate.bracketedPasteMode && !options.ignoreBracketedPasteMode) {
+    if (_engine.bracketedPasteMode && !options.ignoreBracketedPasteMode) {
       prepared = prepared.replaceAll('\u001b', '\u241b');
       prepared = '\u001b[200~$prepared\u001b[201~';
     }
@@ -503,14 +802,11 @@ final class Terminal extends DisposableStore {
 
   /// Resizes both normal and alternate buffers.
   void resize(int columns, int rowCount) {
-    if (columns < 1) {
-      throw ArgumentError.value(columns, 'columns', 'must be at least 1');
-    }
-    if (rowCount < 1) {
-      throw ArgumentError.value(rowCount, 'rows', 'must be at least 1');
-    }
     if (columns == cols && rowCount == rows) return;
-    _delegate.resize(columns, rowCount);
+    final nextColumns = columns < 2 ? 2 : columns;
+    final nextRows = rowCount < 1 ? 1 : rowCount;
+    _engine.resize(nextColumns, nextRows);
+    _onResize.fire(TerminalResizeEvent(cols: nextColumns, rows: nextRows));
     _viewportY = _viewportY.clamp(0, buffer.active.baseY);
   }
 
@@ -525,6 +821,21 @@ final class Terminal extends DisposableStore {
     _focus = focus;
     _blur = blur;
   }
+
+  /// Reports a renderer focus transition to the terminal input service.
+  ///
+  /// Renderer adapters call this after their native focus state has actually
+  /// changed. When DECSET 1004 is active this emits the same focus-in or
+  /// focus-out sequence as xterm.js' textarea boundary.
+  void reportFocus({required bool focused}) {
+    if (_hasFocus == focused) return;
+    _hasFocus = focused;
+    if (_engine.reportFocusMode) _reportCurrentFocus();
+  }
+
+  void _reportCurrentFocus() => _triggerData(
+    _hasFocus ? '\u001b[I' : '\u001b[O',
+  );
 
   /// xterm-compatible `attachCustomKeyEventHandler` API.
   // This method name is fixed by xterm's public API.
@@ -553,6 +864,125 @@ final class Terminal extends DisposableStore {
   /// xterm-compatible `handleWheelEvent` API.
   bool handleWheelEvent(TerminalWheelEvent event) =>
       _customWheelHandler?.call(event) ?? true;
+
+  /// Encodes and emits a mouse event according to the active DEC modes.
+  bool reportMouseEvent(TerminalMouseEvent event) {
+    final engine = _engine;
+    if (engine.mouseMode == TerminalMouseTrackingMode.none ||
+        event.column < 0 ||
+        event.column >= cols ||
+        event.row < 0 ||
+        event.row >= rows) {
+      return false;
+    }
+    if (event.button == TerminalMouseButton.wheel &&
+            event.action == TerminalMouseAction.move ||
+        event.button == TerminalMouseButton.none &&
+            event.action != TerminalMouseAction.move ||
+        event.button != TerminalMouseButton.wheel &&
+            (event.action == TerminalMouseAction.wheelLeft ||
+                event.action == TerminalMouseAction.wheelRight)) {
+      return false;
+    }
+    var shift = event.shift;
+    var alt = event.alt;
+    var control = event.control;
+    switch (engine.mouseMode) {
+      case TerminalMouseTrackingMode.none:
+        return false;
+      case TerminalMouseTrackingMode.x10:
+        if (event.button == TerminalMouseButton.wheel ||
+            event.action != TerminalMouseAction.down) {
+          return false;
+        }
+        shift = false;
+        alt = false;
+        control = false;
+      case TerminalMouseTrackingMode.vt200:
+        if (event.action == TerminalMouseAction.move) return false;
+      case TerminalMouseTrackingMode.drag:
+        if (event.action == TerminalMouseAction.move &&
+            event.button == TerminalMouseButton.none) {
+          return false;
+        }
+      case TerminalMouseTrackingMode.any:
+        break;
+    }
+    if (event.button != TerminalMouseButton.wheel &&
+        options.mouseEventsRequireAlt) {
+      if (!alt) return false;
+      alt = false;
+    }
+    final column = event.column + 1;
+    final row = event.row + 1;
+    final reportKey = engine.sgrPixelsMouseMode
+        ? '${event.pixelX};${event.pixelY};${event.button};${event.action}'
+        : '$column;$row;${event.button};${event.action}';
+    if (event.action == TerminalMouseAction.move &&
+        reportKey == _lastMouseReportKey) {
+      return false;
+    }
+    final code = _mouseEventCode(
+      event,
+      shift: shift,
+      alt: alt,
+      control: control,
+      sgr: engine.sgrMouseMode || engine.sgrPixelsMouseMode,
+    );
+    late final String report;
+    if (engine.sgrMouseMode || engine.sgrPixelsMouseMode) {
+      final x = engine.sgrPixelsMouseMode ? event.pixelX : column;
+      final y = engine.sgrPixelsMouseMode ? event.pixelY : row;
+      final finalByte =
+          event.action == TerminalMouseAction.up &&
+              event.button != TerminalMouseButton.wheel
+          ? 'm'
+          : 'M';
+      report = '\u001b[<$code;$x;$y$finalByte';
+      _triggerData(report);
+    } else {
+      final parameters = <int>[code + 32, column + 32, row + 32];
+      if (parameters.any((value) => value > 255)) return false;
+      report = '\u001b[M${String.fromCharCodes(parameters)}';
+      _onBinary.fire(report);
+    }
+    _lastMouseReportKey = reportKey;
+    return true;
+  }
+
+  int _mouseEventCode(
+    TerminalMouseEvent event, {
+    required bool shift,
+    required bool alt,
+    required bool control,
+    required bool sgr,
+  }) {
+    var code = (shift ? 4 : 0) | (alt ? 8 : 0) | (control ? 16 : 0);
+    if (event.button == TerminalMouseButton.wheel) {
+      return code |
+          64 |
+          switch (event.action) {
+            TerminalMouseAction.up => 0,
+            TerminalMouseAction.down => 1,
+            TerminalMouseAction.wheelLeft => 2,
+            TerminalMouseAction.wheelRight => 3,
+            TerminalMouseAction.move => 0,
+          };
+    }
+    code |= switch (event.button) {
+      TerminalMouseButton.left => 0,
+      TerminalMouseButton.middle => 1,
+      TerminalMouseButton.right => 2,
+      TerminalMouseButton.none => 3,
+      TerminalMouseButton.wheel => 0,
+    };
+    if (event.action == TerminalMouseAction.move) {
+      code |= 32;
+    } else if (event.action == TerminalMouseAction.up && !sgr) {
+      code |= 3;
+    }
+    return code;
+  }
 
   /// xterm-compatible `registerLinkProvider` API.
   Disposable registerLinkProvider(TerminalLinkProvider provider) {
@@ -606,12 +1036,10 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `registerMarker` API.
   TerminalMarker? registerMarker({int cursorYOffset = 0}) {
-    if (_delegate.isUsingAltBuffer) return null;
-    final y = _delegate.mainBuffer.absoluteCursorY + cursorYOffset;
-    if (y < 0 || y >= _delegate.mainBuffer.height) return null;
-    final marker = _markerFactory.create(
-      _delegate.mainBuffer.lines[y].createAnchor(0),
-    );
+    if (identical(buffer.active, buffer.alternate)) return null;
+    final y = buffer.normal.absoluteCursorY + cursorYOffset;
+    if (y < 0 || y >= buffer.normal.length) return null;
+    final marker = _markerFactory.create(y);
     _markers.add(marker);
     marker.onDispose.listen((_) => _markers.remove(marker));
     return marker;
@@ -626,6 +1054,8 @@ final class Terminal extends DisposableStore {
     int height = 1,
     String? backgroundColor,
     String? foregroundColor,
+    String? borderColor,
+    String? overviewRulerColor,
     TerminalDecorationLayer layer = TerminalDecorationLayer.bottom,
   }) {
     if (marker.isDisposed || marker.line < 0) return null;
@@ -637,10 +1067,19 @@ final class Terminal extends DisposableStore {
       height: height,
       backgroundColor: backgroundColor,
       foregroundColor: foregroundColor,
+      borderColor: borderColor,
+      overviewRulerColor: overviewRulerColor,
       layer: layer,
     );
     _decorations.add(decoration);
-    decoration.onDispose.listen((_) => _decorations.remove(decoration));
+    late final Disposable markerListener;
+    markerListener = marker.onDispose.listen((_) => decoration.dispose());
+    decoration.onDispose.listen((_) {
+      markerListener.dispose();
+      _decorations.remove(decoration);
+      if (!_isDisposing) refresh(0, rows - 1);
+    });
+    refresh(0, rows - 1);
     return decoration;
   }
 
@@ -649,12 +1088,33 @@ final class Terminal extends DisposableStore {
       List<TerminalDecoration>.unmodifiable(_decorations);
 
   /// xterm-compatible `hasSelection` API.
-  bool hasSelection() => _selection != null;
+  bool hasSelection() {
+    final selection = _selection;
+    return selection != null && selection.start != selection.end;
+  }
 
   /// xterm-compatible `getSelection` API.
   String getSelection() {
     final selection = _selection;
-    if (selection == null) return '';
+    if (selection == null || selection.start == selection.end) return '';
+    if (_selectionColumnMode) {
+      if (selection.start.x == selection.end.x) return '';
+      final startColumn = math.min(selection.start.x, selection.end.x);
+      final endColumn = math.max(selection.start.x, selection.end.x);
+      final output = <String>[];
+      for (var y = selection.start.y; y <= selection.end.y; y++) {
+        final line = buffer.active.getLine(y);
+        if (line == null) continue;
+        output.add(
+          line.translateToString(
+            trimRight: true,
+            startColumn: startColumn,
+            endColumn: endColumn,
+          ),
+        );
+      }
+      return output.join('\n');
+    }
     final output = StringBuffer();
     for (var y = selection.start.y; y <= selection.end.y; y++) {
       final line = buffer.active.getLine(y);
@@ -668,38 +1128,71 @@ final class Terminal extends DisposableStore {
           endColumn: end,
         ),
       );
-      if (y != selection.end.y && !line.isWrapped) output.write('\n');
+      if (y != selection.end.y &&
+          !(buffer.active.getLine(y + 1)?.isWrapped ?? false)) {
+        output.write('\n');
+      }
     }
     return output.toString();
   }
 
   /// xterm-compatible `getSelectionPosition` API.
-  TerminalBufferRange? getSelectionPosition() => _selection;
+  TerminalBufferRange? getSelectionPosition() =>
+      hasSelection() ? _selection : null;
+
+  /// Whether the active pointer selection is rectangular.
+  bool get selectionColumnMode => _selectionColumnMode;
 
   /// xterm-compatible `clearSelection` API.
   void clearSelection() {
     if (_selection == null) return;
     _selection = null;
+    _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
   /// xterm-compatible `select` API.
   void select(int column, int row, int length) {
-    if (column < 0 || row < 0 || length < 0) {
-      throw ArgumentError('column, row and length cannot be negative');
-    }
-    final lastLine = buffer.active.length - 1;
-    if (row > lastLine) throw RangeError.range(row, 0, lastLine, 'row');
-    var endRow = row;
-    var endColumn = column + length;
-    while (endColumn > cols && endRow < lastLine) {
-      endColumn -= cols;
-      endRow++;
+    final startPlusLength = column + length;
+    late final int endColumn;
+    late final int endRow;
+    if (startPlusLength > cols) {
+      if (startPlusLength % cols == 0) {
+        endColumn = cols;
+        endRow = row + startPlusLength ~/ cols - 1;
+      } else {
+        endColumn = startPlusLength % cols;
+        endRow = row + startPlusLength ~/ cols;
+      }
+    } else {
+      endColumn = startPlusLength;
+      endRow = row;
     }
     _selection = TerminalBufferRange(
-      start: TerminalBufferPosition(column.clamp(0, cols), row),
-      end: TerminalBufferPosition(endColumn.clamp(0, cols), endRow),
+      start: TerminalBufferPosition(column, row),
+      end: TerminalBufferPosition(endColumn, endRow),
     );
+    _selectionColumnMode = false;
+    _onSelectionChange.fire(TerminalVoid.value);
+  }
+
+  /// Selects a rectangular region using xterm's column-selection semantics.
+  void selectColumns(
+    int startColumn,
+    int startRow,
+    int endColumn,
+    int endRow,
+  ) {
+    final reversed = startRow > endRow;
+    _selection = TerminalBufferRange(
+      start: reversed
+          ? TerminalBufferPosition(endColumn, endRow)
+          : TerminalBufferPosition(startColumn, startRow),
+      end: reversed
+          ? TerminalBufferPosition(startColumn, startRow)
+          : TerminalBufferPosition(endColumn, endRow),
+    );
+    _selectionColumnMode = true;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
@@ -708,13 +1201,19 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `selectLines` API.
   void selectLines(int start, int end) {
-    if (start < 0 || end < start || end >= buffer.active.length) {
-      throw RangeError('Invalid selection line range');
-    }
+    final startRow = start < 0 ? 0 : start;
+    final lastLine = buffer.active.length - 1;
+    final endRow = end > lastLine ? lastLine : end;
+    final reversed = startRow > endRow;
     _selection = TerminalBufferRange(
-      start: TerminalBufferPosition(0, start),
-      end: TerminalBufferPosition(cols, end),
+      start: reversed
+          ? TerminalBufferPosition(cols, endRow)
+          : TerminalBufferPosition(0, startRow),
+      end: reversed
+          ? TerminalBufferPosition(0, startRow)
+          : TerminalBufferPosition(cols, endRow),
     );
+    _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
@@ -722,7 +1221,7 @@ final class Terminal extends DisposableStore {
   void scrollLines(int amount) => scrollToLine(_viewportY + amount);
 
   /// xterm-compatible `scrollPages` API.
-  void scrollPages(int pageCount) => scrollLines(pageCount * rows);
+  void scrollPages(int pageCount) => scrollLines(pageCount * (rows - 1));
 
   /// xterm-compatible `scrollToTop` API.
   void scrollToTop() => scrollToLine(0);
@@ -743,9 +1242,7 @@ final class Terminal extends DisposableStore {
 
   /// Clears scrollback while preserving the current prompt line.
   void clear() {
-    final current = _delegate.buffer.currentLine.getText(0, cols).trimRight();
-    _delegate.buffer.clear();
-    if (current.isNotEmpty) _delegate.buffer.write(current);
+    buffer.active.clearKeepingCursorLine();
     _viewportY = 0;
     _onScroll.fire(0);
     refresh(0, rows - 1);
@@ -764,26 +1261,9 @@ final class Terminal extends DisposableStore {
 
   /// Performs a full RIS reset.
   void reset() {
-    _delegate
-      ..useMainBuffer()
-      ..mainBuffer.clear()
-      ..altBuffer.clear()
-      ..setInsertMode(false)
-      ..setOriginMode(false)
-      ..setAutoWrapMode(true)
-      ..setCursorVisibleMode(true)
-      ..setCursorKeysMode(false)
-      ..setAppKeypadMode(false)
-      ..setReportFocusMode(false)
-      ..setBracketedPasteMode(false)
-      ..setMouseMode(xterm.MouseMode.none)
-      ..resetCursorStyle();
-    _reverseWraparoundMode = false;
-    _synchronizedOutputMode = false;
-    _win32InputMode = false;
+    _engine.reset();
     _viewportY = 0;
     clearSelection();
-    buffer.detectChange();
     refresh(0, rows - 1);
   }
 
@@ -803,14 +1283,24 @@ final class Terminal extends DisposableStore {
 
   /// Called by the Flutter view after measuring its render surface.
   void updateDimensions(TerminalRenderDimensions value) {
-    if (_dimensions == value) return;
+    final previous = _dimensions;
+    if (previous != null &&
+        previous.width == value.width &&
+        previous.height == value.height &&
+        previous.cellWidth == value.cellWidth &&
+        previous.cellHeight == value.cellHeight &&
+        previous.devicePixelRatio == value.devicePixelRatio) {
+      return;
+    }
     _dimensions = value;
+    _engine.renderDimensions = value;
     _onDimensionsChange.fire(value);
   }
 
   @override
   void dispose() {
     if (isDisposed) return;
+    _isDisposing = true;
     for (final addon in _addons.reversed) {
       addon.dispose();
     }
@@ -828,6 +1318,8 @@ final class Terminal extends DisposableStore {
       _onData,
       _onKey,
       _onLineFeed,
+      _onA11yChar,
+      _onA11yTab,
       _onRender,
       _onWriteParsed,
       _onResize,
@@ -839,8 +1331,136 @@ final class Terminal extends DisposableStore {
       emitter.dispose();
     }
     _writeQueue.clear();
-    _delegate.listeners.clear();
     super.dispose();
+  }
+}
+
+final class _OscLinkProvider implements TerminalLinkProvider {
+  const _OscLinkProvider(this.terminal);
+
+  final Terminal terminal;
+
+  @override
+  List<TerminalLink> provideLinks(int bufferLineNumber) {
+    final line = terminal.buffer.active.getLine(bufferLineNumber - 1);
+    if (line == null) return const <TerminalLink>[];
+    final result = <TerminalLink>[];
+    final lineLength = _trimmedLength(line);
+    var currentLinkId = 0;
+    var currentStart = -1;
+    for (var x = 0; x <= lineLength; x++) {
+      final linkId = x < lineLength ? line.getCell(x)?.hyperlinkId ?? 0 : 0;
+      if (currentStart < 0 && linkId != 0) {
+        currentStart = x;
+        currentLinkId = linkId;
+        continue;
+      }
+      if (currentStart < 0 || linkId == currentLinkId) continue;
+      final data = terminal._engine.hyperlinkData(currentLinkId);
+      if (data != null && _protocolAllowed(data.uri)) {
+        final range = _wrappedRange(
+          bufferLineNumber,
+          currentStart,
+          x,
+          currentLinkId,
+        );
+        final handler = terminal.options.linkHandler;
+        result.add(
+          TerminalLink(
+            range: range,
+            text: data.uri,
+            activate: (event, text) {
+              handler?.activate(event, text, range);
+            },
+            hover: handler?.hover == null
+                ? null
+                : (event, text) => handler!.hover!(event, text, range),
+            leave: handler?.leave == null
+                ? null
+                : (event, text) => handler!.leave!(event, text, range),
+          ),
+        );
+      }
+      if (linkId == 0) {
+        currentStart = -1;
+        currentLinkId = 0;
+      } else {
+        currentStart = x;
+        currentLinkId = linkId;
+      }
+    }
+    return result;
+  }
+
+  bool _protocolAllowed(String uri) {
+    if (terminal.options.linkHandler?.allowNonHttpProtocols ?? false) {
+      return true;
+    }
+    final parsed = Uri.tryParse(uri);
+    return parsed != null &&
+        parsed.hasScheme &&
+        (parsed.scheme == 'http' || parsed.scheme == 'https');
+  }
+
+  TerminalBufferRange _wrappedRange(
+    int y,
+    int startX,
+    int endX,
+    int linkId,
+  ) {
+    final buffer = terminal.buffer.active;
+    var startY = y;
+    var finalStartX = startX;
+    var endY = y;
+    var finalEndX = endX;
+    while (finalStartX == 0) {
+      final current = buffer.getLine(startY - 1);
+      final previous = buffer.getLine(startY - 2);
+      if (current?.isWrapped != true || previous == null) break;
+      final previousLength = _trimmedLength(previous);
+      if (previousLength == 0 ||
+          previous.getCell(previousLength - 1)?.hyperlinkId != linkId) {
+        break;
+      }
+      var previousStart = previousLength - 1;
+      while (previousStart > 0 &&
+          previous.getCell(previousStart - 1)?.hyperlinkId == linkId) {
+        previousStart--;
+      }
+      startY--;
+      finalStartX = previousStart;
+    }
+    while (true) {
+      final current = buffer.getLine(endY - 1);
+      if (current == null || finalEndX != _trimmedLength(current)) break;
+      final next = buffer.getLine(endY);
+      if (next?.isWrapped != true || next == null) break;
+      final nextLength = _trimmedLength(next);
+      if (nextLength == 0 || next.getCell(0)?.hyperlinkId != linkId) break;
+      var nextEnd = 1;
+      while (nextEnd < nextLength &&
+          next.getCell(nextEnd)?.hyperlinkId == linkId) {
+        nextEnd++;
+      }
+      endY++;
+      finalEndX = nextEnd;
+    }
+    return TerminalBufferRange(
+      start: TerminalBufferPosition(finalStartX + 1, startY),
+      end: TerminalBufferPosition(finalEndX, endY),
+    );
+  }
+
+  int _trimmedLength(TerminalBufferLine line) {
+    var result = line.length;
+    while (result > 0) {
+      final cell = line.getCell(result - 1);
+      if (cell != null && (cell.chars.isNotEmpty || cell.hyperlinkId != 0)) {
+        break;
+      }
+      result--;
+    }
+    return result;
   }
 }
 
@@ -852,32 +1472,107 @@ final class _WriteRequest {
   final void Function(Object error, StackTrace stackTrace)? onError;
 }
 
+final class _StringChunkDecoder {
+  int? _pendingHighSurrogate;
+
+  String convert(String input) {
+    if (input.isEmpty) return '';
+    final output = StringBuffer();
+    var index = 0;
+    final pending = _pendingHighSurrogate;
+    if (pending != null) {
+      final second = input.codeUnitAt(index++);
+      if (second >= 0xdc00 && second <= 0xdfff) {
+        output.writeCharCode(
+          (pending - 0xd800) * 0x400 + second - 0xdc00 + 0x10000,
+        );
+      } else {
+        output
+          ..writeCharCode(pending)
+          ..writeCharCode(second);
+      }
+      _pendingHighSurrogate = null;
+    }
+    while (index < input.length) {
+      final code = input.codeUnitAt(index++);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        if (index >= input.length) {
+          _pendingHighSurrogate = code;
+          break;
+        }
+        final second = input.codeUnitAt(index++);
+        if (second >= 0xdc00 && second <= 0xdfff) {
+          output.writeCharCode(
+            (code - 0xd800) * 0x400 + second - 0xdc00 + 0x10000,
+          );
+        } else {
+          output
+            ..writeCharCode(code)
+            ..writeCharCode(second);
+        }
+        continue;
+      }
+      if (code != 0xfeff) output.writeCharCode(code);
+    }
+    return output.toString();
+  }
+}
+
 final class _Utf8ChunkDecoder {
   Uint8List _pending = Uint8List(0);
 
   String convert(Uint8List bytes) {
     final source = Uint8List.fromList(<int>[..._pending, ...bytes]);
-    var completeLength = source.length;
-    if (source.isNotEmpty) {
-      var lead = source.length - 1;
-      while (lead >= 0 && source[lead] & 0xc0 == 0x80) {
-        lead--;
+    _pending = Uint8List(0);
+    final output = StringBuffer();
+    var index = 0;
+    while (index < source.length) {
+      final first = source[index];
+      if (first < 0x80) {
+        output.writeCharCode(first);
+        index++;
+        continue;
       }
-      if (lead >= 0) {
-        final first = source[lead];
-        final expected = first & 0x80 == 0
-            ? 1
-            : first & 0xe0 == 0xc0
-            ? 2
-            : first & 0xf0 == 0xe0
-            ? 3
-            : first & 0xf8 == 0xf0
-            ? 4
-            : 1;
-        if (source.length - lead < expected) completeLength = lead;
+      final expected = first & 0xe0 == 0xc0
+          ? 2
+          : first & 0xf0 == 0xe0
+          ? 3
+          : first & 0xf8 == 0xf0
+          ? 4
+          : 0;
+      if (expected == 0) {
+        index++;
+        continue;
       }
+      var valid = true;
+      for (var offset = 1; offset < expected; offset++) {
+        if (index + offset >= source.length) {
+          _pending = Uint8List.fromList(source.sublist(index));
+          return output.toString();
+        }
+        if (source[index + offset] & 0xc0 != 0x80) {
+          index += offset;
+          valid = false;
+          break;
+        }
+      }
+      if (!valid) continue;
+      var codepoint = first & (0x7f >> expected);
+      for (var offset = 1; offset < expected; offset++) {
+        codepoint = codepoint << 6 | source[index + offset] & 0x3f;
+      }
+      index += expected;
+      final illegal = switch (expected) {
+        2 => codepoint < 0x80,
+        3 =>
+          codepoint < 0x800 ||
+              (codepoint >= 0xd800 && codepoint <= 0xdfff) ||
+              codepoint == 0xfeff,
+        4 => codepoint < 0x10000 || codepoint > 0x10ffff,
+        _ => true,
+      };
+      if (!illegal) output.writeCharCode(codepoint);
     }
-    _pending = Uint8List.fromList(source.sublist(completeLength));
-    return utf8.decode(source.sublist(0, completeLength), allowMalformed: true);
+    return output.toString();
   }
 }

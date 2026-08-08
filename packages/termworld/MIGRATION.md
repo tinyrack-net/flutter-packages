@@ -1,6 +1,8 @@
-# Migrating to termworld 0.3.0
+# Migrating to termworld 0.4.0
 
-The 0.2 API is removed. Construct `Terminal` instead of `TerminalEmulator`,
+The 0.2 API and the delegated 0.3 implementation are removed. There is no
+compatibility wrapper and no xterm.dart type is exposed. Construct `Terminal`
+instead of `TerminalEmulator`,
 listen to `terminal.onData` for PTY-bound data, listen to `terminal.onResize`
 for geometry changes, and provide it to `TerminalView` with the `terminal`
 named parameter.

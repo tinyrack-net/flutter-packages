@@ -1,20 +1,19 @@
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
-import 'package:xterm/core.dart' as xterm;
 
 /// A tracked location in the normal buffer.
 final class TerminalMarker implements Disposable {
-  TerminalMarker._(this.id, this._anchor);
+  TerminalMarker._(this.id, this._line);
 
   /// xterm-compatible `id` API.
   final int id;
-  final xterm.CellAnchor _anchor;
+  int _line;
   final TerminalEventEmitter<TerminalVoid> _onDispose =
       TerminalEventEmitter<TerminalVoid>();
   bool _isDisposed = false;
 
   /// xterm-compatible `line` API.
-  int get line => _isDisposed || !_anchor.attached ? -1 : _anchor.y;
+  int get line => _isDisposed ? -1 : _line;
 
   /// xterm-compatible `onDispose` API.
   TerminalEvent<TerminalVoid> get onDispose => _onDispose.event;
@@ -26,10 +25,16 @@ final class TerminalMarker implements Disposable {
   void dispose() {
     if (_isDisposed) return;
     _isDisposed = true;
-    _anchor.dispose();
     _onDispose
       ..fire(TerminalVoid.value)
       ..dispose();
+  }
+
+  /// Moves this marker when buffer lines are inserted or removed.
+  void move(int amount) {
+    if (_isDisposed) return;
+    _line += amount;
+    if (_line < 0) dispose();
   }
 }
 
@@ -64,11 +69,13 @@ final class TerminalDecoration implements Disposable {
     this.height = 1,
     this.backgroundColor,
     this.foregroundColor,
+    this.borderColor,
+    this.overviewRulerColor,
     this.layer = TerminalDecorationLayer.bottom,
   }) {
     if (x < 0) throw ArgumentError.value(x, 'x', 'cannot be negative');
-    if (width < 1 || height < 1) {
-      throw ArgumentError('width and height must be at least 1');
+    if (width < 0 || height < 0) {
+      throw ArgumentError('width and height cannot be negative');
     }
   }
 
@@ -92,6 +99,12 @@ final class TerminalDecoration implements Disposable {
 
   /// xterm-compatible `foregroundColor` API.
   final String? foregroundColor;
+
+  /// Optional outline color used by search and link decorations.
+  final String? borderColor;
+
+  /// Optional color presented in an overview ruler by capable renderers.
+  final String? overviewRulerColor;
 
   /// xterm-compatible `layer` API.
   final TerminalDecorationLayer layer;
@@ -130,6 +143,5 @@ final class TerminalMarkerFactory {
   int _nextId = 1;
 
   /// xterm-compatible `create` API.
-  TerminalMarker create(xterm.CellAnchor anchor) =>
-      TerminalMarker._(_nextId++, anchor);
+  TerminalMarker create(int line) => TerminalMarker._(_nextId++, line);
 }

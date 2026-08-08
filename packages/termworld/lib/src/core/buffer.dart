@@ -1,40 +1,58 @@
 import 'package:flutter/foundation.dart';
 import 'package:termworld/src/core/event.dart';
-import 'package:xterm/core.dart' as xterm;
 
 /// Terminal buffer kind.
-/// xterm-compatible `TerminalBufferType` API.
 enum TerminalBufferType {
-  /// The normal buffer with scrollback.
+  /// The normal buffer with scrollback history.
   normal,
 
-  /// The alternate screen buffer.
+  /// The alternate screen buffer without scrollback history.
   alternate,
 }
 
 /// Encoded terminal color kind.
-/// xterm-compatible `TerminalColorMode` API.
 enum TerminalColorMode {
-  /// The terminal's default color.
+  /// The terminal's configured default color.
   defaultColor,
 
-  /// An indexed ANSI palette color.
+  /// An indexed color from the ANSI 256-color palette.
   palette,
 
-  /// A 24-bit RGB color.
+  /// A 24-bit red, green and blue color.
   rgb,
+}
+
+/// Underline rendering style.
+enum TerminalUnderlineStyle {
+  /// No underline.
+  none,
+
+  /// A single straight underline.
+  single,
+
+  /// A double straight underline.
+  double,
+
+  /// A curly underline.
+  curly,
+
+  /// A dotted underline.
+  dotted,
+
+  /// A dashed underline.
+  dashed,
 }
 
 /// An immutable position in the backing buffer.
 @immutable
 final class TerminalBufferPosition {
-  /// xterm-compatible `TerminalBufferPosition` API.
+  /// Creates a zero-based buffer position.
   const TerminalBufferPosition(this.x, this.y);
 
-  /// xterm-compatible `x` API.
+  /// Zero-based column.
   final int x;
 
-  /// xterm-compatible `y` API.
+  /// Zero-based absolute buffer row.
   final int y;
 
   @override
@@ -46,220 +64,975 @@ final class TerminalBufferPosition {
 }
 
 /// An inclusive terminal buffer range.
+@immutable
 final class TerminalBufferRange {
-  /// xterm-compatible `TerminalBufferRange` API.
+  /// Creates an inclusive range from [start] through [end].
   const TerminalBufferRange({required this.start, required this.end});
 
-  /// xterm-compatible `start` API.
+  /// First selected cell.
   final TerminalBufferPosition start;
 
-  /// xterm-compatible `end` API.
+  /// Last selected cell.
   final TerminalBufferPosition end;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerminalBufferRange && other.start == start && other.end == end;
+
+  @override
+  int get hashCode => Object.hash(start, end);
+}
+
+/// A color encoded exactly as xterm's default, indexed or RGB color.
+@immutable
+final class TerminalCellColor {
+  /// Creates the configured default color.
+  const TerminalCellColor.defaultColor()
+    : mode = TerminalColorMode.defaultColor,
+      value = 0;
+
+  /// Creates an ANSI palette color with [index].
+  const TerminalCellColor.palette(int index)
+    : mode = TerminalColorMode.palette,
+      value = index;
+
+  /// Creates a 24-bit color from its component values.
+  const TerminalCellColor.rgb(int red, int green, int blue)
+    : mode = TerminalColorMode.rgb,
+      value = red << 16 | green << 8 | blue;
+
+  /// Encoding used by [value].
+  final TerminalColorMode mode;
+
+  /// Palette index or packed `0xRRGGBB` value.
+  final int value;
+
+  /// Red component of an RGB color.
+  int get red => value >> 16 & 0xff;
+
+  /// Green component of an RGB color.
+  int get green => value >> 8 & 0xff;
+
+  /// Blue component of an RGB color.
+  int get blue => value & 0xff;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerminalCellColor && other.mode == mode && other.value == value;
+
+  @override
+  int get hashCode => Object.hash(mode, value);
+}
+
+/// Mutable cell attributes used internally by the input handler.
+final class TerminalCellAttributes {
+  /// Creates a mutable set of terminal cell attributes.
+  TerminalCellAttributes({
+    this.foreground = const TerminalCellColor.defaultColor(),
+    this.background = const TerminalCellColor.defaultColor(),
+    this.underlineColor = const TerminalCellColor.defaultColor(),
+    this.bold = false,
+    this.dim = false,
+    this.italic = false,
+    this.underline = TerminalUnderlineStyle.none,
+    this.blink = false,
+    this.inverse = false,
+    this.invisible = false,
+    this.strikethrough = false,
+    this.overline = false,
+    this.protected = false,
+    this.hyperlinkId = 0,
+  });
+
+  /// Foreground color.
+  TerminalCellColor foreground;
+
+  /// Background color.
+  TerminalCellColor background;
+
+  /// Underline color.
+  TerminalCellColor underlineColor;
+
+  /// Whether bold intensity is enabled.
+  bool bold;
+
+  /// Whether faint intensity is enabled.
+  bool dim;
+
+  /// Whether italic rendering is enabled.
+  bool italic;
+
+  /// Underline style.
+  TerminalUnderlineStyle underline;
+
+  /// Whether blinking is enabled.
+  bool blink;
+
+  /// Whether foreground and background are inverted.
+  bool inverse;
+
+  /// Whether the cell content is hidden.
+  bool invisible;
+
+  /// Whether strikethrough is enabled.
+  bool strikethrough;
+
+  /// Whether overline is enabled.
+  bool overline;
+
+  /// Whether selective erase protects the cell.
+  bool protected;
+
+  /// Internal numeric identity assigned to an OSC 8 hyperlink.
+  int hyperlinkId;
+
+  /// Returns an independent copy of these attributes.
+  TerminalCellAttributes copy() => TerminalCellAttributes(
+    foreground: foreground,
+    background: background,
+    underlineColor: underlineColor,
+    bold: bold,
+    dim: dim,
+    italic: italic,
+    underline: underline,
+    blink: blink,
+    inverse: inverse,
+    invisible: invisible,
+    strikethrough: strikethrough,
+    overline: overline,
+    protected: protected,
+    hyperlinkId: hyperlinkId,
+  );
+
+  /// Whether every observable attribute equals [other].
+  bool sameAs(TerminalCellAttributes other) =>
+      foreground == other.foreground &&
+      background == other.background &&
+      underlineColor == other.underlineColor &&
+      bold == other.bold &&
+      dim == other.dim &&
+      italic == other.italic &&
+      underline == other.underline &&
+      blink == other.blink &&
+      inverse == other.inverse &&
+      invisible == other.invisible &&
+      strikethrough == other.strikethrough &&
+      overline == other.overline &&
+      protected == other.protected &&
+      hyperlinkId == other.hyperlinkId;
+}
+
+final class _CellData {
+  _CellData({
+    this.chars = '',
+    this.width = 1,
+    TerminalCellAttributes? attributes,
+  }) : attributes = attributes?.copy() ?? TerminalCellAttributes();
+
+  String chars;
+  int width;
+  TerminalCellAttributes attributes;
+
+  int get code => chars.runes.lastOrNull ?? 0;
+
+  _CellData copy() => _CellData(
+    chars: chars,
+    width: width,
+    attributes: attributes,
+  );
+
+  void reset(TerminalCellAttributes value) {
+    chars = '';
+    width = 1;
+    attributes = value.copy();
+  }
+}
+
+extension on Iterable<int> {
+  int? get lastOrNull {
+    int? result;
+    for (final value in this) {
+      result = value;
+    }
+    return result;
+  }
 }
 
 /// Public read-only view of one terminal cell.
 final class TerminalCell {
-  TerminalCell._(xterm.BufferLine line, int index)
-    : _line = line,
-      _index = index;
+  TerminalCell._(this._cell);
 
-  final xterm.BufferLine _line;
-  final int _index;
+  final _CellData _cell;
 
-  /// xterm-compatible `getWidth` API.
-  int get width => _line.getWidth(_index);
+  /// Display width in terminal columns.
+  int get width => _cell.width;
 
-  /// xterm-compatible `getText` API.
-  String get chars => width == 0 ? '' : _line.getText(_index, _index + 1);
+  /// Grapheme content, empty for a wide-character continuation cell.
+  String get chars => width == 0 ? '' : _cell.chars;
 
-  /// xterm-compatible `getCodePoint` API.
-  int get code => _line.getCodePoint(_index);
+  /// Last Unicode code point in [chars], or zero for an empty cell.
+  int get code => _cell.code;
 
-  /// xterm-compatible `getForeground` API.
-  int get foreground => _line.getForeground(_index) & xterm.CellColor.valueMask;
+  /// Encoded foreground palette index or RGB value.
+  int get foreground => _cell.attributes.foreground.value;
 
-  /// xterm-compatible `getBackground` API.
-  int get background => _line.getBackground(_index) & xterm.CellColor.valueMask;
+  /// Encoded background palette index or RGB value.
+  int get background => _cell.attributes.background.value;
 
-  /// xterm-compatible `_colorMode` API.
-  TerminalColorMode get foregroundMode => _colorMode(
-    _line.getForeground(_index),
-  );
+  /// Foreground color encoding.
+  TerminalColorMode get foregroundMode => _cell.attributes.foreground.mode;
 
-  /// xterm-compatible `_colorMode` API.
-  TerminalColorMode get backgroundMode => _colorMode(
-    _line.getBackground(_index),
-  );
+  /// Background color encoding.
+  TerminalColorMode get backgroundMode => _cell.attributes.background.mode;
 
-  /// xterm-compatible `_has` API.
-  bool get isBold => _has(xterm.CellAttr.bold);
+  /// Color used to draw an underline.
+  TerminalCellColor get underlineColor => _cell.attributes.underlineColor;
 
-  /// xterm-compatible `_has` API.
-  bool get isDim => _has(xterm.CellAttr.faint);
+  /// Style used to draw an underline.
+  TerminalUnderlineStyle get underlineStyle => _cell.attributes.underline;
 
-  /// xterm-compatible `_has` API.
-  bool get isItalic => _has(xterm.CellAttr.italic);
+  /// Whether bold intensity is enabled.
+  bool get isBold => _cell.attributes.bold;
 
-  /// xterm-compatible `_has` API.
-  bool get isUnderline => _has(xterm.CellAttr.underline);
+  /// Whether faint intensity is enabled.
+  bool get isDim => _cell.attributes.dim;
 
-  /// xterm-compatible `_has` API.
-  bool get isBlink => _has(xterm.CellAttr.blink);
+  /// Whether italic rendering is enabled.
+  bool get isItalic => _cell.attributes.italic;
 
-  /// xterm-compatible `_has` API.
-  bool get isInverse => _has(xterm.CellAttr.inverse);
+  /// Whether any underline style is enabled.
+  bool get isUnderline =>
+      _cell.attributes.underline != TerminalUnderlineStyle.none;
 
-  /// xterm-compatible `_has` API.
-  bool get isInvisible => _has(xterm.CellAttr.invisible);
+  /// Whether blinking is enabled.
+  bool get isBlink => _cell.attributes.blink;
 
-  /// xterm-compatible `_has` API.
-  bool get isStrikethrough => _has(xterm.CellAttr.strikethrough);
+  /// Whether foreground and background are inverted.
+  bool get isInverse => _cell.attributes.inverse;
 
-  /// xterm-compatible `isAttributeDefault` API.
+  /// Whether the cell content is hidden.
+  bool get isInvisible => _cell.attributes.invisible;
+
+  /// Whether strikethrough is enabled.
+  bool get isStrikethrough => _cell.attributes.strikethrough;
+
+  /// Whether overline is enabled.
+  bool get isOverline => _cell.attributes.overline;
+
+  /// Whether selective erase protects the cell.
+  bool get isProtected => _cell.attributes.protected;
+
+  /// Numeric OSC 8 hyperlink identity, or zero outside a hyperlink.
+  int get hyperlinkId => _cell.attributes.hyperlinkId;
+
+  /// Whether all attributes have their default values.
   bool get isAttributeDefault =>
-      _line.getForeground(_index) == 0 &&
-      _line.getBackground(_index) == 0 &&
-      _line.getAttributes(_index) == 0;
+      _cell.attributes.sameAs(TerminalCellAttributes());
 
-  /// xterm-compatible `attributesEqual` API.
+  /// Whether this cell's attributes equal those of [other].
   bool attributesEqual(TerminalCell other) =>
-      _line.getForeground(_index) == other._line.getForeground(other._index) &&
-      _line.getBackground(_index) == other._line.getBackground(other._index) &&
-      _line.getAttributes(_index) == other._line.getAttributes(other._index);
-
-  bool _has(int flag) => _line.getAttributes(_index) & flag != 0;
-
-  static TerminalColorMode _colorMode(int value) =>
-      switch (value & xterm.CellColor.typeMask) {
-        xterm.CellColor.rgb => TerminalColorMode.rgb,
-        xterm.CellColor.named ||
-        xterm.CellColor.palette => TerminalColorMode.palette,
-        _ => TerminalColorMode.defaultColor,
-      };
+      _cell.attributes.sameAs(other._cell.attributes);
 }
 
-/// Public read-only view of one buffer line.
+/// One mutable line in a terminal buffer.
 final class TerminalBufferLine {
-  TerminalBufferLine._(this._line);
+  /// Creates an empty line containing [length] cells.
+  TerminalBufferLine(
+    int length, {
+    this.isWrapped = false,
+    TerminalCellAttributes? attributes,
+  }) : _cells = List<_CellData>.generate(
+         length,
+         (_) => _CellData(attributes: attributes),
+       );
 
-  final xterm.BufferLine _line;
+  TerminalBufferLine._(this._cells, {required this.isWrapped});
 
-  /// xterm-compatible `isWrapped` API.
-  bool get isWrapped => _line.isWrapped;
+  final List<_CellData> _cells;
 
-  /// xterm-compatible `length` API.
-  int get length => _line.length;
+  /// Whether this line continues the preceding logical line.
+  bool isWrapped;
 
-  /// xterm-compatible `getCell` API.
+  /// Number of cells in this line.
+  int get length => _cells.length;
+
+  /// Returns the cell at [index], or `null` when out of range.
   TerminalCell? getCell(int index) =>
-      index < 0 || index >= length ? null : TerminalCell._(_line, index);
+      index < 0 || index >= length ? null : TerminalCell._(_cells[index]);
 
-  /// xterm-compatible `translateToString` API.
+  /// Converts a cell range into its textual representation.
   String translateToString({
     bool trimRight = false,
     int startColumn = 0,
     int? endColumn,
   }) {
     final start = startColumn.clamp(0, length);
-    var end = (endColumn ?? length).clamp(start, length);
-    if (trimRight) {
-      while (end > start && _line.getCodePoint(end - 1) == 0) {
-        end--;
-      }
-    }
-    final result = StringBuffer();
+    final end = (endColumn ?? length).clamp(start, length);
+    final output = StringBuffer();
     for (var index = start; index < end; index++) {
-      final width = _line.getWidth(index);
-      final codePoint = _line.getCodePoint(index);
-      if (width == 0 &&
-          codePoint == 0 &&
-          index > 0 &&
-          _line.getWidth(index - 1) == 2) {
-        continue;
-      }
-      result.writeCharCode(codePoint == 0 ? 0x20 : codePoint);
+      final cell = _cells[index];
+      if (cell.width == 0) continue;
+      output.write(cell.chars.isEmpty ? ' ' : cell.chars);
     }
-    final text = result.toString();
-    return trimRight ? text.trimRight() : text;
+    final value = output.toString();
+    return trimRight ? value.trimRight() : value;
+  }
+
+  /// Returns an independent copy of this line.
+  TerminalBufferLine copy() => TerminalBufferLine._(
+    _cells.map((cell) => cell.copy()).toList(growable: false),
+    isWrapped: isWrapped,
+  );
+
+  /// Resizes this line to [columns] cells.
+  void resize(int columns, TerminalCellAttributes eraseAttributes) {
+    if (columns < length) {
+      _cells.removeRange(columns, length);
+    } else {
+      _cells.addAll(
+        List<_CellData>.generate(
+          columns - length,
+          (_) => _CellData(attributes: eraseAttributes),
+        ),
+      );
+    }
+  }
+
+  /// Replaces a cell and its wide-character continuation when needed.
+  void setCell(
+    int index,
+    String chars,
+    int width,
+    TerminalCellAttributes attributes,
+  ) {
+    if (index < 0 || index >= length) return;
+    _cells[index]
+      ..chars = chars
+      ..width = width
+      ..attributes = attributes.copy();
+    if (width == 2 && index + 1 < length) {
+      _cells[index + 1]
+        ..chars = ''
+        ..width = 0
+        ..attributes = attributes.copy();
+    }
+  }
+
+  /// Appends [value] to the base cell at or before [index].
+  void appendCombining(int index, String value) {
+    if (index < 0 || index >= length) return;
+    var target = index;
+    while (target > 0 && _cells[target].width == 0) {
+      target--;
+    }
+    _cells[target].chars += value;
+  }
+
+  /// Joins [value] into the cell at [index] and updates its display [width].
+  void joinCell(int index, String value, int width) {
+    if (index < 0 || index >= length) return;
+    final cell = _cells[index]
+      ..chars += value
+      ..width = width;
+    if (width == 2 && index + 1 < length) {
+      _cells[index + 1]
+        ..chars = ''
+        ..width = 0
+        ..attributes = cell.attributes.copy();
+    }
+  }
+
+  /// Inserts blank cells at [index], shifting existing cells right.
+  void insertCells(
+    int index,
+    int count,
+    TerminalCellAttributes eraseAttributes,
+  ) {
+    if (count <= 0 || index < 0 || index >= length) return;
+    final oldLength = length;
+    final amount = count.clamp(0, oldLength - index);
+    _cells
+      ..insertAll(
+        index,
+        List<_CellData>.generate(
+          amount,
+          (_) => _CellData(attributes: eraseAttributes),
+        ),
+      )
+      ..removeRange(oldLength, oldLength + amount);
+  }
+
+  /// Deletes cells at [index], appending blank cells at the right edge.
+  void deleteCells(
+    int index,
+    int count,
+    TerminalCellAttributes eraseAttributes,
+  ) {
+    if (count <= 0 || index < 0 || index >= length) return;
+    final amount = count.clamp(0, length - index);
+    _cells
+      ..removeRange(index, index + amount)
+      ..addAll(
+        List<_CellData>.generate(
+          amount,
+          (_) => _CellData(attributes: eraseAttributes),
+        ),
+      );
+  }
+
+  /// Erases cells in the half-open range from [start] to [end].
+  void erase(
+    int start,
+    int end,
+    TerminalCellAttributes eraseAttributes, {
+    bool respectProtection = false,
+  }) {
+    final first = start.clamp(0, length);
+    final last = end.clamp(first, length);
+    for (var index = first; index < last; index++) {
+      if (respectProtection && _cells[index].attributes.protected) continue;
+      _cells[index].reset(eraseAttributes);
+    }
   }
 }
 
-/// Public read-only view of an xterm buffer.
+/// A complete normal or alternate terminal buffer.
 final class TerminalBuffer {
-  TerminalBuffer._(this.type, this._buffer, this._viewportY);
+  TerminalBuffer._({
+    required this.type,
+    required int columns,
+    required int rows,
+    required int scrollback,
+    void Function(int amount)? onTrim,
+    void Function(int index, int amount)? onInsert,
+    void Function(int index, int amount)? onDelete,
+  }) : _columns = columns,
+       _rows = rows,
+       _scrollback = _initialScrollback(scrollback),
+       _onTrim = _initialCallback(onTrim),
+       _onInsert = _initialCallback(onInsert),
+       _onDelete = _initialCallback(onDelete),
+       _lines = List<TerminalBufferLine>.generate(
+         rows,
+         (_) => TerminalBufferLine(columns),
+       );
 
-  /// xterm-compatible `type` API.
+  /// Kind of this buffer.
   final TerminalBufferType type;
-  final xterm.Buffer _buffer;
-  final int Function() _viewportY;
 
-  /// xterm-compatible `cursorY` API.
-  int get cursorY => _buffer.cursorY;
+  /// Maximum number of retained scrollback lines.
+  int get scrollback => _scrollback;
+  int _scrollback;
+  final List<TerminalBufferLine> _lines;
+  int _columns;
+  int _rows;
+  final void Function(int amount)? _onTrim;
+  final void Function(int index, int amount)? _onInsert;
+  final void Function(int index, int amount)? _onDelete;
 
-  /// xterm-compatible `cursorX` API.
-  int get cursorX => _buffer.cursorX;
+  /// Zero-based cursor column.
+  int cursorX = 0;
 
-  /// xterm-compatible `_viewportY` API.
-  int get viewportY => _viewportY();
+  /// Cursor row relative to the viewport.
+  int cursorY = 0;
 
-  /// xterm-compatible `baseY` API.
-  int get baseY => _buffer.scrollBack;
+  /// Saved cursor column.
+  int savedCursorX = 0;
 
-  /// xterm-compatible `length` API.
-  int get length => _buffer.height;
+  /// Saved cursor row.
+  int savedCursorY = 0;
 
-  /// xterm-compatible `getLine` API.
-  TerminalBufferLine? getLine(int index) => index < 0 || index >= length
-      ? null
-      : TerminalBufferLine._(_buffer.lines[index]);
+  /// Attributes restored together with the saved cursor.
+  TerminalCellAttributes savedAttributes = TerminalCellAttributes();
 
-  /// xterm-compatible `getNullCell` API.
-  TerminalCell getNullCell() => TerminalCell._(xterm.BufferLine(1), 0);
+  /// ISO-2022 character sets restored with DECRC.
+  List<String> savedCharsets = <String>['B', 'B', 'B', 'B'];
+
+  /// Active saved ISO-2022 character-set level.
+  int savedCharsetLevel = 0;
+
+  /// Absolute row at the top of the live viewport.
+  int get viewportY => baseY;
+
+  /// Number of retained rows before the live viewport.
+  int get baseY => type == TerminalBufferType.alternate
+      ? 0
+      : (_lines.length - _rows).clamp(0, _lines.length);
+
+  /// Number of retained lines.
+  int get length => _lines.length;
+
+  /// Absolute row containing the cursor.
+  int get absoluteCursorY => baseY + cursorY;
+
+  /// Number of columns in each line.
+  int get columns => _columns;
+
+  /// Number of rows in the viewport.
+  int get rows => _rows;
+
+  /// Returns the absolute buffer line at [index].
+  TerminalBufferLine? getLine(int index) =>
+      index < 0 || index >= length ? null : _lines[index];
+
+  /// Line containing the cursor.
+  TerminalBufferLine get currentLine => _lines[absoluteCursorY];
+
+  /// Returns an empty cell with default attributes.
+  TerminalCell getNullCell() => TerminalCell._(_CellData());
+
+  /// Resizes the viewport and all retained lines.
+  void resize(
+    int columns,
+    int rows,
+    TerminalCellAttributes eraseAttributes, {
+    bool reflowCursorLine = false,
+  }) {
+    if (type == TerminalBufferType.normal && columns != _columns) {
+      _reflow(columns, eraseAttributes, reflowCursorLine);
+    }
+    final oldRows = _rows;
+    final oldBase = baseY;
+    final absoluteCursor = oldBase + cursorY;
+    for (final line in _lines) {
+      line.resize(columns, eraseAttributes);
+    }
+    if (rows > oldRows) {
+      final growth = rows - oldRows;
+      final canRevealHistory =
+          oldBase > 0 && _lines.length <= absoluteCursor + 1;
+      final linesToAdd = canRevealHistory
+          ? growth > oldBase
+                ? growth - oldBase
+                : 0
+          : growth;
+      _lines.addAll(
+        List<TerminalBufferLine>.generate(
+          linesToAdd,
+          (_) => TerminalBufferLine(columns, attributes: eraseAttributes),
+        ),
+      );
+    } else if (rows < oldRows) {
+      final minimumLength = rows + oldBase;
+      while (_lines.length > minimumLength &&
+          _lines.length > absoluteCursor + 1) {
+        _onDelete?.call(_lines.length - 1, 1);
+        _lines.removeLast();
+      }
+    }
+    _columns = columns;
+    _rows = rows;
+    while (_lines.length < rows) {
+      _lines.add(TerminalBufferLine(columns, attributes: eraseAttributes));
+    }
+    _trim();
+    cursorX = cursorX.clamp(0, columns - 1);
+    cursorY = (absoluteCursor - baseY).clamp(0, rows - 1);
+    savedCursorY = savedCursorY.clamp(0, rows - 1);
+  }
+
+  /// Replaces all content with an empty viewport.
+  void clear([TerminalCellAttributes? eraseAttributes]) {
+    _onDelete?.call(0, _lines.length);
+    _lines
+      ..clear()
+      ..addAll(
+        List<TerminalBufferLine>.generate(
+          _rows,
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+        ),
+      );
+    cursorX = 0;
+    cursorY = 0;
+  }
+
+  /// Discards history while retaining the cursor line as the first line.
+  ///
+  /// This is the buffer mutation used by xterm's public `Terminal.clear` API.
+  /// The retained line is not serialized and written again, so its cells,
+  /// attributes, wrapping state and the cursor column stay intact.
+  void clearKeepingCursorLine([TerminalCellAttributes? eraseAttributes]) {
+    final promptLine = currentLine;
+    _onDelete?.call(0, _lines.length);
+    _lines
+      ..clear()
+      ..add(promptLine)
+      ..addAll(
+        List<TerminalBufferLine>.generate(
+          _rows - 1,
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+        ),
+      );
+    cursorY = 0;
+  }
+
+  /// Removes retained scrollback without changing the visible viewport.
+  void clearScrollback() {
+    final retained = baseY;
+    if (retained > 0) {
+      _lines.removeRange(0, retained);
+      _onTrim?.call(retained);
+    }
+  }
+
+  /// Updates the retained history limit and immediately removes excess lines.
+  void updateScrollback(int value) {
+    if (type == TerminalBufferType.alternate || _scrollback == value) return;
+    _scrollback = value;
+    _trim();
+  }
+
+  /// Scrolls the inclusive region from [top] through [bottom] upward.
+  void scroll(
+    TerminalCellAttributes eraseAttributes, {
+    int top = 0,
+    int? bottom,
+  }) {
+    final last = bottom ?? _rows - 1;
+    if (top == 0 && last == _rows - 1 && type == TerminalBufferType.normal) {
+      _lines.add(TerminalBufferLine(_columns, attributes: eraseAttributes));
+      _trim();
+      return;
+    }
+    final start = baseY + top;
+    final end = baseY + last;
+    _onDelete?.call(start, 1);
+    _onInsert?.call(end, 1);
+    _lines
+      ..removeAt(start)
+      ..insert(end, TerminalBufferLine(_columns, attributes: eraseAttributes));
+  }
+
+  /// Scrolls the inclusive region from [top] through [bottom] downward.
+  void reverseScroll(
+    TerminalCellAttributes eraseAttributes, {
+    int top = 0,
+    int? bottom,
+  }) {
+    final last = bottom ?? _rows - 1;
+    final start = baseY + top;
+    final end = baseY + last;
+    _onDelete?.call(end, 1);
+    _onInsert?.call(start, 1);
+    _lines
+      ..removeAt(end)
+      ..insert(
+        start,
+        TerminalBufferLine(_columns, attributes: eraseAttributes),
+      );
+  }
+
+  /// Inserts [count] blank lines at viewport-relative [row].
+  void insertLines(
+    int row,
+    int count,
+    TerminalCellAttributes eraseAttributes, {
+    int? bottom,
+  }) {
+    final last = bottom ?? _rows - 1;
+    final amount = count.clamp(0, last - row + 1);
+    final start = baseY + row;
+    final end = baseY + last + 1;
+    _onInsert?.call(start, amount);
+    _onDelete?.call(end, amount);
+    _lines
+      ..insertAll(
+        start,
+        List<TerminalBufferLine>.generate(
+          amount,
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+        ),
+      )
+      ..removeRange(end, end + amount);
+  }
+
+  /// Deletes [count] lines at viewport-relative [row].
+  void deleteLines(
+    int row,
+    int count,
+    TerminalCellAttributes eraseAttributes, {
+    int? bottom,
+  }) {
+    final last = bottom ?? _rows - 1;
+    final amount = count.clamp(0, last - row + 1);
+    final start = baseY + row;
+    final insertion = baseY + last - amount + 1;
+    _onDelete?.call(start, amount);
+    _onInsert?.call(insertion, amount);
+    _lines
+      ..removeRange(start, start + amount)
+      ..insertAll(
+        insertion,
+        List<TerminalBufferLine>.generate(
+          amount,
+          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+        ),
+      );
+  }
+
+  void _reflow(
+    int newColumns,
+    TerminalCellAttributes eraseAttributes,
+    bool reflowCursorLine,
+  ) {
+    final oldColumns = _columns;
+    final oldLength = _lines.length;
+    final oldBaseY = baseY;
+    final oldCursorY = cursorY;
+    var cursorAbsolute = absoluteCursorY;
+    var groupStart = 0;
+    while (groupStart < _lines.length) {
+      var groupEnd = groupStart;
+      while (groupEnd + 1 < _lines.length && _lines[groupEnd + 1].isWrapped) {
+        groupEnd++;
+      }
+      final containsCursor =
+          cursorAbsolute >= groupStart && cursorAbsolute <= groupEnd;
+      final lastLength = _trimmedLength(_lines[groupEnd]);
+      final needsReflow =
+          groupEnd > groupStart ||
+          (newColumns < oldColumns && lastLength > newColumns);
+      if (!needsReflow || containsCursor && !reflowCursorLine) {
+        groupStart = groupEnd + 1;
+        continue;
+      }
+
+      final firstWasWrapped = _lines[groupStart].isWrapped;
+      final cells = <_CellData>[];
+      var cursorOffset = 0;
+      for (var row = groupStart; row <= groupEnd; row++) {
+        final line = _lines[row];
+        var used = row == groupEnd ? lastLength : oldColumns;
+        if (row < groupEnd &&
+            used > 0 &&
+            line._cells[used - 1].chars.isEmpty &&
+            line._cells[used - 1].width == 1 &&
+            _lines[row + 1]._cells.first.width == 2) {
+          used--;
+        }
+        if (containsCursor && row < cursorAbsolute) cursorOffset += used;
+        if (containsCursor && row == cursorAbsolute) {
+          cursorOffset += cursorX.clamp(0, used);
+        }
+        for (var column = 0; column < used; column++) {
+          final cell = line._cells[column];
+          if (cell.width == 0) continue;
+          cells.add(
+            _CellData(
+              chars: cell.chars,
+              width: cell.width,
+              attributes: cell.attributes,
+            ),
+          );
+        }
+      }
+
+      final layout = _layoutReflowedCells(
+        cells,
+        newColumns,
+        eraseAttributes,
+        firstWasWrapped,
+        containsCursor ? cursorOffset : null,
+      );
+      final oldCount = groupEnd - groupStart + 1;
+      _lines.replaceRange(groupStart, groupEnd + 1, layout.lines);
+      final delta = layout.lines.length - oldCount;
+      if (delta > 0) {
+        _onInsert?.call(groupEnd + 1, delta);
+      } else if (delta < 0) {
+        _onDelete?.call(groupStart + layout.lines.length, -delta);
+      }
+      if (containsCursor) {
+        cursorAbsolute = groupStart + layout.cursorRow;
+        cursorX = layout.cursorColumn;
+      } else if (groupEnd < cursorAbsolute) {
+        cursorAbsolute += delta;
+      }
+      groupStart += layout.lines.length;
+    }
+    if (newColumns < oldColumns && oldBaseY == 0) {
+      // xterm consumes unused viewport rows from the bottom before newly
+      // reflowed rows are allowed to create scrollback. CircularList.pop does
+      // not emit a deletion event, so markers shifted by the insertions above
+      // remain attached to their reflowed logical lines.
+      final addedLines = (_lines.length - oldLength).clamp(0, _lines.length);
+      final unusedViewportRows = (_rows - oldCursorY - 1).clamp(0, _rows);
+      final rowsToPop = addedLines < unusedViewportRows
+          ? addedLines
+          : unusedViewportRows;
+      if (rowsToPop > 0) {
+        _lines.removeRange(_lines.length - rowsToPop, _lines.length);
+      }
+    }
+    cursorY = (cursorAbsolute - baseY).clamp(0, _rows - 1);
+  }
+
+  _ReflowLayout _layoutReflowedCells(
+    List<_CellData> cells,
+    int columns,
+    TerminalCellAttributes eraseAttributes,
+    bool firstWasWrapped,
+    int? cursorOffset,
+  ) {
+    final lines = <TerminalBufferLine>[
+      TerminalBufferLine(columns, attributes: eraseAttributes)
+        ..isWrapped = firstWasWrapped,
+    ];
+    var row = 0;
+    var column = 0;
+    var consumed = 0;
+    var cursorRow = 0;
+    var cursorColumn = 0;
+    var cursorCaptured = cursorOffset == null;
+
+    void captureCursor() {
+      if (cursorCaptured || consumed < cursorOffset!) return;
+      cursorRow = row;
+      cursorColumn = column;
+      cursorCaptured = true;
+    }
+
+    for (final cell in cells) {
+      captureCursor();
+      final width = cell.width == 2 ? 2 : 1;
+      if (column + width > columns) {
+        lines.add(
+          TerminalBufferLine(columns, attributes: eraseAttributes)
+            ..isWrapped = true,
+        );
+        row++;
+        column = 0;
+        captureCursor();
+      }
+      lines[row].setCell(column, cell.chars, width, cell.attributes);
+      column += width;
+      consumed += width;
+    }
+    captureCursor();
+    if (!cursorCaptured) {
+      cursorRow = row;
+      cursorColumn = column;
+    }
+    return _ReflowLayout(lines, cursorRow, cursorColumn);
+  }
+
+  int _trimmedLength(TerminalBufferLine line) {
+    var result = line.length;
+    while (result > 0) {
+      final cell = line._cells[result - 1];
+      if (cell.width == 0 || cell.chars.isNotEmpty) break;
+      result--;
+    }
+    return result;
+  }
+
+  void _trim() {
+    final maximum =
+        _rows + (type == TerminalBufferType.normal ? scrollback : 0);
+    if (_lines.length > maximum) {
+      final amount = _lines.length - maximum;
+      _lines.removeRange(0, amount);
+      _onTrim?.call(amount);
+    }
+  }
+
+  static int _initialScrollback(int value) => value;
+  static T _initialCallback<T>(T value) => value;
+}
+
+final class _ReflowLayout {
+  const _ReflowLayout(this.lines, this.cursorRow, this.cursorColumn);
+
+  final List<TerminalBufferLine> lines;
+  final int cursorRow;
+  final int cursorColumn;
 }
 
 /// Normal, alternate, and active buffers.
 final class TerminalBufferNamespace {
-  /// xterm-compatible `TerminalBufferNamespace` API.
+  /// Creates normal and alternate buffers with the given dimensions.
   TerminalBufferNamespace({
-    required xterm.Terminal terminal,
-    required int Function() viewportY,
+    required int columns,
+    required int rows,
+    required int scrollback,
+    void Function(int amount)? onTrim,
+    void Function(int index, int amount)? onInsert,
+    void Function(int index, int amount)? onDelete,
   }) : normal = TerminalBuffer._(
-         TerminalBufferType.normal,
-         terminal.mainBuffer,
-         viewportY,
+         type: TerminalBufferType.normal,
+         columns: columns,
+         rows: rows,
+         scrollback: scrollback,
+         onTrim: onTrim,
+         onInsert: onInsert,
+         onDelete: onDelete,
        ),
        alternate = TerminalBuffer._(
-         TerminalBufferType.alternate,
-         terminal.altBuffer,
-         viewportY,
-       ),
-       _terminal = terminal;
-
-  final xterm.Terminal _terminal;
-  final TerminalEventEmitter<TerminalBuffer> _onBufferChange =
-      TerminalEventEmitter<TerminalBuffer>();
-  TerminalBufferType _lastType = TerminalBufferType.normal;
-
-  /// xterm-compatible `normal` API.
-  final TerminalBuffer normal;
-
-  /// xterm-compatible `alternate` API.
-  final TerminalBuffer alternate;
-
-  /// xterm-compatible `active` API.
-  TerminalBuffer get active => _terminal.isUsingAltBuffer ? alternate : normal;
-
-  /// xterm-compatible `onBufferChange` API.
-  TerminalEvent<TerminalBuffer> get onBufferChange => _onBufferChange.event;
-
-  /// xterm-compatible `detectChange` API.
-  void detectChange() {
-    final type = active.type;
-    if (type == _lastType) return;
-    _lastType = type;
-    _onBufferChange.fire(active);
+         type: TerminalBufferType.alternate,
+         columns: columns,
+         rows: rows,
+         scrollback: 0,
+       ) {
+    _active = normal;
   }
 
-  /// xterm-compatible `dispose` API.
+  /// Normal buffer with scrollback history.
+  final TerminalBuffer normal;
+
+  /// Alternate screen buffer.
+  final TerminalBuffer alternate;
+  late TerminalBuffer _active;
+  final TerminalEventEmitter<TerminalBuffer> _onBufferChange =
+      TerminalEventEmitter<TerminalBuffer>();
+
+  /// Buffer currently receiving input and being rendered.
+  TerminalBuffer get active => _active;
+
+  /// Fires synchronously after the active buffer changes.
+  TerminalEvent<TerminalBuffer> get onBufferChange => _onBufferChange.event;
+
+  /// Activates the normal buffer.
+  void useNormal() {
+    if (identical(_active, normal)) return;
+    normal
+      ..cursorX = alternate.cursorX
+      ..cursorY = alternate.cursorY;
+    alternate.clear();
+    _switch(normal);
+  }
+
+  /// Activates the alternate buffer, optionally clearing it first.
+  void useAlternate({bool clear = true}) {
+    if (identical(_active, alternate)) return;
+    alternate
+      ..clear()
+      ..cursorX = normal.cursorX
+      ..cursorY = normal.cursorY;
+    _switch(alternate);
+  }
+
+  void _switch(TerminalBuffer value) {
+    if (identical(_active, value)) return;
+    _active = value;
+    _onBufferChange.fire(value);
+  }
+
+  /// Resizes both buffers.
+  void resize(
+    int columns,
+    int rows,
+    TerminalCellAttributes eraseAttributes, {
+    bool reflowCursorLine = false,
+  }) {
+    normal.resize(
+      columns,
+      rows,
+      eraseAttributes,
+      reflowCursorLine: reflowCursorLine,
+    );
+    alternate.resize(columns, rows, eraseAttributes);
+  }
+
+  /// Releases buffer-change listeners.
   void dispose() => _onBufferChange.dispose();
 }

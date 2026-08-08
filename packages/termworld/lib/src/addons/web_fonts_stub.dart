@@ -1,6 +1,11 @@
 import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/core/terminal.dart';
 
+/// Browser-only top-level font loader from the xterm addon API.
+Future<List<Object>> loadFonts([Iterable<Object>? fonts]) {
+  throw UnsupportedError('WebFontsAddon is only supported on Flutter web');
+}
+
 /// Coordinates browser font readiness with terminal relayout.
 final class WebFontsAddon extends ManagedTerminalAddon {
   /// Creates a web fonts addon.
@@ -18,7 +23,7 @@ final class WebFontsAddon extends ManagedTerminalAddon {
   }
 
   /// Waits for requested font families and then refreshes the renderer.
-  Future<List<String>> loadFonts([Iterable<String>? fontFamilies]) {
+  Future<List<Object>> loadFonts([Iterable<Object>? fonts]) {
     throw UnsupportedError('WebFontsAddon is only supported on Flutter web');
   }
 

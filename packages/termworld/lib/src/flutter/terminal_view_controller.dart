@@ -1,98 +1,75 @@
 import 'package:flutter/foundation.dart';
 import 'package:termworld/src/core/buffer.dart';
+import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/terminal.dart';
-import 'package:xterm/ui.dart' as xterm_ui;
 
-/// Controls selection and keyboard focus for a mounted [xterm_ui.TerminalView].
+/// Controls selection, scrolling and keyboard focus for a terminal view.
 final class TerminalViewController extends ChangeNotifier {
-  final xterm_ui.TerminalController _delegate = xterm_ui.TerminalController();
+  /// Creates a detached terminal view controller.
+  TerminalViewController();
+
   Terminal? _terminal;
   VoidCallback? _requestKeyboard;
+  Disposable? _selectionListener;
 
-  /// Whether the terminal currently has a selection.
-  bool get hasSelection => _delegate.selection != null;
+  /// Whether the attached terminal has a selection.
+  bool get hasSelection => _terminal?.hasSelection() ?? false;
 
-  /// Selected terminal text, or null when there is no selection.
+  /// Selected text, or `null` when there is no selection.
   String? get selectedText => hasSelection ? _terminal?.getSelection() : null;
 
-  /// Current selection in buffer coordinates.
+  /// Selected buffer range, or `null` when there is no selection.
   TerminalBufferRange? get selection => _terminal?.getSelectionPosition();
 
-  /// Requests focus and opens the platform keyboard.
+  /// Requests keyboard focus for the attached view.
   void requestKeyboard() => _requestKeyboard?.call();
 
   /// Clears the current selection.
-  void clearSelection() {
-    _delegate.clearSelection();
-    _terminal?.clearSelection();
-    notifyListeners();
-  }
+  void clearSelection() => _terminal?.clearSelection();
 
-  /// Selects all retained normal or alternate buffer text.
-  void selectAll() {
-    final terminal = _terminal;
-    if (terminal == null || terminal.buffer.active.length == 0) return;
-    terminal.selectAll();
-    _applySelection(terminal.getSelectionPosition());
-  }
+  /// Selects the complete active buffer.
+  void selectAll() => _terminal?.selectAll();
 
   /// Selects complete lines from [start] through [end].
-  void selectLines(int start, int end) {
-    final terminal = _terminal;
-    if (terminal == null) return;
-    terminal.selectLines(start, end);
-    _applySelection(terminal.getSelectionPosition());
-  }
+  void selectLines(int start, int end) => _terminal?.selectLines(start, end);
 
-  void _applySelection(TerminalBufferRange? range) {
-    final terminal = _terminal;
-    if (range == null || terminal == null) return;
-    final buffer = terminal.rendererDelegate.buffer;
-    final startLine = buffer.lines[range.start.y];
-    final endLine = buffer.lines[range.end.y];
-    _delegate.setSelection(
-      startLine.createAnchor(range.start.x),
-      endLine.createAnchor(range.end.x),
-    );
-    notifyListeners();
-  }
+  /// Selects [length] cells beginning at [column], [row].
+  void select(int column, int row, int length) =>
+      _terminal?.select(column, row, length);
 
-  /// xterm-compatible `attach` API.
+  /// Scrolls the viewport by [amount] lines.
+  void scrollLines(int amount) => _terminal?.scrollLines(amount);
+
+  /// Scrolls the viewport by [amount] pages.
+  void scrollPages(int amount) => _terminal?.scrollPages(amount);
+
+  /// Scrolls to the oldest retained line.
+  void scrollToTop() => _terminal?.scrollToTop();
+
+  /// Scrolls to the live viewport.
+  void scrollToBottom() => _terminal?.scrollToBottom();
+
+  /// Attaches this controller to [terminal].
   void attach(Terminal terminal, VoidCallback requestKeyboard) {
+    detach();
     _terminal = terminal;
     _requestKeyboard = requestKeyboard;
-    _delegate.addListener(_selectionChanged);
+    _selectionListener = terminal.onSelectionChange.listen((_) {
+      notifyListeners();
+    });
   }
 
-  /// xterm-compatible `detach` API.
+  /// Detaches this controller from its current terminal.
   void detach() {
-    _delegate.removeListener(_selectionChanged);
+    _selectionListener?.dispose();
+    _selectionListener = null;
     _terminal = null;
     _requestKeyboard = null;
   }
 
-  void _selectionChanged() {
-    final terminal = _terminal;
-    final selection = _delegate.selection;
-    if (terminal == null) return;
-    if (selection == null) {
-      terminal.clearSelection();
-    } else {
-      final begin = selection.normalized.begin;
-      final end = selection.normalized.end;
-      final length = (end.y - begin.y) * terminal.cols + end.x - begin.x;
-      terminal.select(begin.x, begin.y, length);
-    }
-    notifyListeners();
-  }
-
-  /// Native xterm controller used by the renderer adapter.
-  xterm_ui.TerminalController get rendererController => _delegate;
-
   @override
   void dispose() {
     detach();
-    _delegate.dispose();
     super.dispose();
   }
 }

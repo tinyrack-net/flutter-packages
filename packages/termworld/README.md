@@ -1,7 +1,8 @@
 # termworld
 
-`termworld` is a Flutter and pure-Dart port of xterm.js 6.0.0, pinned to
-revision `904ae935269eef5ec6a1415b64463c3d02eff1eb`. The headless terminal owns
+`termworld` 0.4.0 is an independent Flutter and pure-Dart port of xterm.js
+6.0.0, pinned to revision `904ae935269eef5ec6a1415b64463c3d02eff1eb`.
+It does not depend on, export, wrap, or delegate to `xterm.dart`. The headless terminal owns
 VT parsing, normal and alternate buffers, Unicode width, selection, modes,
 markers, decorations, links, write ordering, and addon lifecycles. Flutter is
 an adapter over that engine and uses the delta text-input protocol for IME.
@@ -68,9 +69,10 @@ dart run tool/verify_platform_matrix.dart
 The example contains the shared six-platform conformance test. Linux CI also
 runs an actual IBus Hangul session under X11.
 
-## Migration from 0.2.x
+## Migration to 0.4.0
 
-0.3.0 is intentionally breaking. Replace `TerminalEmulator` with `Terminal`,
+0.4.0 removes the former xterm.dart-backed 0.3 implementation and is
+intentionally breaking. Replace `TerminalEmulator` with `Terminal`,
 subscribe to `onData`/`onResize`, and pass the engine using
-`TerminalView(terminal: terminal)`. The old model and widget wrappers were
-removed; there is no compatibility layer.
+`TerminalView(terminal: terminal)`. The old model, delegated terminal, and
+widget wrappers were removed; there is no compatibility layer.

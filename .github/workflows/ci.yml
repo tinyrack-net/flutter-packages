@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FLUTTER_VERSION: 3.44.4
 
@@ -47,6 +51,8 @@ jobs:
         run: dart run tool/verify_platform_matrix.dart
       - name: Verify the pinned xterm parity manifest
         run: dart run tool/verify_xterm_parity.dart
+      - name: Verify termworld has no xterm dependency or delegation
+        run: dart run tool/verify_termworld_dependencies.dart
 
   dart:
     name: Dart (${{ matrix.os }})
@@ -81,6 +87,12 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: dart run tool/verify_coverage.dart
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dart-coverage
+          path: packages/*/coverage/lcov.info
+          if-no-files-found: error
 
   windows:
     name: Windows (${{ matrix.os }})
@@ -309,7 +321,8 @@ jobs:
             --target=integration_test/conformance_test.dart \
             -d web-server \
             --browser-name=chrome \
-            --web-browser-flag=--headless=new
+            --web-browser-flag=--headless=new \
+            --web-browser-flag=--enable-features=ClipboardAPI
         working-directory: packages/termworld/example
       - name: L5 web termworld release build
         run: flutter build web --release
@@ -385,6 +398,10 @@ jobs:
   ios:
     name: iOS
     runs-on: macos-26
+    # Simulator test processes occasionally stop producing output. Bound the
+    # required job so a stuck host is reported and retried instead of holding
+    # every newer parity run indefinitely.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2

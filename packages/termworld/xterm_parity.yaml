@@ -4,13 +4,6 @@ reference:
   revision: 904ae935269eef5ec6a1415b64463c3d02eff1eb
   package_version: 6.0.0
 
-upstream_fixture_exclusions:
-  # These are excluded by the pinned src/browser/Terminal2.test.ts harness.
-  # Equivalent focused InputHandler contracts are ported into the core test.
-  t0084-CBT: cursor backward tab focused test
-  t0103-reverse_wrap: reverse-wraparound focused test
-  t0504-vim: DECSET 1049 alternate-buffer focused test
-
 contracts:
   core:
     entrypoint: lib/termworld_headless.dart

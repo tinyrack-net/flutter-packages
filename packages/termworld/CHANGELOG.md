@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.4.0
+
+- Removes the xterm.dart dependency, exports, delegates, wrappers, and
+  fallbacks. Core, headless, Flutter, and addon behavior is owned by termworld.
+- Pins the behavioral contract to xterm.js
+  `904ae935269eef5ec6a1415b64463c3d02eff1eb` with committed declarations,
+  source hashes, test IDs, and MIT fixtures.
+- Ports xterm's Unicode 6 and 11 width tables and Unicode 15 grapheme property
+  trie without a runtime data dependency.
+- Uses Flutter's real delta text-input boundary on all six platforms and the
+  browser font-loading boundary on web.
+
 ## 0.3.0
 
 - Replaces the 0.2 engine and widget API with an xterm.js 6.0.0-compatible

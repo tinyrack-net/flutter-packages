@@ -1,0 +1,416 @@
+{
+  "schemaVersion": 1,
+  "declarations": {
+    "addons/addon-attach/typings/addon-attach.d.ts:9": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "bidirectional"
+    },
+    "addons/addon-attach/typings/addon-attach.d.ts:13": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "bidirectional"
+    },
+    "addons/addon-attach/typings/addon-attach.d.ts:16": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "AttachAddon"
+    },
+    "addons/addon-attach/typings/addon-attach.d.ts:17": {
+      "implementation": "lib/addon_attach.dart",
+      "symbol": "AttachAddon(this.socket"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:13": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "ClipboardAddon"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:19": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "ClipboardAddon({"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:33": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "TerminalBase64Codec"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:38": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "encodeText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:45": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "decodeText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:51": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "Base64Codec"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:66": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "TerminalClipboardProvider"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:72": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "readText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:79": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "writeText"
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts:88": {
+      "implementation": "lib/addon_clipboard.dart",
+      "symbol": "FlutterClipboardProvider"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:13": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "FitAddon"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:17": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "FitAddon extends"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:44": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "TerminalDimensions"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:48": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "final int rows"
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts:53": {
+      "implementation": "lib/addon_fit.dart",
+      "symbol": "final int cols"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:13": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "ProgressAddon"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:18": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "ProgressAddon extends"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:47": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "TerminalProgress"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:60": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "TerminalProgressState state"
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts:66": {
+      "implementation": "lib/addon_progress.dart",
+      "symbol": "final int value"
+    },
+    "addons/addon-unicode11/typings/addon-unicode11.d.ts:9": {
+      "implementation": "lib/addon_unicode11.dart",
+      "symbol": "Unicode11Addon"
+    },
+    "addons/addon-unicode11/typings/addon-unicode11.d.ts:10": {
+      "implementation": "lib/addon_unicode11.dart",
+      "symbol": "Unicode11Addon extends"
+    },
+    "addons/addon-unicode-graphemes/typings/addon-unicode-graphemes.d.ts:9": {
+      "implementation": "lib/addon_unicode_graphemes.dart",
+      "symbol": "UnicodeGraphemesAddon"
+    },
+    "addons/addon-unicode-graphemes/typings/addon-unicode-graphemes.d.ts:10": {
+      "implementation": "lib/addon_unicode_graphemes.dart",
+      "symbol": "UnicodeGraphemesAddon extends"
+    }
+  },
+  "sources": {
+    "addons/addon-attach/typings/addon-attach.d.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-attach/src/AttachAddon.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-attach/test/AttachAddon.test.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-attach/test/playwright.config.ts": {
+      "implementation": ["lib/addon_attach.dart"],
+      "tests": ["test/public_api_contract_test.dart"]
+    },
+    "addons/addon-clipboard/typings/addon-clipboard.d.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-clipboard/src/ClipboardAddon.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-clipboard/test/ClipboardAddon.test.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-clipboard/test/playwright.config.ts": {
+      "implementation": ["lib/addon_clipboard.dart"],
+      "tests": ["test/upstream_clipboard_parity_test.dart"]
+    },
+    "addons/addon-fit/typings/addon-fit.d.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-fit/src/FitAddon.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-fit/test/FitAddon.test.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-fit/test/playwright.config.ts": {
+      "implementation": ["lib/addon_fit.dart"],
+      "tests": ["test/upstream_fit_parity_test.dart"]
+    },
+    "addons/addon-progress/typings/addon-progress.d.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-progress/src/ProgressAddon.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-progress/test/ProgressAddon.test.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-progress/test/playwright.config.ts": {
+      "implementation": ["lib/addon_progress.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/typings/addon-unicode11.d.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/src/Unicode11Addon.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/src/UnicodeV11.ts": {
+      "implementation": ["lib/src/core/unicode.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/test/Unicode11Addon.test.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode11/test/playwright.config.ts": {
+      "implementation": ["lib/addon_unicode11.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/typings/addon-unicode-graphemes.d.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/benchmark/UnicodeGraphemeAddon.benchmark.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/UnicodeGraphemeProvider.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/UnicodeGraphemesAddon.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/third-party/UnicodeProperties.ts": {
+      "implementation": ["lib/unicode15_properties.g.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/third-party/tiny-inflate.ts": {
+      "implementation": ["lib/unicode15_properties.g.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/src/third-party/unicode-trie.ts": {
+      "implementation": ["lib/unicode15_properties.g.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/test/UnicodeGraphemesAddon.test.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    },
+    "addons/addon-unicode-graphemes/test/playwright.config.ts": {
+      "implementation": ["lib/addon_unicode_graphemes.dart"],
+      "tests": ["test/upstream_addon_parity_test.dart"]
+    }
+  },
+  "tests": {
+    "playwright:7f3b9553b1778fc0311e-0a11a3f7eb7b6d1df06c": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "string",
+      "dartTestKind": "test"
+    },
+    "playwright:7f3b9553b1778fc0311e-066c3f81e61f0b34a287": {
+      "dartTestFile": "test/public_api_contract_test.dart",
+      "dartTestName": "utf8",
+      "dartTestKind": "test"
+    },
+    "playwright:6e0a1464d699d5077842-7fd692ce7db081e2d28c": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "simple string",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/write data/simple string"
+    },
+    "playwright:6e0a1464d699d5077842-94882bd8b188790c714a": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "primary selection",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/write data/primary selection"
+    },
+    "playwright:6e0a1464d699d5077842-371ead894cd888cfda6c": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "empty selection (default)",
+      "dartTestKind": "test"
+    },
+    "playwright:6e0a1464d699d5077842-e4322aa9f24109ea3256": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "invalid base64 string",
+      "dartTestKind": "test"
+    },
+    "playwright:6e0a1464d699d5077842-7c2d7348e4e37ae7c347": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "empty string",
+      "dartTestKind": "test"
+    },
+    "playwright:6e0a1464d699d5077842-31ca070f31119687ba16": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "simple string",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/read data/simple string"
+    },
+    "playwright:6e0a1464d699d5077842-135ff16e2e4b1b16418b": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "primary selection",
+      "dartTestKind": "test",
+      "dartTestPath": "ClipboardAddon/read data/primary selection"
+    },
+    "playwright:6e0a1464d699d5077842-b75866644db72b1d6f9a": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "clear clipboard",
+      "dartTestKind": "test"
+    },
+    "playwright:6e0a1464d699d5077842-2ce267024d7706135a8f": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "write simple string",
+      "dartTestKind": "test"
+    },
+    "playwright:6e0a1464d699d5077842-8a3366da677a2d7cc2d9": {
+      "dartTestFile": "test/upstream_clipboard_parity_test.dart",
+      "dartTestName": "read simple string",
+      "dartTestKind": "test"
+    },
+    "playwright:d9800d6a0b9038d8ceab-2e70fdba48d293a501d9": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "no terminal",
+      "dartTestKind": "test"
+    },
+    "playwright:d9800d6a0b9038d8ceab-eb640a16b62d7ebffe06": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "default",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/proposeDimensions/default"
+    },
+    "playwright:d9800d6a0b9038d8ceab-2cc5d2d6d907c592a5e9": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "width",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/proposeDimensions/width"
+    },
+    "playwright:d9800d6a0b9038d8ceab-30f9c6d0a8881485f687": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "small",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/proposeDimensions/small"
+    },
+    "playwright:d9800d6a0b9038d8ceab-2897f04621b4ab6bb5d2": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "hidden",
+      "dartTestKind": "test"
+    },
+    "playwright:d9800d6a0b9038d8ceab-e560808e23bcb5520a4b": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "default",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/fit/default"
+    },
+    "playwright:d9800d6a0b9038d8ceab-e7b1d89cf34fa8e399e7": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "width",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/fit/width"
+    },
+    "playwright:d9800d6a0b9038d8ceab-317be92897845e482e78": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "small",
+      "dartTestKind": "test",
+      "dartTestPath": "FitAddon/fit/small"
+    },
+    "playwright:d9800d6a0b9038d8ceab-20ab32d8c64a9f451a7b": {
+      "dartTestFile": "test/upstream_fit_parity_test.dart",
+      "dartTestName": "same dimensions",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-b625b6b8710b907d5c26": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "initial values should be 0;0",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-717cf3f38f799b3f3591": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 0: remove",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-8a68f0c0fb3b41ea458e": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 1: set",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-eb962944a22987e0ccb2": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 1: set - special sequence handling",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-ada2ba96f249455d37b3": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 2: error - preserve previous value on empty/0",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-1195f630142f8af12c80": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 2: error - with new value",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-9b35726d3281eace5bb3": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 3: indeterminate - keeps value untouched",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-c27b15223537a725fd4d": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 4: pause - preserve previous value on empty/0",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-1b592ff0541b77ef8419": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "state 4: pause - with new value",
+      "dartTestKind": "test"
+    },
+    "playwright:7e83d6c8351e150eee49-0d51daba4284ca00bde7": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "invalid sequences should not emit anything",
+      "dartTestKind": "test"
+    },
+    "playwright:39f4095e2b5753efcbd0-8a7956ec29a1c1d1bc5e": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "wcwidth V11 emoji test",
+      "dartTestKind": "test"
+    },
+    "playwright:4c8219c54dbc34a74353-884e183f8c649d069f1d": {
+      "dartTestFile": "test/upstream_addon_parity_test.dart",
+      "dartTestName": "wcwidth V15 emoji test",
+      "dartTestKind": "test"
+    }
+  }
+}

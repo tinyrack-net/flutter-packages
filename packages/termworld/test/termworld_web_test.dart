@@ -1,24 +1,51 @@
 @TestOn('browser')
 library;
 
+import 'package:flutter/material.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_web_fonts.dart';
 import 'package:termworld/addon_webgl.dart';
-import 'package:termworld/termworld_headless.dart';
+import 'package:termworld/termworld.dart';
 
 void main() {
+  test('browser theme parsing accepts opaque CSS color syntax', () {
+    expect(
+      TerminalThemes.resolve(
+        const TerminalColorTheme(
+          foreground: 'rebeccapurple',
+          background: 'hsl(120, 100%, 25%)',
+        ),
+      ),
+      isA<TerminalTheme>()
+          .having(
+            (theme) => theme.foreground,
+            'foreground',
+            const Color(0xff663399),
+          )
+          .having(
+            (theme) => theme.background,
+            'background',
+            const Color(0xff008000),
+          ),
+    );
+  });
+
   test('web fonts refresh after browser font readiness', () async {
     final terminal = Terminal();
     final addon = WebFontsAddon(initialRelayout: false);
     addTearDown(terminal.dispose);
     expect(WebFontsAddon.isSupported, isTrue);
-    expect(addon.relayout, throwsStateError);
+    expect(await loadFonts(), isA<List<Object>>());
+    await addon.relayout();
 
     terminal.loadAddon(addon);
-    expect(await addon.loadFonts(<String>['Mono', 'CJK']), <String>[
-      'Mono',
-      'CJK',
-    ]);
+    await expectLater(
+      addon.loadFonts(<String>['Termworld Missing Font']),
+      throwsStateError,
+    );
+    expect(await addon.loadFonts(), isA<List<Object>>());
+    await addon.relayout();
+    addon.dispose();
     await addon.relayout();
   });
 
@@ -39,11 +66,15 @@ void main() {
       )
       ..onContextLoss.listen((_) => events.add('loss'));
     expect(WebglAddon.isSupported, isTrue);
-    expect(addon.clearTextureAtlas, throwsStateError);
-    addon.reportContextLoss();
+    addon
+      ..clearTextureAtlas()
+      ..reportContextLoss();
 
     terminal.loadAddon(addon);
     expect(addon.textureAtlas?.generation, 1);
+    expect(addon.textureAtlas?.canvas, isNotNull);
+    expect(addon.onAddTextureAtlasCanvas, isNotNull);
+    expect(addon.onRemoveTextureAtlasCanvas, isNotNull);
     addon
       ..clearTextureAtlas()
       ..reportContextLoss()
