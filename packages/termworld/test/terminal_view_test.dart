@@ -66,7 +66,6 @@ void main() {
     );
     await terminal.writeAndWait('first\r\nsecond');
     final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     await tester.pumpWidget(
       MaterialApp(
         home: TerminalView(
@@ -82,6 +81,7 @@ void main() {
     final node = tester.getSemantics(semanticSurface);
     expect(node.label, 'Localized terminal input');
     expect(node.value, 'first\nsecond');
+    semantics.dispose();
   });
 
   testWidgets('renders and automatically resizes the headless terminal', (

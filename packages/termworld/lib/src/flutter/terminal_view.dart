@@ -109,7 +109,7 @@ final class _TerminalViewState extends State<TerminalView> {
   TerminalCellOffset? _selectionAnchorEnd;
   _PointerSelectionMode _pointerSelectionMode = _PointerSelectionMode.normal;
   TerminalCellOffset? _lastClickCell;
-  Duration? _lastClickTime;
+  Timer? _clickResetTimer;
   int _clickCount = 0;
   double _wheelPartialScroll = 0;
   Timer? _dragScrollTimer;
@@ -254,6 +254,7 @@ final class _TerminalViewState extends State<TerminalView> {
     _clearLinkCache();
     _cursorBlinkTimer?.cancel();
     _cursorBlinkIdleTimer?.cancel();
+    _clickResetTimer?.cancel();
     _dragScrollTimer?.cancel();
     _focusNode.removeListener(_handleFocusChange);
     _renderListener?.dispose();
@@ -473,7 +474,7 @@ final class _TerminalViewState extends State<TerminalView> {
         return;
       }
     }
-    _updateClickCount(bufferCell, event.timeStamp);
+    _updateClickCount(bufferCell);
     if (_clickCount > 3) return;
     final range = switch (_clickCount) {
       2 => _wordRange(bufferCell, allowWhitespaceOnly: true),
@@ -594,17 +595,19 @@ final class _TerminalViewState extends State<TerminalView> {
     _selectRange(range);
   }
 
-  void _updateClickCount(TerminalCellOffset cell, Duration time) {
-    final lastTime = _lastClickTime;
-    if (_lastClickCell == cell &&
-        lastTime != null &&
-        time - lastTime <= const Duration(milliseconds: 500)) {
+  void _updateClickCount(TerminalCellOffset cell) {
+    if (_lastClickCell == cell && _clickResetTimer?.isActive == true) {
       _clickCount++;
     } else {
       _clickCount = 1;
     }
     _lastClickCell = cell;
-    _lastClickTime = time;
+    _clickResetTimer?.cancel();
+    _clickResetTimer = Timer(const Duration(milliseconds: 500), () {
+      _clickCount = 0;
+      _lastClickCell = null;
+      _clickResetTimer = null;
+    });
   }
 
   TerminalBufferRange? _wordRange(
