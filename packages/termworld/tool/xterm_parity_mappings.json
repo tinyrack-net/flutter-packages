@@ -16,6 +16,10 @@
     "addons/addon-image/typings/addon-image.d.ts:87": {"implementation":"lib/addon_image.dart","symbol":"this.kittySizeLimit = 33554432"},
     "addons/addon-image/typings/addon-image.d.ts:90": {"implementation":"lib/addon_image.dart","symbol":"class ImageAddon extends"},
     "addons/addon-image/typings/addon-image.d.ts:91": {"implementation":"lib/addon_image.dart","symbol":"ImageAddon({this.options"},
+    "addons/addon-ligatures/typings/addon-ligatures.d.ts:17": {"implementation":"lib/addon_ligatures.dart","symbol":"class LigaturesAddon extends"},
+    "addons/addon-ligatures/typings/addon-ligatures.d.ts:23": {"implementation":"lib/addon_ligatures.dart","symbol":"LigaturesAddon({"},
+    "addons/addon-ligatures/typings/addon-ligatures.d.ts:44": {"implementation":"lib/addon_ligatures.dart","symbol":"fallbackLigatures"},
+    "addons/addon-ligatures/typings/addon-ligatures.d.ts:68": {"implementation":"lib/addon_ligatures.dart","symbol":"fontFeatureSettings = '\"calt\" on'"},
     "addons/addon-attach/typings/addon-attach.d.ts:9": {
       "implementation": "lib/addon_attach.dart",
       "symbol": "bidirectional"
