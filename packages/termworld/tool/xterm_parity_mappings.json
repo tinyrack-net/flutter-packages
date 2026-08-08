@@ -247,6 +247,14 @@
       "implementation": ["lib/src/core/disposable.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
     },
+    "src/common/MultiKeyMap.ts": {
+      "implementation": ["lib/src/core/multi_key_map.dart"],
+      "tests": ["test/upstream_multi_key_map_parity_test.dart"]
+    },
+    "src/common/MultiKeyMap.test.ts": {
+      "implementation": ["lib/src/core/multi_key_map.dart"],
+      "tests": ["test/upstream_multi_key_map_parity_test.dart"]
+    },
     "src/common/SortedList.ts": {
       "implementation": ["lib/src/core/sorted_list.dart"],
       "tests": ["test/upstream_sorted_list_parity_test.dart"]
@@ -501,6 +509,30 @@
       "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
       "dartTestName": "should iterate correctly when list items change during iteration",
       "dartTestKind": "test"
+    },
+    "unit:src/common/MultiKeyMap.test.ts:FourKeyMap clear": {
+      "dartTestFile": "test/upstream_multi_key_map_parity_test.dart",
+      "dartTestName": "clear",
+      "dartTestKind": "test",
+      "dartTestPath": "FourKeyMap/clear"
+    },
+    "unit:src/common/MultiKeyMap.test.ts:FourKeyMap set, get": {
+      "dartTestFile": "test/upstream_multi_key_map_parity_test.dart",
+      "dartTestName": "set, get",
+      "dartTestKind": "test",
+      "dartTestPath": "FourKeyMap/set, get"
+    },
+    "unit:src/common/MultiKeyMap.test.ts:TwoKeyMap clear": {
+      "dartTestFile": "test/upstream_multi_key_map_parity_test.dart",
+      "dartTestName": "clear",
+      "dartTestKind": "test",
+      "dartTestPath": "TwoKeyMap/clear"
+    },
+    "unit:src/common/MultiKeyMap.test.ts:TwoKeyMap set, get": {
+      "dartTestFile": "test/upstream_multi_key_map_parity_test.dart",
+      "dartTestName": "set, get",
+      "dartTestKind": "test",
+      "dartTestPath": "TwoKeyMap/set, get"
     }
   }
 }
