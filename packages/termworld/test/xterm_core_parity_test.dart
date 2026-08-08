@@ -88,6 +88,21 @@ void main() {
       );
     });
 
+    test('streams split UTF-16 surrogates and drops string BOMs', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 2));
+      addTearDown(terminal.dispose);
+
+      terminal
+        ..write(String.fromCharCode(0xd834))
+        ..write('${String.fromCharCode(0xdd1e)}\ufeff');
+      await terminal.writeAndWait('X');
+
+      expect(
+        terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+        '𝄞X',
+      );
+    });
+
     test('fires synchronous data listeners in registration order', () {
       final terminal = Terminal();
       addTearDown(terminal.dispose);

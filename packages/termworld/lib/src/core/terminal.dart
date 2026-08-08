@@ -338,6 +338,7 @@ final class Terminal extends DisposableStore {
 
   final List<_WriteRequest> _writeQueue = <_WriteRequest>[];
   final _Utf8ChunkDecoder _decoder = _Utf8ChunkDecoder();
+  final _StringChunkDecoder _stringDecoder = _StringChunkDecoder();
   bool _writeScheduled = false;
   bool _draining = false;
   int _viewportY = 0;
@@ -422,7 +423,7 @@ final class Terminal extends DisposableStore {
       final request = _writeQueue.removeAt(0);
       try {
         final text = request.data is String
-            ? request.data as String
+            ? _stringDecoder.convert(request.data as String)
             : _decoder.convert(request.data as Uint8List);
         await _parse(text);
         request.onParsed?.call();
@@ -849,6 +850,52 @@ final class _WriteRequest {
   final Object data;
   final void Function()? onParsed;
   final void Function(Object error, StackTrace stackTrace)? onError;
+}
+
+final class _StringChunkDecoder {
+  int? _pendingHighSurrogate;
+
+  String convert(String input) {
+    if (input.isEmpty) return '';
+    final output = StringBuffer();
+    var index = 0;
+    final pending = _pendingHighSurrogate;
+    if (pending != null) {
+      final second = input.codeUnitAt(index++);
+      if (second >= 0xdc00 && second <= 0xdfff) {
+        output.writeCharCode(
+          (pending - 0xd800) * 0x400 + second - 0xdc00 + 0x10000,
+        );
+      } else {
+        output
+          ..writeCharCode(pending)
+          ..writeCharCode(second);
+      }
+      _pendingHighSurrogate = null;
+    }
+    while (index < input.length) {
+      final code = input.codeUnitAt(index++);
+      if (code >= 0xd800 && code <= 0xdbff) {
+        if (index >= input.length) {
+          _pendingHighSurrogate = code;
+          break;
+        }
+        final second = input.codeUnitAt(index++);
+        if (second >= 0xdc00 && second <= 0xdfff) {
+          output.writeCharCode(
+            (code - 0xd800) * 0x400 + second - 0xdc00 + 0x10000,
+          );
+        } else {
+          output
+            ..writeCharCode(code)
+            ..writeCharCode(second);
+        }
+        continue;
+      }
+      if (code != 0xfeff) output.writeCharCode(code);
+    }
+    return output.toString();
+  }
 }
 
 final class _Utf8ChunkDecoder {
