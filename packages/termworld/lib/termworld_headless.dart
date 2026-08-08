@@ -14,4 +14,5 @@ export 'src/core/options.dart';
 export 'src/core/parser.dart';
 export 'src/core/renderer_utils.dart';
 export 'src/core/terminal.dart';
+export 'src/core/text_blink_state_manager.dart';
 export 'src/core/unicode.dart';

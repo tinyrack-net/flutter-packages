@@ -137,6 +137,14 @@
     }
   },
   "sources": {
+    "src/browser/renderer/shared/TextBlinkStateManager.ts": {
+      "implementation": ["lib/src/core/text_blink_state_manager.dart"],
+      "tests": ["test/upstream_text_blink_state_manager_parity_test.dart"]
+    },
+    "src/browser/renderer/shared/TextBlinkStateManager.test.ts": {
+      "implementation": ["lib/src/core/text_blink_state_manager.dart"],
+      "tests": ["test/upstream_text_blink_state_manager_parity_test.dart"]
+    },
     "src/browser/Clipboard.ts": {
       "implementation": [
         "lib/src/core/clipboard.dart",
@@ -637,6 +645,10 @@
     }
   },
   "tests": {
+    "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager does not start interval when duration is zero": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"does not start interval when duration is zero","dartTestKind":"test"},
+    "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager pauses while viewport is hidden and resumes when visible": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"pauses while viewport is hidden and resumes when visible","dartTestKind":"test"},
+    "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager starts interval only when needed": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"starts interval only when needed","dartTestKind":"test"},
+    "unit:src/browser/renderer/shared/TextBlinkStateManager.test.ts:TextBlinkStateManager stops interval and restores blink visibility when no longer needed": {"dartTestFile":"test/upstream_text_blink_state_manager_parity_test.dart","dartTestName":"stops interval and restores blink visibility when no longer needed","dartTestKind":"test"},
     "unit:src/browser/Clipboard.test.ts:evaluatePastedTextProcessing should bracket pasted text in bracketedPasteMode": {"dartTestFile":"test/upstream_browser_clipboard_parity_test.dart","dartTestName":"should bracket pasted text in bracketedPasteMode","dartTestKind":"test"},
     "unit:src/browser/Clipboard.test.ts:evaluatePastedTextProcessing should escape embedded escape sequences in pasted text only when bracketed": {"dartTestFile":"test/upstream_browser_clipboard_parity_test.dart","dartTestName":"should escape embedded escape sequences in pasted text only when bracketed","dartTestKind":"test"},
     "unit:src/browser/Clipboard.test.ts:evaluatePastedTextProcessing should replace carriage return and/or line feed with carriage return": {"dartTestFile":"test/upstream_browser_clipboard_parity_test.dart","dartTestName":"should replace carriage return and/or line feed with carriage return","dartTestKind":"test"},
