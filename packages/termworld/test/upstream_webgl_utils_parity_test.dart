@@ -122,6 +122,49 @@ void main() {
     expect(model.cells, hasLength(32));
     expect(model.lineLengths, hasLength(2));
   });
+
+  test('WebGL link layer splits underline and clear rectangles', () {
+    expect(
+      terminalWebglLinkUnderlineRectangles(
+        x1: 2,
+        y1: 1,
+        x2: 4,
+        y2: 1,
+        columns: 10,
+      ),
+      const <TerminalWebglCellRectangle>[
+        TerminalWebglCellRectangle(x: 2, y: 1, width: 2),
+      ],
+    );
+    expect(
+      terminalWebglLinkUnderlineRectangles(
+        x1: 8,
+        y1: 1,
+        x2: 3,
+        y2: 3,
+        columns: 10,
+      ),
+      const <TerminalWebglCellRectangle>[
+        TerminalWebglCellRectangle(x: 8, y: 1, width: 2),
+        TerminalWebglCellRectangle(x: 0, y: 2, width: 10),
+        TerminalWebglCellRectangle(x: 0, y: 3, width: 3),
+      ],
+    );
+    expect(
+      terminalWebglLinkClearRectangles(
+        x1: 8,
+        y1: 1,
+        x2: 3,
+        y2: 4,
+        columns: 10,
+      ),
+      const <TerminalWebglCellRectangle>[
+        TerminalWebglCellRectangle(x: 8, y: 1, width: 2),
+        TerminalWebglCellRectangle(x: 0, y: 2, width: 10, height: 2),
+        TerminalWebglCellRectangle(x: 0, y: 4, width: 3),
+      ],
+    );
+  });
 }
 
 void _expectTypedSlices<T extends List<num>>(T values, int largeStart) {

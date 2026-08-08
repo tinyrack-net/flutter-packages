@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show immutable;
 import 'package:termworld/src/core/selection_render_model.dart';
 
 /// Number of packed model words used for each terminal cell.
@@ -78,6 +79,84 @@ final class TerminalWebglRenderModel {
     cells.fillRange(0, cells.length, 0);
     lineLengths.fillRange(0, lineLengths.length, 0);
   }
+}
+
+/// One cell rectangle used to draw or clear a WebGL link underline.
+@immutable
+final class TerminalWebglCellRectangle {
+  /// Creates a cell rectangle.
+  const TerminalWebglCellRectangle({
+    required this.x,
+    required this.y,
+    required this.width,
+    this.height = 1,
+  });
+
+  /// Starting column.
+  final int x;
+
+  /// Starting row.
+  final int y;
+
+  /// Width in cells.
+  final int width;
+
+  /// Height in cells.
+  final int height;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TerminalWebglCellRectangle &&
+      x == other.x &&
+      y == other.y &&
+      width == other.width &&
+      height == other.height;
+
+  @override
+  int get hashCode => Object.hash(x, y, width, height);
+}
+
+/// Computes underline spans for xterm's inclusive-row/exclusive-column link.
+List<TerminalWebglCellRectangle> terminalWebglLinkUnderlineRectangles({
+  required int x1,
+  required int y1,
+  required int x2,
+  required int y2,
+  required int columns,
+}) {
+  if (y1 == y2) {
+    return <TerminalWebglCellRectangle>[
+      TerminalWebglCellRectangle(x: x1, y: y1, width: x2 - x1),
+    ];
+  }
+  return <TerminalWebglCellRectangle>[
+    TerminalWebglCellRectangle(x: x1, y: y1, width: columns - x1),
+    for (var row = y1 + 1; row < y2; row++)
+      TerminalWebglCellRectangle(x: 0, y: row, width: columns),
+    TerminalWebglCellRectangle(x: 0, y: y2, width: x2),
+  ];
+}
+
+/// Computes the coalesced rectangles cleared when a link underline hides.
+List<TerminalWebglCellRectangle> terminalWebglLinkClearRectangles({
+  required int x1,
+  required int y1,
+  required int x2,
+  required int y2,
+  required int columns,
+}) {
+  final middleRows = y2 - y1 - 1;
+  return <TerminalWebglCellRectangle>[
+    TerminalWebglCellRectangle(x: x1, y: y1, width: columns - x1),
+    if (middleRows > 0)
+      TerminalWebglCellRectangle(
+        x: 0,
+        y: y1 + 1,
+        width: columns,
+        height: middleRows,
+      ),
+    TerminalWebglCellRectangle(x: 0, y: y2, width: x2),
+  ];
 }
 
 /// Matrix translating normalized top-left coordinates into WebGL clip space.
