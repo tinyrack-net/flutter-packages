@@ -234,6 +234,7 @@ final class Terminal extends DisposableStore {
       },
       onTitle: _onTitleChange.fire,
       onData: _triggerData,
+      onRequestSendFocus: _reportCurrentFocus,
     );
     buffer = _engine.buffer;
     parser = own(TerminalParser());
@@ -354,6 +355,7 @@ final class Terminal extends DisposableStore {
   bool Function(TerminalWheelEvent event)? _customWheelHandler;
   void Function()? _focus;
   void Function()? _blur;
+  bool _hasFocus = false;
 
   /// Queues text or UTF-8 bytes for ordered parsing.
   void write(Object data, {void Function()? onParsed}) {
@@ -494,6 +496,21 @@ final class Terminal extends DisposableStore {
     _focus = focus;
     _blur = blur;
   }
+
+  /// Reports a renderer focus transition to the terminal input service.
+  ///
+  /// Renderer adapters call this after their native focus state has actually
+  /// changed. When DECSET 1004 is active this emits the same focus-in or
+  /// focus-out sequence as xterm.js' textarea boundary.
+  void reportFocus({required bool focused}) {
+    if (_hasFocus == focused) return;
+    _hasFocus = focused;
+    if (_engine.reportFocusMode) _reportCurrentFocus();
+  }
+
+  void _reportCurrentFocus() => _triggerData(
+    _hasFocus ? '\u001b[I' : '\u001b[O',
+  );
 
   /// xterm-compatible `attachCustomKeyEventHandler` API.
   // This method name is fixed by xterm's public API.

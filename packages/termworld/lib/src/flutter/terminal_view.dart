@@ -580,6 +580,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   void _focusChanged() {
+    widget.terminal.reportFocus(focused: widget.focusNode.hasFocus);
     if (widget.focusNode.hasFocus) {
       _openConnection();
     } else {

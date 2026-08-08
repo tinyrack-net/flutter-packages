@@ -29,6 +29,7 @@ final class _TerminalCoreEngine {
     this.onBell,
     this.onData,
     this.onTitle,
+    this.onRequestSendFocus,
   }) : buffer = TerminalBufferNamespace(
          columns: columns,
          rows: rows,
@@ -45,6 +46,7 @@ final class _TerminalCoreEngine {
   void Function()? onBell;
   void Function(String data)? onData;
   void Function(String title)? onTitle;
+  void Function()? onRequestSendFocus;
 
   int _columns;
   int _rows;
@@ -965,6 +967,7 @@ final class _TerminalCoreEngine {
               : TerminalMouseTrackingMode.none;
         case 1004:
           reportFocusMode = enabled;
+          if (enabled) onRequestSendFocus?.call();
         case 1005:
         // Removed by xterm.js; consume without changing mouse encoding.
         case 1006:
