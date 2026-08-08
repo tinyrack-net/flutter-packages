@@ -418,7 +418,9 @@ final class _TerminalViewState extends State<TerminalView> {
         child: MouseRegion(
           cursor: _linkUsesPointer(_hoveredLink)
               ? SystemMouseCursors.click
-              : MouseCursor.defer,
+              : _mouseReportingCapturesPointer
+              ? SystemMouseCursors.basic
+              : SystemMouseCursors.text,
           onHover: (event) {
             if (widget.terminal.modes.mouseTrackingMode == 'none') {
               unawaited(
@@ -1129,6 +1131,12 @@ final class _TerminalViewState extends State<TerminalView> {
   bool _linkUsesPointer(TerminalLink? link) =>
       link != null && (link.decorations?.pointerCursor ?? true);
 
+  bool get _mouseReportingCapturesPointer {
+    if (widget.terminal.modes.mouseTrackingMode == 'none') return false;
+    return !widget.terminal.options.mouseEventsRequireAlt ||
+        HardwareKeyboard.instance.isAltPressed;
+  }
+
   void _leaveLink(PointerExitEvent event) {
     final previous = _hoveredLink;
     if (previous == null) return;
@@ -1162,6 +1170,11 @@ final class _TerminalViewState extends State<TerminalView> {
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     final keyboard = HardwareKeyboard.instance;
+    if ((event.logicalKey == LogicalKeyboardKey.altLeft ||
+            event.logicalKey == LogicalKeyboardKey.altRight) &&
+        mounted) {
+      setState(() {});
+    }
     final kittyFlags = widget.terminal.kittyKeyboardFlags;
     final useWin32 = widget.terminal.modes.win32InputMode;
     if (event is KeyUpEvent &&
