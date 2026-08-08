@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:termworld/src/core/buffer_line_string_cache.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/marker.dart';
@@ -359,14 +360,23 @@ final class TerminalBufferLine {
     int length, {
     this.isWrapped = false,
     TerminalCellAttributes? attributes,
+    this.stringCache,
   }) : _cells = List<_CellData>.generate(
          length,
          (_) => _CellData(attributes: attributes),
        );
 
-  TerminalBufferLine._(this._cells, {required this.isWrapped});
+  TerminalBufferLine._(
+    this._cells, {
+    required this.isWrapped,
+    this.stringCache,
+  });
 
   final List<_CellData> _cells;
+
+  /// Shared canonical translation cache, when this line belongs to a buffer.
+  final BufferLineStringCache? stringCache;
+  BufferLineStringCacheEntry? _stringCacheEntry;
 
   /// Whether this line continues the preceding logical line.
   bool isWrapped;
@@ -384,6 +394,17 @@ final class TerminalBufferLine {
     int startColumn = 0,
     int? endColumn,
   }) {
+    final isCanonicalRequest = startColumn == 0 && endColumn == null;
+    final cache = isCanonicalRequest ? stringCache : null;
+    cache?.touch();
+    final cachedEntry = cache == null ? null : _getStringCacheEntry(false);
+    final cachedValue = cachedEntry?.value;
+    if (cachedValue != null) {
+      if (trimRight) {
+        return cachedEntry!.isTrimmed ? cachedValue : cachedValue.trimRight();
+      }
+      if (!cachedEntry!.isTrimmed) return cachedValue;
+    }
     final start = startColumn.clamp(0, length);
     final end = (endColumn ?? length).clamp(start, length);
     final output = StringBuffer();
@@ -393,17 +414,23 @@ final class TerminalBufferLine {
       output.write(cell.chars.isEmpty ? ' ' : cell.chars);
     }
     final value = output.toString();
-    return trimRight ? value.trimRight() : value;
+    final result = trimRight ? value.trimRight() : value;
+    if (cache != null) {
+      _getStringCacheEntry(true)!.setValue(result, isTrimmed: trimRight);
+    }
+    return result;
   }
 
   /// Returns an independent copy of this line.
   TerminalBufferLine copy() => TerminalBufferLine._(
     _cells.map((cell) => cell.copy()).toList(growable: false),
     isWrapped: isWrapped,
+    stringCache: stringCache,
   );
 
   /// Resizes this line to [columns] cells.
   void resize(int columns, TerminalCellAttributes eraseAttributes) {
+    _invalidateStringCache();
     if (columns < length) {
       _cells.removeRange(columns, length);
     } else {
@@ -424,6 +451,7 @@ final class TerminalBufferLine {
     TerminalCellAttributes attributes,
   ) {
     if (index < 0 || index >= length) return;
+    _invalidateStringCache();
     _cells[index]
       ..chars = chars
       ..width = width
@@ -439,6 +467,7 @@ final class TerminalBufferLine {
   /// Appends [value] to the base cell at or before [index].
   void appendCombining(int index, String value) {
     if (index < 0 || index >= length) return;
+    _invalidateStringCache();
     var target = index;
     while (target > 0 && _cells[target].width == 0) {
       target--;
@@ -449,6 +478,7 @@ final class TerminalBufferLine {
   /// Joins [value] into the cell at [index] and updates its display [width].
   void joinCell(int index, String value, int width) {
     if (index < 0 || index >= length) return;
+    _invalidateStringCache();
     final cell = _cells[index]
       ..chars += value
       ..width = width;
@@ -467,6 +497,7 @@ final class TerminalBufferLine {
     TerminalCellAttributes eraseAttributes,
   ) {
     if (count <= 0 || index < 0 || index >= length) return;
+    _invalidateStringCache();
     final oldLength = length;
     final amount = count.clamp(0, oldLength - index);
     _cells
@@ -487,6 +518,7 @@ final class TerminalBufferLine {
     TerminalCellAttributes eraseAttributes,
   ) {
     if (count <= 0 || index < 0 || index >= length) return;
+    _invalidateStringCache();
     final amount = count.clamp(0, length - index);
     _cells
       ..removeRange(index, index + amount)
@@ -505,12 +537,30 @@ final class TerminalBufferLine {
     TerminalCellAttributes eraseAttributes, {
     bool respectProtection = false,
   }) {
+    _invalidateStringCache();
     final first = start.clamp(0, length);
     final last = end.clamp(first, length);
     for (var index = first; index < last; index++) {
       if (respectProtection && _cells[index].attributes.protected) continue;
       _cells[index].reset(eraseAttributes);
     }
+  }
+
+  BufferLineStringCacheEntry? _getStringCacheEntry(bool createIfNeeded) {
+    final cache = stringCache;
+    if (cache == null) return null;
+    final entry = _stringCacheEntry;
+    if (entry != null && entry.generation == cache.generation) return entry;
+    if (!createIfNeeded) return null;
+    return _stringCacheEntry = cache.allocateEntry();
+  }
+
+  void _invalidateStringCache() {
+    final entry = _getStringCacheEntry(false);
+    if (entry == null) return;
+    entry
+      ..value = null
+      ..isTrimmed = false;
   }
 }
 
@@ -529,11 +579,11 @@ final class TerminalBuffer implements Disposable {
        _scrollback = _initialScrollback(scrollback),
        _onTrim = _initialCallback(onTrim),
        _onInsert = _initialCallback(onInsert),
-       _onDelete = _initialCallback(onDelete),
-       _lines = List<TerminalBufferLine>.generate(
-         rows,
-         (_) => TerminalBufferLine(columns),
-       );
+       _onDelete = _initialCallback(onDelete) {
+    _lines.addAll(
+      List<TerminalBufferLine>.generate(rows, (_) => _blankLine(columns, null)),
+    );
+  }
 
   /// Kind of this buffer.
   final TerminalBufferType type;
@@ -541,7 +591,8 @@ final class TerminalBuffer implements Disposable {
   /// Maximum number of retained scrollback lines.
   int get scrollback => _scrollback;
   int _scrollback;
-  final List<TerminalBufferLine> _lines;
+  final List<TerminalBufferLine> _lines = <TerminalBufferLine>[];
+  final BufferLineStringCache _stringCache = BufferLineStringCache();
   int _columns;
   int _rows;
   final void Function(int amount)? _onTrim;
@@ -625,6 +676,23 @@ final class TerminalBuffer implements Disposable {
   /// Returns an empty cell with default attributes.
   TerminalCell getNullCell() => TerminalCell._(_CellData());
 
+  /// Translates one absolute buffer line, returning an empty string if absent.
+  String translateBufferLineToString(
+    int lineIndex, {
+    bool trimRight = false,
+    int startColumn = 0,
+    int? endColumn,
+  }) =>
+      getLine(lineIndex)?.translateToString(
+        trimRight: trimRight,
+        startColumn: startColumn,
+        endColumn: endColumn,
+      ) ??
+      '';
+
+  /// Shared canonical line-string cache owned by this buffer.
+  BufferLineStringCache get stringCache => _stringCache;
+
   /// Resizes the viewport and all retained lines.
   void resize(
     int columns,
@@ -632,6 +700,7 @@ final class TerminalBuffer implements Disposable {
     TerminalCellAttributes eraseAttributes, {
     bool reflowCursorLine = false,
   }) {
+    _stringCache.clear();
     if (type == TerminalBufferType.normal && columns != _columns) {
       _reflow(columns, eraseAttributes, reflowCursorLine);
     }
@@ -653,7 +722,7 @@ final class TerminalBuffer implements Disposable {
       _lines.addAll(
         List<TerminalBufferLine>.generate(
           linesToAdd,
-          (_) => TerminalBufferLine(columns, attributes: eraseAttributes),
+          (_) => _blankLine(columns, eraseAttributes),
         ),
       );
     } else if (rows < oldRows) {
@@ -667,7 +736,7 @@ final class TerminalBuffer implements Disposable {
     _columns = columns;
     _rows = rows;
     while (_lines.length < rows) {
-      _lines.add(TerminalBufferLine(columns, attributes: eraseAttributes));
+      _lines.add(_blankLine(columns, eraseAttributes));
     }
     _trim();
     cursorX = cursorX.clamp(0, columns - 1);
@@ -677,13 +746,14 @@ final class TerminalBuffer implements Disposable {
 
   /// Replaces all content with an empty viewport.
   void clear([TerminalCellAttributes? eraseAttributes]) {
+    _stringCache.clear();
     _deleteLines(0, _lines.length);
     _lines
       ..clear()
       ..addAll(
         List<TerminalBufferLine>.generate(
           _rows,
-          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+          (_) => _blankLine(_columns, eraseAttributes),
         ),
       );
     cursorX = 0;
@@ -704,7 +774,7 @@ final class TerminalBuffer implements Disposable {
       ..addAll(
         List<TerminalBufferLine>.generate(
           _rows - 1,
-          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+          (_) => _blankLine(_columns, eraseAttributes),
         ),
       );
     cursorY = 0;
@@ -734,7 +804,7 @@ final class TerminalBuffer implements Disposable {
   }) {
     final last = bottom ?? _rows - 1;
     if (top == 0 && last == _rows - 1 && type == TerminalBufferType.normal) {
-      _lines.add(TerminalBufferLine(_columns, attributes: eraseAttributes));
+      _lines.add(_blankLine(_columns, eraseAttributes));
       _trim();
       return;
     }
@@ -744,7 +814,7 @@ final class TerminalBuffer implements Disposable {
     _insertLines(end, 1);
     _lines
       ..removeAt(start)
-      ..insert(end, TerminalBufferLine(_columns, attributes: eraseAttributes));
+      ..insert(end, _blankLine(_columns, eraseAttributes));
   }
 
   /// Scrolls the inclusive region from [top] through [bottom] downward.
@@ -762,7 +832,7 @@ final class TerminalBuffer implements Disposable {
       ..removeAt(end)
       ..insert(
         start,
-        TerminalBufferLine(_columns, attributes: eraseAttributes),
+        _blankLine(_columns, eraseAttributes),
       );
   }
 
@@ -784,7 +854,7 @@ final class TerminalBuffer implements Disposable {
         start,
         List<TerminalBufferLine>.generate(
           amount,
-          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+          (_) => _blankLine(_columns, eraseAttributes),
         ),
       )
       ..removeRange(end, end + amount);
@@ -809,7 +879,7 @@ final class TerminalBuffer implements Disposable {
         insertion,
         List<TerminalBufferLine>.generate(
           amount,
-          (_) => TerminalBufferLine(_columns, attributes: eraseAttributes),
+          (_) => _blankLine(_columns, eraseAttributes),
         ),
       );
   }
@@ -919,8 +989,7 @@ final class TerminalBuffer implements Disposable {
     int? cursorOffset,
   ) {
     final lines = <TerminalBufferLine>[
-      TerminalBufferLine(columns, attributes: eraseAttributes)
-        ..isWrapped = firstWasWrapped,
+      _blankLine(columns, eraseAttributes, isWrapped: firstWasWrapped),
     ];
     var row = 0;
     var column = 0;
@@ -941,8 +1010,7 @@ final class TerminalBuffer implements Disposable {
       final width = cell.width == 2 ? 2 : 1;
       if (column + width > columns) {
         lines.add(
-          TerminalBufferLine(columns, attributes: eraseAttributes)
-            ..isWrapped = true,
+          _blankLine(columns, eraseAttributes, isWrapped: true),
         );
         row++;
         column = 0;
@@ -969,6 +1037,17 @@ final class TerminalBuffer implements Disposable {
     }
     return result;
   }
+
+  TerminalBufferLine _blankLine(
+    int columns,
+    TerminalCellAttributes? attributes, {
+    bool isWrapped = false,
+  }) => TerminalBufferLine(
+    columns,
+    attributes: attributes,
+    isWrapped: isWrapped,
+    stringCache: _stringCache,
+  );
 
   void _trim() {
     final maximum =
@@ -1011,6 +1090,7 @@ final class TerminalBuffer implements Disposable {
     if (_isDisposed) return;
     _isDisposed = true;
     clearAllMarkers();
+    _stringCache.dispose();
     _lines.clear();
   }
 

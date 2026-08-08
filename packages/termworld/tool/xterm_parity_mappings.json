@@ -267,6 +267,10 @@
       "implementation": ["lib/src/core/buffer.dart"],
       "tests": ["test/upstream_buffer_set_parity_test.dart"]
     },
+    "src/common/buffer/BufferLineStringCache.ts": {
+      "implementation": ["lib/src/core/buffer_line_string_cache.dart"],
+      "tests": ["test/upstream_buffer_set_parity_test.dart"]
+    },
     "src/common/buffer/CellData.ts": {
       "implementation": ["lib/src/core/buffer.dart"],
       "tests": ["test/upstream_cell_data_parity_test.dart"]

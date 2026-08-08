@@ -76,19 +76,46 @@ void main() {
       test('should dispose previous buffers on reset', () {
         final oldNormal = bufferSet.normal;
         final oldAlternate = bufferSet.alternate;
+        oldNormal
+            .getLine(0)!
+            .setCell(
+              0,
+              'a',
+              1,
+              TerminalCellAttributes(),
+            );
+        oldNormal.translateBufferLineToString(0);
+        final oldCache = oldNormal.stringCache;
+        expect(oldCache.entries, hasLength(1));
+        expect(oldCache.hasPendingClear, isTrue);
         bufferSet.reset();
         expect(bufferSet.normal, isNot(same(oldNormal)));
         expect(bufferSet.alternate, isNot(same(oldAlternate)));
         expect(oldNormal.isDisposed, isTrue);
         expect(oldAlternate.isDisposed, isTrue);
+        expect(oldCache.entries, isEmpty);
+        expect(oldCache.hasPendingClear, isFalse);
       });
 
       test('should dispose both buffers when disposed', () {
         final normal = bufferSet.normal;
+        normal.getLine(0)!.setCell(0, 'a', 1, TerminalCellAttributes());
+        normal.translateBufferLineToString(0);
+        bufferSet.useAlternate();
         final alternate = bufferSet.alternate;
+        alternate.getLine(0)!.setCell(0, 'b', 1, TerminalCellAttributes());
+        alternate.translateBufferLineToString(0);
+        final normalCache = normal.stringCache;
+        final alternateCache = alternate.stringCache;
+        expect(normalCache.hasPendingClear, isTrue);
+        expect(alternateCache.hasPendingClear, isTrue);
         bufferSet.dispose();
         expect(normal.isDisposed, isTrue);
         expect(alternate.isDisposed, isTrue);
+        expect(normalCache.entries, isEmpty);
+        expect(alternateCache.entries, isEmpty);
+        expect(normalCache.hasPendingClear, isFalse);
+        expect(alternateCache.hasPendingClear, isFalse);
       });
     });
   });
