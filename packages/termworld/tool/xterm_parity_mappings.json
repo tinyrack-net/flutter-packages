@@ -1506,6 +1506,19 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "playwright:1333f3f60f92f427026a-a876085b5dae79be0dba": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 00","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-1ed956f9afd359814c9a": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 01","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-dcb33a87b1f2d7a3ef8e": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 02","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-86f3411e76d38ea050a8": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 03","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-499696c9cf7f13adb289": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 04","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-57b5f57cdd2a490b2e94": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 05","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-2d03a000b2143cfeb98a": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 06","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-22e2e2d4ae56e9850eb5": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 07","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-fdb3c28d7e316a18d0e6": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 08","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-1787a366593af3547851": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 09","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-f20d427101de2fe4cdf8": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 10","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-5744710d5c73de956de5": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 11","dartTestKind":"test"},
+    "playwright:1333f3f60f92f427026a-8b77492df26aec32f4fc": {"dartTestFile":"test/upstream_parser_integration_parity_test.dart","dartTestName":"xterm Parser 12","dartTestKind":"test"},
     "playwright:7f3b9553b1778fc0311e-066c3f81e61f0b34a287": {
       "dartTestFile": "test/public_api_contract_test.dart",
       "dartTestName": "AttachAddon utf8",
