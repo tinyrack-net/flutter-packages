@@ -1,5 +1,203 @@
+import 'dart:collection';
+
 /// One glyph identifier or an end-exclusive glyph range.
 typedef TerminalGlyphSelector = Object;
+
+/// A substitution match stored in an OpenType lookup tree.
+final class TerminalLigatureLookupResult {
+  /// Creates a lookup result.
+  const TerminalLigatureLookupResult({
+    required this.substitutions,
+    required this.length,
+    required this.index,
+    required this.subIndex,
+    required this.contextRange,
+  });
+
+  /// Replacement glyphs, with null retaining the input glyph.
+  final List<int?> substitutions;
+
+  /// Number of input glyphs consumed.
+  final int length;
+
+  /// Parent lookup order.
+  final int index;
+
+  /// Subtable order within the parent lookup.
+  final int subIndex;
+
+  /// Context range relative to the match start.
+  final (int, int) contextRange;
+}
+
+/// One node before lookup-tree ranges have been expanded.
+final class TerminalLigatureLookupEntry {
+  /// Creates an empty lookup node.
+  TerminalLigatureLookupEntry({this.lookup, this.forward, this.reverse});
+
+  /// Best substitution terminating at this node.
+  TerminalLigatureLookupResult? lookup;
+
+  /// Glyphs following the current position.
+  TerminalLigatureLookupTree? forward;
+
+  /// Glyphs preceding the match start.
+  TerminalLigatureLookupTree? reverse;
+}
+
+/// One end-exclusive glyph range sharing a lookup entry.
+final class TerminalLigatureLookupRange {
+  /// Creates a ranged lookup edge.
+  const TerminalLigatureLookupRange(this.range, this.entry);
+
+  /// End-exclusive glyph range.
+  final (int, int) range;
+
+  /// Entry shared by every glyph in [range].
+  final TerminalLigatureLookupEntry entry;
+}
+
+/// Sparse OpenType lookup tree before range expansion.
+final class TerminalLigatureLookupTree {
+  /// Creates an empty or populated tree.
+  TerminalLigatureLookupTree({
+    Map<int, TerminalLigatureLookupEntry>? individual,
+    List<TerminalLigatureLookupRange>? ranges,
+  }) : individual = individual ?? <int, TerminalLigatureLookupEntry>{},
+       ranges = ranges ?? <TerminalLigatureLookupRange>[];
+
+  /// Edges for individual glyph identifiers.
+  final Map<int, TerminalLigatureLookupEntry> individual;
+
+  /// Edges shared by glyph ranges.
+  final List<TerminalLigatureLookupRange> ranges;
+}
+
+/// One lookup node after range expansion.
+final class TerminalFlattenedLigatureEntry {
+  /// Best substitution terminating at this node.
+  TerminalLigatureLookupResult? lookup;
+
+  /// Expanded following-glyph edges.
+  Map<int, TerminalFlattenedLigatureEntry>? forward;
+
+  /// Expanded preceding-glyph edges.
+  Map<int, TerminalFlattenedLigatureEntry>? reverse;
+}
+
+/// Expands ranged glyph edges while preserving shared/cyclic entry identity.
+Map<int, TerminalFlattenedLigatureEntry> flattenTerminalLigatureTree(
+  TerminalLigatureLookupTree tree, [
+  Map<TerminalLigatureLookupEntry, TerminalFlattenedLigatureEntry>? visited,
+]) {
+  final known =
+      visited ??
+      HashMap<
+        TerminalLigatureLookupEntry,
+        TerminalFlattenedLigatureEntry
+      >.identity();
+  final result = <int, TerminalFlattenedLigatureEntry>{};
+  for (final MapEntry(key: glyph, value: entry) in tree.individual.entries) {
+    result[glyph] = _flattenTerminalLigatureEntry(entry, known);
+  }
+  for (final ranged in tree.ranges) {
+    final flattened = _flattenTerminalLigatureEntry(ranged.entry, known);
+    for (var glyph = ranged.range.$1; glyph < ranged.range.$2; glyph++) {
+      result[glyph] = flattened;
+    }
+  }
+  return result;
+}
+
+TerminalFlattenedLigatureEntry _flattenTerminalLigatureEntry(
+  TerminalLigatureLookupEntry entry,
+  Map<TerminalLigatureLookupEntry, TerminalFlattenedLigatureEntry> visited,
+) {
+  final existing = visited[entry];
+  if (existing != null) return existing;
+  final result = TerminalFlattenedLigatureEntry();
+  visited[entry] = result;
+  final forward = entry.forward;
+  if (forward != null) {
+    result.forward = flattenTerminalLigatureTree(forward, visited);
+  }
+  final reverse = entry.reverse;
+  if (reverse != null) {
+    result.reverse = flattenTerminalLigatureTree(reverse, visited);
+  }
+  result.lookup = entry.lookup;
+  return result;
+}
+
+/// Walks a flattened lookup tree and returns the highest-priority match.
+TerminalLigatureLookupResult? walkTerminalLigatureTree(
+  Map<int, TerminalFlattenedLigatureEntry> tree,
+  List<int> sequence,
+  int startIndex,
+  int index,
+) {
+  if (index < 0 || index >= sequence.length) return null;
+  final subtree = tree[sequence[index]];
+  if (subtree == null) return null;
+  var lookup = subtree.lookup;
+  final reverse = subtree.reverse;
+  if (reverse != null) {
+    final reverseLookup = _walkTerminalLigatureReverse(
+      reverse,
+      sequence,
+      startIndex,
+    );
+    if (_preferTerminalLigatureLookup(reverseLookup, lookup)) {
+      lookup = reverseLookup;
+    }
+  }
+  final nextIndex = index + 1;
+  final forward = subtree.forward;
+  if (nextIndex >= sequence.length || forward == null) return lookup;
+  final forwardLookup = walkTerminalLigatureTree(
+    forward,
+    sequence,
+    startIndex,
+    nextIndex,
+  );
+  if (_preferTerminalLigatureLookup(forwardLookup, lookup)) {
+    lookup = forwardLookup;
+  }
+  return lookup;
+}
+
+TerminalLigatureLookupResult? _walkTerminalLigatureReverse(
+  Map<int, TerminalFlattenedLigatureEntry> tree,
+  List<int> sequence,
+  int index,
+) {
+  var cursor = index - 1;
+  if (cursor < 0) return null;
+  var subtree = tree[sequence[cursor]];
+  var lookup = subtree?.lookup;
+  while (subtree != null) {
+    final candidate = subtree.lookup;
+    if (candidate != null &&
+        (lookup == null || lookup.index > candidate.index)) {
+      lookup = candidate;
+    }
+    cursor--;
+    final reverse = subtree.reverse;
+    if (cursor < 0 || reverse == null) break;
+    subtree = reverse[sequence[cursor]];
+  }
+  return lookup;
+}
+
+bool _preferTerminalLigatureLookup(
+  TerminalLigatureLookupResult? candidate,
+  TerminalLigatureLookupResult? current,
+) =>
+    candidate != null &&
+    (current == null ||
+        current.index > candidate.index ||
+        current.index == candidate.index &&
+            current.subIndex > candidate.subIndex);
 
 /// One OpenType coverage-table range (the end is inclusive).
 final class TerminalCoverageRange {

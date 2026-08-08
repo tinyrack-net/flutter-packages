@@ -2,6 +2,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/src/addons/ligature_tables.dart';
 
 void main() {
+  test('lookup trees flatten ranges and walk forward and reverse context', () {
+    const direct = TerminalLigatureLookupResult(
+      substitutions: <int?>[10],
+      length: 1,
+      index: 2,
+      subIndex: 0,
+      contextRange: (0, 1),
+    );
+    const contextual = TerminalLigatureLookupResult(
+      substitutions: <int?>[11, 12],
+      length: 2,
+      index: 1,
+      subIndex: 0,
+      contextRange: (-1, 2),
+    );
+    final end = TerminalLigatureLookupEntry(lookup: contextual);
+    final first = TerminalLigatureLookupEntry(
+      lookup: direct,
+      forward: TerminalLigatureLookupTree(
+        ranges: <TerminalLigatureLookupRange>[
+          TerminalLigatureLookupRange((2, 4), end),
+        ],
+      ),
+    );
+    final tree = flattenTerminalLigatureTree(
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{1: first},
+      ),
+    );
+    expect(identical(tree[1]!.forward![2], tree[1]!.forward![3]), isTrue);
+    expect(walkTerminalLigatureTree(tree, <int>[1, 3], 0, 0), contextual);
+
+    final reverseRoot = TerminalLigatureLookupEntry(
+      reverse: TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{
+          8: TerminalLigatureLookupEntry(lookup: contextual),
+        },
+      ),
+    );
+    final reverseTree = flattenTerminalLigatureTree(
+      TerminalLigatureLookupTree(
+        individual: <int, TerminalLigatureLookupEntry>{9: reverseRoot},
+      ),
+    );
+    expect(
+      walkTerminalLigatureTree(reverseTree, <int>[8, 9], 1, 1),
+      contextual,
+    );
+  });
+
   test('coverage formats preserve glyph indexes and ranges', () {
     const glyphs = TerminalCoverageGlyphs(<int>[3, 8]);
     expect(terminalCoverageGlyphIndex(glyphs, 8), 1);

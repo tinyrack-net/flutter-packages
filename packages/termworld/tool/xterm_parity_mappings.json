@@ -1484,7 +1484,9 @@
     "addons/addon-ligatures/src/fontLigatures/types.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/coverage.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/processors/classDef.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
-    "addons/addon-ligatures/src/fontLigatures/processors/substitution.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]}
+    "addons/addon-ligatures/src/fontLigatures/processors/substitution.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
+    "addons/addon-ligatures/src/fontLigatures/flatten.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
+    "addons/addon-ligatures/src/fontLigatures/walk.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]}
   },
   "tests": {
     "unit:addons/addon-ligatures/src/parse.test.ts:addon-ligatures - parse automatically ends the unicode escape after six digits": {"dartTestFile":"test/upstream_ligature_font_family_parser_parity_test.dart","dartTestName":"automatically ends the unicode escape after six digits","dartTestKind":"test","dartTestPath":"addon-ligatures - parse/automatically ends the unicode escape after six digits"},
