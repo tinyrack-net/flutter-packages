@@ -288,15 +288,23 @@ final class TerminalParser implements Disposable {
       code <= 0x17 || code == 0x19 || code >= 0x1c && code <= 0x1f;
 
   Future<_ParsedSequence?> _parseOsc(String source, int start) async {
-    final terminator = _stringTerminator(source, start + 2);
+    final terminator = _stringTerminator(
+      source,
+      start + 2,
+      bellTerminates: true,
+    );
     if (terminator == null) return null;
-    final body = source.substring(start + 2, terminator.start);
+    final body = _stringPayload(
+      source.substring(start + 2, terminator.start),
+      _StringPayloadKind.osc,
+    );
     final separator = body.indexOf(';');
     final identifier = int.tryParse(
       separator < 0 ? body : body.substring(0, separator),
     );
     final data = separator < 0 ? '' : body.substring(separator + 1);
     final handled =
+        terminator.success &&
         data.length <= _maximumPayload &&
         !(identifier == null) &&
         await _callNewest(_osc[identifier], (handler) => handler(data));
@@ -314,8 +322,12 @@ final class TerminalParser implements Disposable {
     if (terminator == null) return null;
     final header = source.substring(start + 2, finalIndex);
     final identifier = _identifier(header, source[finalIndex]);
-    final data = source.substring(finalIndex + 1, terminator.start);
+    final data = _stringPayload(
+      source.substring(finalIndex + 1, terminator.start),
+      _StringPayloadKind.dcs,
+    );
     final handled =
+        terminator.success &&
         data.length <= _maximumPayload &&
         await _callNewest(
           _dcs[identifier.key],
@@ -335,8 +347,12 @@ final class TerminalParser implements Disposable {
     if (terminator == null) return null;
     final header = source.substring(start + 2, finalIndex);
     final identifier = _identifier(header, source[finalIndex]);
-    final data = source.substring(finalIndex + 1, terminator.start);
+    final data = _stringPayload(
+      source.substring(finalIndex + 1, terminator.start),
+      _StringPayloadKind.apc,
+    );
     final handled =
+        terminator.success &&
         data.length <= _maximumPayload &&
         await _callNewest(_apc[identifier.key], (handler) => handler(data));
     return _ParsedSequence(
@@ -409,19 +425,53 @@ final class TerminalParser implements Disposable {
     return -1;
   }
 
-  _Terminator? _stringTerminator(String source, int start) {
+  _Terminator? _stringTerminator(
+    String source,
+    int start, {
+    bool bellTerminates = false,
+  }) {
     for (var index = start; index < source.length; index++) {
-      if (source.codeUnitAt(index) == 0x07) {
-        return _Terminator(index, index + 1);
+      final code = source.codeUnitAt(index);
+      if (bellTerminates && code == 0x07) {
+        return _Terminator(index, index + 1, success: true);
       }
-      if (source.codeUnitAt(index) == 0x1b) {
-        if (index + 1 >= source.length) return null;
-        if (source.codeUnitAt(index + 1) == 0x5c) {
-          return _Terminator(index, index + 2);
+      if (code == 0x18 || code == 0x1a) {
+        return _Terminator(index, index + 1, success: false);
+      }
+      if (code == 0x1b) {
+        if (index + 1 < source.length && source.codeUnitAt(index + 1) == 0x5c) {
+          return _Terminator(index, index + 2, success: true);
         }
+        // ESC ends the string successfully and starts a fresh escape
+        // sequence. Leave it unconsumed so the outer parser processes it.
+        return _Terminator(index, index, success: true);
       }
     }
     return null;
+  }
+
+  String _stringPayload(String source, _StringPayloadKind kind) {
+    StringBuffer? result;
+    var copied = 0;
+    for (var index = 0; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      final ignored = switch (kind) {
+        _StringPayloadKind.osc => _isExecutable(code),
+        _StringPayloadKind.dcs => code == 0x7f,
+        _StringPayloadKind.apc =>
+          code == 0x7f ||
+              code <= 0x07 ||
+              code >= 0x0e && code <= 0x17 ||
+              code == 0x19 ||
+              code >= 0x1c && code <= 0x1f,
+      };
+      if (!ignored) continue;
+      (result ??= StringBuffer()).write(source.substring(copied, index));
+      copied = index + 1;
+    }
+    if (result == null) return source;
+    result.write(source.substring(copied));
+    return result.toString();
   }
 
   TerminalFunctionIdentifier _identifier(String body, String finalByte) {
@@ -516,8 +566,11 @@ final class _ParsedSequence {
 }
 
 final class _Terminator {
-  const _Terminator(this.start, this.end);
+  const _Terminator(this.start, this.end, {required this.success});
 
   final int start;
   final int end;
+  final bool success;
 }
+
+enum _StringPayloadKind { osc, dcs, apc }

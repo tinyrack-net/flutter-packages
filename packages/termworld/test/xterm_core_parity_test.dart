@@ -334,6 +334,63 @@ void main() {
       ]);
     });
 
+    test(
+      'matches string cancellation, ESC termination, and control filtering',
+      () async {
+        final terminal = Terminal();
+        addTearDown(terminal.dispose);
+        final calls = <String>[];
+        terminal.parser.registerOscHandler(777, (data) {
+          calls.add('osc:$data');
+          return true;
+        });
+        terminal.parser.registerDcsHandler(
+          const TerminalFunctionIdentifier(finalByte: 'q'),
+          (data, params) {
+            calls.add('dcs:$data');
+            return true;
+          },
+        );
+        terminal.parser.registerApcHandler(
+          const TerminalFunctionIdentifier(finalByte: 'G'),
+          (data) {
+            calls.add('apc:$data');
+            return true;
+          },
+        );
+        terminal.parser.registerEscHandler(
+          const TerminalFunctionIdentifier(intermediates: '%', finalByte: 'G'),
+          () {
+            calls.add('esc');
+            return true;
+          },
+        );
+
+        await terminal.writeAndWait(
+          '\u001b]777;cancelled\u0018'
+          '\u001bPqcancelled\u001a'
+          '\u001b_Gcancelled\u0018'
+          '\u001b]777;a\u0001b\u007f\u0007'
+          '\u001bPqA\u0007B\u001b\\'
+          '\u001b_GA\u0008B\u0001C\u007fD\u001b\\'
+          '\u001b]777;x\u001b%G'
+          'X',
+        );
+
+        expect(calls, <String>[
+          'osc:ab\u007f',
+          'dcs:A\u0007B',
+          'apc:A\u0008BCD',
+          'osc:x',
+          'esc',
+        ]);
+        expect(
+          terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+          'X',
+        );
+      },
+    );
+
     test('executes C1 IND, NEL, and HTS controls', () async {
       final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
       addTearDown(terminal.dispose);
