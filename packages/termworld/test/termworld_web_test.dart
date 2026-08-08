@@ -12,7 +12,7 @@ void main() {
     final addon = WebFontsAddon(initialRelayout: false);
     addTearDown(terminal.dispose);
     expect(WebFontsAddon.isSupported, isTrue);
-    expect(addon.relayout, throwsStateError);
+    await addon.relayout();
 
     terminal.loadAddon(addon);
     await expectLater(
@@ -20,6 +20,8 @@ void main() {
       throwsStateError,
     );
     expect(await addon.loadFonts(), isA<List<Object>>());
+    await addon.relayout();
+    addon.dispose();
     await addon.relayout();
   });
 

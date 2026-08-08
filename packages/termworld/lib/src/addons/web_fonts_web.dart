@@ -71,10 +71,9 @@ final class WebFontsAddon extends ManagedTerminalAddon {
 
   /// Recalculates terminal layout after browser fonts settle.
   Future<void> relayout() async {
-    if (!isActive) {
-      throw StateError('Cannot use addon until it has been loaded');
-    }
+    if (!isActive) return;
     await web.document.fonts.ready.toDart;
+    if (!isActive) return;
     final family = terminal.options.fontFamily;
     final families = _splitFamily(family);
     if (families.isEmpty) return;
