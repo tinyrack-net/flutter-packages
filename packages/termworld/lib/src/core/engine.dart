@@ -334,6 +334,10 @@ final class _TerminalCoreEngine {
       _editColumns(amount, insert: finalByte == '}');
       return;
     }
+    if (intermediates == '"' && finalByte == 'q') {
+      _attributes.protected = params[0][0] == 1;
+      return;
+    }
     switch (finalByte) {
       case '@':
         buffer.active.currentLine.insertCells(
@@ -397,7 +401,7 @@ final class _TerminalCoreEngine {
             bottom: marginBottom,
           );
         }
-      case 'T':
+      case 'T' || '^':
         for (var count = 0; count < amount; count++) {
           buffer.active.reverseScroll(
             _eraseAttributes,
@@ -915,6 +919,13 @@ final class _TerminalCoreEngine {
       switch (mode) {
         case 1:
           cursorKeysMode = enabled;
+        case 2:
+          if (enabled) {
+            _g0 = 'B';
+            _g1 = 'B';
+            _charset = 'B';
+            _activeCharset = 0;
+          }
         case 6:
           originMode = enabled;
           _setPosition(0, 0);
@@ -932,6 +943,8 @@ final class _TerminalCoreEngine {
           cursorVisibleMode = enabled;
         case 45:
           reverseWraparoundMode = enabled;
+        case 66:
+          appKeypadMode = enabled;
         case 47 || 1047:
           if (enabled) {
             buffer.useAlternate(clear: mode == 1047);
@@ -953,11 +966,11 @@ final class _TerminalCoreEngine {
         case 1004:
           reportFocusMode = enabled;
         case 1005:
-          utf8MouseMode = enabled;
+        // Removed by xterm.js; consume without changing mouse encoding.
         case 1006:
           sgrMouseMode = enabled;
         case 1015:
-          urxvtMouseMode = enabled;
+        // Removed by xterm.js; consume without changing mouse encoding.
         case 1007:
           alternateScrollMode = enabled;
         case 1048:
