@@ -93,9 +93,7 @@ void main() {
     await controller.waitFor(text: 'trusted-click');
   });
 
-  testWidgets('delivers trusted text keyboard and select input', (
-    tester,
-  ) async {
+  testWidgets('delivers trusted text and keyboard input', (tester) async {
     final mounted = await mount(tester);
     final controller = mounted.controller;
     final refs = mounted.refs;
@@ -105,23 +103,31 @@ void main() {
     await controller.waitFor(text: 'trusted:Ada Lovelace');
     await controller.keypress('End', ref: refs['Name']);
     await controller.waitFor(text: 'trusted-key:End');
-    await controller.select(refs['Choice']!, 'two');
-    await controller.waitFor(text: 'trusted:two');
   });
 
-  testWidgets('delivers trusted hover and drag input', (tester) async {
+  testWidgets('delivers trusted select input', (tester) async {
+    final mounted = await mount(tester);
+    await mounted.controller.select(mounted.refs['Choice']!, 'two');
+    await mounted.controller.waitFor(text: 'trusted:two');
+  });
+
+  testWidgets('delivers trusted hover input', (tester) async {
     final mounted = await mount(tester);
     final controller = mounted.controller;
     final refs = mounted.refs;
     await controller.hover(refs['Drag source']!);
     await controller.waitFor(text: 'trusted-hover');
+  });
+
+  testWidgets('delivers trusted drag input', (tester) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final refs = mounted.refs;
     await controller.drag(refs['Drag source']!, refs['Drag target']!);
     await controller.waitFor(text: 'trusted-drop');
   });
 
-  testWidgets('delivers trusted upload scroll and viewport resize', (
-    tester,
-  ) async {
+  testWidgets('delivers trusted upload input', (tester) async {
     final mounted = await mount(tester);
     final controller = mounted.controller;
     final refs = mounted.refs;
@@ -129,6 +135,11 @@ void main() {
     await upload.writeAsString('browsewell');
     await controller.upload(refs['Upload']!, <String>[upload.path]);
     await controller.waitFor(text: 'trusted:upload.txt');
+  });
+
+  testWidgets('delivers trusted scroll input', (tester) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
     final scrollBefore = await controller.evaluate('() => window.scrollY');
     await controller.scroll(deltaX: 0, deltaY: 120);
     await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -136,23 +147,33 @@ void main() {
       await controller.evaluate('() => window.scrollY'),
       greaterThan(scrollBefore! as num),
     );
+  });
+
+  testWidgets('resizes the actual webview viewport', (tester) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
     await controller.resize(const Size(640, 480));
     await tester.pumpAndSettle();
     final width = await _waitForInnerWidth(controller, 640);
     expect(width, closeTo(640, 2));
   });
 
-  testWidgets('captures evaluates logs dialogs and rejects stale refs', (
+  testWidgets('captures viewport and full-page PNG images', (tester) async {
+    final mounted = await mount(tester);
+    final controller = mounted.controller;
+    final viewport = await controller.screenshot();
+    expect(viewport.take(4), orderedEquals(<int>[137, 80, 78, 71]));
+    final fullPage = await controller.screenshot(fullPage: true);
+    expect(fullPage.take(4), orderedEquals(<int>[137, 80, 78, 71]));
+    expect(_pngHeight(fullPage), greaterThanOrEqualTo(1400));
+  });
+
+  testWidgets('evaluates logs dialogs navigation and stale refs', (
     tester,
   ) async {
     final mounted = await mount(tester);
     final controller = mounted.controller;
     final refs = mounted.refs;
-    await controller.click(refs['Trusted click']!);
-    await controller.waitFor(text: 'trusted-click');
-    final png = await controller.screenshot(fullPage: true);
-    expect(png.take(4), orderedEquals(<int>[137, 80, 78, 71]));
-    expect(_pngHeight(png), greaterThanOrEqualTo(1400));
     expect(
       await controller.evaluate('() => document.title'),
       'Browsewell fixture',
@@ -163,12 +184,6 @@ void main() {
         r"':' + prompt('rejected', 'default'); }",
       ),
       'false:',
-    );
-    expect(
-      await controller.evaluate(
-        '() => document.querySelector("#result").textContent',
-      ),
-      startsWith('trusted'),
     );
     expect(
       (await controller.logs()).any(

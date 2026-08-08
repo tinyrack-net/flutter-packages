@@ -190,7 +190,7 @@ void EnterPointer(WebKitWebView* webview, double x, double y) {
   event->crossing.detail = GDK_NOTIFY_ANCESTOR;
   event->crossing.focus = TRUE;
   event->crossing.state = static_cast<GdkModifierType>(0);
-  event->crossing.device = device;
+  gdk_event_set_device(event, device);
   gtk_main_do_event(event);
   gdk_event_free(event);
 }

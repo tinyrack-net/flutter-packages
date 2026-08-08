@@ -91,6 +91,7 @@ jobs:
 
   browsewell-fast:
     name: Browsewell fast (${{ matrix.os }})
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -125,13 +126,16 @@ jobs:
         run: dart run tool/run_native_tests.dart ${{ matrix.platform }} browsewell
       - name: L4 ${{ matrix.platform }} browsewell fast conformance suite
         if: runner.os != 'Linux'
-        run: flutter test integration_test/conformance_test.dart -d ${{ matrix.device }}
+        run: >-
+          flutter test integration_test/conformance_test.dart
+          --timeout 30s -d ${{ matrix.device }}
         working-directory: packages/browsewell/example
       - name: L4 linux browsewell fast conformance suite
         if: runner.os == 'Linux'
         run: >-
           xvfb-run -a dbus-run-session --
-          flutter test integration_test/conformance_test.dart -d linux
+          flutter test integration_test/conformance_test.dart
+          --timeout 30s -d linux
         working-directory: packages/browsewell/example
       - name: L5 ${{ matrix.platform }} browsewell fast release build
         run: flutter build ${{ matrix.platform }} --release
