@@ -281,11 +281,11 @@ final class TerminalLinkDecorations {
   bool underline;
 }
 
-/// Resolves links for one 0-based buffer line.
+/// Resolves links for one 1-based buffer line.
 // A named interface allows providers to retain lifecycle-specific state.
 // ignore: one_member_abstracts
 abstract interface class TerminalLinkProvider {
-  /// xterm-compatible `provideLinks` API.
+  /// xterm-compatible `provideLinks` API using a 1-based buffer line number.
   FutureOr<List<TerminalLink>> provideLinks(int bufferLineNumber);
 }
 

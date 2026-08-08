@@ -86,7 +86,8 @@ final class _WebLinkProvider implements TerminalLinkProvider {
 
   @override
   List<TerminalLink> provideLinks(int bufferLineNumber) {
-    final window = _windowedLineStrings(bufferLineNumber);
+    if (bufferLineNumber < 1) return const <TerminalLink>[];
+    final window = _windowedLineStrings(bufferLineNumber - 1);
     final text = window.lines.join();
     if (text.isEmpty) return const <TerminalLink>[];
     final links = <TerminalLink>[];

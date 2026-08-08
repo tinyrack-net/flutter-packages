@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -86,6 +88,11 @@ final class _TerminalViewState extends State<TerminalView> {
   Disposable? _renderListener;
   Disposable? _scrollListener;
   Disposable? _selectionListener;
+  TerminalLink? _hoveredLink;
+  TerminalLink? _pointerDownLink;
+  List<List<TerminalLink>>? _activeLinkReplies;
+  int _activeLinkLine = -1;
+  int _linkRequestGeneration = 0;
 
   @override
   void initState() {
@@ -107,6 +114,7 @@ final class _TerminalViewState extends State<TerminalView> {
     }
     if (oldWidget.controller != widget.controller ||
         oldWidget.terminal != widget.terminal) {
+      _clearLinkCache();
       _renderListener?.dispose();
       _scrollListener?.dispose();
       _selectionListener?.dispose();
@@ -152,6 +160,7 @@ final class _TerminalViewState extends State<TerminalView> {
 
   @override
   void dispose() {
+    _clearLinkCache();
     _renderListener?.dispose();
     _scrollListener?.dispose();
     _selectionListener?.dispose();
@@ -177,73 +186,94 @@ final class _TerminalViewState extends State<TerminalView> {
           padding: widget.padding ?? EdgeInsets.zero,
           backgroundOpacity: widget.backgroundOpacity,
           focused: _focusNode.hasFocus,
+          hoveredLink: _hoveredLink,
         ),
         size: constraints.biggest,
       );
       final composingText = _inputKey.currentState?.composingText ?? '';
       final padding = widget.padding ?? EdgeInsets.zero;
       final dimensions = widget.terminal.dimensions;
-      final view = GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: _requestKeyboard,
-        onTapUp: (details) {
-          widget.onTapUp?.call(details, _cellAt(details.localPosition));
+      final view = MouseRegion(
+        cursor: _linkUsesPointer(_hoveredLink)
+            ? SystemMouseCursors.click
+            : MouseCursor.defer,
+        onHover: (event) {
+          unawaited(_updateHoveredLink(event, _cellAt(event.localPosition)));
         },
-        onSecondaryTapDown: (details) {
-          widget.onSecondaryTapDown?.call(
-            details,
-            _cellAt(details.localPosition),
-          );
-        },
-        onSecondaryTapUp: (details) {
-          widget.onSecondaryTapUp?.call(
-            details,
-            _cellAt(details.localPosition),
-          );
-        },
-        child: _TerminalTextInput(
-          key: _inputKey,
-          focusNode: _focusNode,
-          autofocus: widget.autofocus,
-          readOnly: widget.readOnly,
-          terminal: widget.terminal,
-          onKeyEvent: _onKeyEvent,
-          onComposingChanged: () {
-            if (mounted) setState(() {});
+        onExit: _leaveLink,
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _requestKeyboard,
+          onTapDown: (details) {
+            unawaited(
+              _recordPointerDownLink(
+                details,
+                _cellAt(details.localPosition),
+              ),
+            );
           },
-          child: Stack(
-            fit: StackFit.expand,
-            children: <Widget>[
-              renderer,
-              if (composingText.isNotEmpty && dimensions != null)
-                Positioned(
-                  left:
-                      padding.left +
-                      widget.terminal.buffer.active.cursorX *
-                          dimensions.cellWidth,
-                  top:
-                      padding.top +
-                      widget.terminal.buffer.active.cursorY *
-                          dimensions.cellHeight,
-                  child: IgnorePointer(
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: theme.background,
-                        border: Border(
-                          bottom: BorderSide(color: theme.foreground),
+          onTapUp: (details) {
+            final cell = _cellAt(details.localPosition);
+            widget.onTapUp?.call(details, cell);
+            unawaited(_activatePointerDownLink(details, cell));
+          },
+          onTapCancel: () => _pointerDownLink = null,
+          onSecondaryTapDown: (details) {
+            widget.onSecondaryTapDown?.call(
+              details,
+              _cellAt(details.localPosition),
+            );
+          },
+          onSecondaryTapUp: (details) {
+            widget.onSecondaryTapUp?.call(
+              details,
+              _cellAt(details.localPosition),
+            );
+          },
+          child: _TerminalTextInput(
+            key: _inputKey,
+            focusNode: _focusNode,
+            autofocus: widget.autofocus,
+            readOnly: widget.readOnly,
+            terminal: widget.terminal,
+            onKeyEvent: _onKeyEvent,
+            onComposingChanged: () {
+              if (mounted) setState(() {});
+            },
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                renderer,
+                if (composingText.isNotEmpty && dimensions != null)
+                  Positioned(
+                    left:
+                        padding.left +
+                        widget.terminal.buffer.active.cursorX *
+                            dimensions.cellWidth,
+                    top:
+                        padding.top +
+                        widget.terminal.buffer.active.cursorY *
+                            dimensions.cellHeight,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: theme.background,
+                          border: Border(
+                            bottom: BorderSide(color: theme.foreground),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        composingText,
-                        key: const ValueKey<String>('termworld-preedit'),
-                        style: widget.style.toTextStyle(
-                          color: theme.foreground,
+                        child: Text(
+                          composingText,
+                          key: const ValueKey<String>('termworld-preedit'),
+                          style: widget.style.toTextStyle(
+                            color: theme.foreground,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       );
@@ -269,6 +299,109 @@ final class _TerminalViewState extends State<TerminalView> {
         widget.terminal.rows - 1,
       ),
     );
+  }
+
+  Future<void> _updateHoveredLink(
+    PointerHoverEvent event,
+    TerminalCellOffset cell,
+  ) async {
+    final link = await _linkAt(cell);
+    if (!mounted) return;
+    if (identical(link, _hoveredLink)) return;
+    final previous = _hoveredLink;
+    _hoveredLink = link;
+    previous?.leave?.call(event, previous.text);
+    link?.hover?.call(event, link.text);
+    setState(() {});
+  }
+
+  Future<void> _recordPointerDownLink(
+    TapDownDetails event,
+    TerminalCellOffset cell,
+  ) async {
+    final link = await _linkAt(cell);
+    if (!mounted) return;
+    _pointerDownLink = link;
+  }
+
+  Future<void> _activatePointerDownLink(
+    TapUpDetails event,
+    TerminalCellOffset cell,
+  ) async {
+    final link = await _linkAt(cell);
+    if (!mounted) return;
+    final pointerDownLink = _pointerDownLink;
+    _pointerDownLink = null;
+    if (link != null && identical(link, pointerDownLink)) {
+      link.activate(event, link.text);
+    }
+  }
+
+  Future<TerminalLink?> _linkAt(TerminalCellOffset cell) async {
+    final x = cell.x + 1;
+    final y = widget.terminal.viewportY + cell.y + 1;
+    if (_activeLinkLine != y) {
+      final generation = ++_linkRequestGeneration;
+      _disposeLinkReplies();
+      _activeLinkLine = y;
+      final replies = <List<TerminalLink>>[];
+      for (final provider in widget.terminal.linkProviders) {
+        replies.add(await provider.provideLinks(y));
+        if (!mounted || generation != _linkRequestGeneration) {
+          for (final links in replies) {
+            for (final link in links) {
+              link.dispose?.call();
+            }
+          }
+          return null;
+        }
+      }
+      _activeLinkReplies = replies;
+    }
+    for (final links in _activeLinkReplies ?? const <List<TerminalLink>>[]) {
+      for (final link in links) {
+        if (_linkContains(link, x, y)) return link;
+      }
+    }
+    return null;
+  }
+
+  bool _linkContains(TerminalLink link, int x, int y) {
+    final columns = widget.terminal.cols;
+    final lower = link.range.start.y * columns + link.range.start.x;
+    final upper = link.range.end.y * columns + link.range.end.x;
+    final current = y * columns + x;
+    return lower <= current && current <= upper;
+  }
+
+  bool _linkUsesPointer(TerminalLink? link) =>
+      link != null && (link.decorations?.pointerCursor ?? true);
+
+  void _leaveLink(PointerExitEvent event) {
+    final previous = _hoveredLink;
+    if (previous == null) return;
+    _hoveredLink = null;
+    previous.leave?.call(event, previous.text);
+    if (mounted) setState(() {});
+  }
+
+  void _disposeLinkReplies() {
+    for (final links in _activeLinkReplies ?? const <List<TerminalLink>>[]) {
+      for (final link in links) {
+        link.dispose?.call();
+      }
+    }
+    _activeLinkReplies = null;
+  }
+
+  void _clearLinkCache() {
+    _linkRequestGeneration++;
+    final previous = _hoveredLink;
+    _hoveredLink = null;
+    _pointerDownLink = null;
+    _activeLinkLine = -1;
+    previous?.leave?.call(null, previous.text);
+    _disposeLinkReplies();
   }
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
@@ -479,6 +612,7 @@ final class _TerminalPainter extends CustomPainter {
     required this.padding,
     required this.backgroundOpacity,
     required this.focused,
+    required this.hoveredLink,
   });
 
   final Terminal terminal;
@@ -487,6 +621,7 @@ final class _TerminalPainter extends CustomPainter {
   final EdgeInsets padding;
   final double backgroundOpacity;
   final bool focused;
+  final TerminalLink? hoveredLink;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -569,8 +704,45 @@ final class _TerminalPainter extends CustomPainter {
       }
     }
     _paintDecorations(canvas, dimensions, TerminalDecorationLayer.top);
+    _paintHoveredLink(canvas, dimensions);
     if (terminal.modes.showCursor && focused) {
       _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
+    }
+  }
+
+  void _paintHoveredLink(
+    Canvas canvas,
+    TerminalRenderDimensions dimensions,
+  ) {
+    final link = hoveredLink;
+    if (link == null || !(link.decorations?.underline ?? true)) return;
+    final firstVisibleLine = terminal.viewportY + 1;
+    final lastVisibleLine = firstVisibleLine + terminal.rows - 1;
+    final startLine = link.range.start.y.clamp(
+      firstVisibleLine,
+      lastVisibleLine,
+    );
+    final endLine = link.range.end.y.clamp(firstVisibleLine, lastVisibleLine);
+    if (startLine > endLine) return;
+    final paint = Paint()
+      ..color = theme.foreground
+      ..strokeWidth = 1;
+    for (var line = startLine; line <= endLine; line++) {
+      final startColumn = line == link.range.start.y
+          ? link.range.start.x - 1
+          : 0;
+      final endColumn = line == link.range.end.y
+          ? link.range.end.x
+          : terminal.cols;
+      final y =
+          padding.top +
+          (line - firstVisibleLine + 1) * dimensions.cellHeight -
+          1;
+      canvas.drawLine(
+        Offset(padding.left + startColumn * dimensions.cellWidth, y),
+        Offset(padding.left + endColumn * dimensions.cellWidth, y),
+        paint,
+      );
     }
   }
 
@@ -735,6 +907,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   TextInputConnection? _connection;
   TextEditingValue _editingValue = TextEditingValue.empty;
   String _committedPrefix = '';
+  bool _awaitingResetEcho = false;
 
   bool get _isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
@@ -802,6 +975,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   void _resetEditingState() {
     _editingValue = TextEditingValue.empty;
     _committedPrefix = '';
+    _awaitingResetEcho = false;
     _connection?.setEditingState(_editingValue);
   }
 
@@ -851,6 +1025,18 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   void _accept(TextEditingValue value) {
+    if (_awaitingResetEcho) {
+      _awaitingResetEcho = false;
+      if (value.text.isEmpty) {
+        _editingValue = value;
+        _committedPrefix = '';
+        widget.onComposingChanged();
+        return;
+      }
+      if (!_startsWithCommittedPrefix(value.text)) {
+        _committedPrefix = '';
+      }
+    }
     _editingValue = value;
     final composing = value.composing;
     final committedEnd = composing.isValid && !composing.isCollapsed
@@ -865,8 +1051,21 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     // xterm clears its hidden textarea after committed input. Keeping the
     // committed value makes a later platform synchronization to an empty
     // editing value look like a user deletion and emits duplicate DEL bytes.
-    _resetEditingState();
+    _editingValue = TextEditingValue.empty;
+    _awaitingResetEcho = true;
+    _connection?.setEditingState(_editingValue);
     widget.onComposingChanged();
+  }
+
+  bool _startsWithCommittedPrefix(String text) {
+    if (_committedPrefix.isEmpty) return false;
+    final committed = _committedPrefix.characters.toList();
+    final next = text.characters.toList();
+    if (next.length < committed.length) return false;
+    for (var index = 0; index < committed.length; index++) {
+      if (committed[index] != next[index]) return false;
+    }
+    return true;
   }
 
   void _reconcileCommitted(String next) {

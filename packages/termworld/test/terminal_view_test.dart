@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -77,6 +78,48 @@ void main() {
       find.byKey(const ValueKey<String>('termworld-preedit')),
       findsNothing,
     );
+  });
+
+  testWidgets('suppresses a platform commit echo across Hangul syllables', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    final output = <String>[];
+    terminal.onData.listen(output.add);
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    for (final value in const <TextEditingValue>[
+      TextEditingValue(
+        text: '한',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+      TextEditingValue(
+        text: '한',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+      TextEditingValue(
+        text: '한ㄱ',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 1, end: 2),
+      ),
+      TextEditingValue(
+        text: '한글',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+      TextEditingValue(
+        text: ' ',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+    ]) {
+      tester.testTextInput.updateEditingValue(value);
+      await tester.pump();
+    }
+
+    expect(output.join(), '한글 ');
   });
 
   testWidgets('cancels preedit without output and commits it on focus loss', (
@@ -465,6 +508,63 @@ void main() {
     expect(output, isEmpty);
   });
 
+  testWidgets('resolves, decorates, activates, and disposes links', (
+    tester,
+  ) async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+    final provider = _TrackingLinkProvider();
+    final registration = terminal.registerLinkProvider(provider);
+    addTearDown(registration.dispose);
+    addTearDown(terminal.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: TerminalView(terminal: terminal, autoResize: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final dimensions = terminal.dimensions!;
+    final origin = tester.getTopLeft(find.byType(TerminalView));
+    final linkedCell =
+        origin +
+        Offset(dimensions.cellWidth * 1.5, dimensions.cellHeight * 0.5);
+    final nextLine =
+        origin +
+        Offset(dimensions.cellWidth * 1.5, dimensions.cellHeight * 1.5);
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: origin);
+
+    await mouse.moveTo(linkedCell);
+    await tester.pump();
+    expect(provider.requestedLines, <int>[1]);
+    expect(provider.hovered, 1);
+    expect(
+      tester.widget<MouseRegion>(find.byType(MouseRegion)).cursor,
+      SystemMouseCursors.click,
+    );
+
+    await mouse.down(linkedCell);
+    await tester.pump();
+    await mouse.up();
+    await tester.pump();
+    expect(provider.activated, 1);
+
+    await mouse.moveTo(nextLine);
+    await tester.pump();
+    expect(provider.requestedLines, <int>[1, 2]);
+    expect(provider.left, 1);
+    expect(provider.disposed, 1);
+
+    await mouse.removePointer();
+  });
+
   testWidgets(
     'reattaches when terminal, focus, controller, or readonly changes',
     (
@@ -504,4 +604,31 @@ void main() {
       expect(second.dimensions, isNotNull);
     },
   );
+}
+
+final class _TrackingLinkProvider implements TerminalLinkProvider {
+  final List<int> requestedLines = <int>[];
+  int activated = 0;
+  int hovered = 0;
+  int left = 0;
+  int disposed = 0;
+
+  @override
+  List<TerminalLink> provideLinks(int bufferLineNumber) {
+    requestedLines.add(bufferLineNumber);
+    if (bufferLineNumber != 1) return <TerminalLink>[];
+    return <TerminalLink>[
+      TerminalLink(
+        range: const TerminalBufferRange(
+          start: TerminalBufferPosition(1, 1),
+          end: TerminalBufferPosition(4, 1),
+        ),
+        text: 'link',
+        activate: (_, _) => activated++,
+        hover: (_, _) => hovered++,
+        leave: (_, _) => left++,
+        dispose: () => disposed++,
+      ),
+    ];
+  }
 }

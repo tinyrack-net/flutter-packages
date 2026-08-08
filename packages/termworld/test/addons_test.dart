@@ -169,8 +169,8 @@ void main() {
       'aaa http://example.com aaa http://example.com aaa',
     );
 
-    final firstRowLinks = await terminal.linkProviders.single.provideLinks(0);
-    final secondRowLinks = await terminal.linkProviders.single.provideLinks(1);
+    final firstRowLinks = await terminal.linkProviders.single.provideLinks(1);
+    final secondRowLinks = await terminal.linkProviders.single.provideLinks(2);
     expect(firstRowLinks, hasLength(2));
     expect(secondRowLinks, hasLength(2));
     expect(firstRowLinks.first.text, 'http://example.com');
