@@ -45,32 +45,43 @@ Future<void> main(List<String> arguments) async {
         .where((file) => file.path.endsWith('.ts')),
   ]..sort((left, right) => left.path.compareTo(right.path));
 
-  final declarations = <Map<String, String>>[];
+  final declarations = <Map<String, Object>>[];
   for (final file in typings) {
     final relative = _relative(root, file);
-    for (final line in file.readAsLinesSync()) {
+    final lines = file.readAsLinesSync();
+    for (var index = 0; index < lines.length; index++) {
+      final line = lines[index];
       final normalized = line.trim();
       if (_isContractLine(normalized)) {
-        declarations.add(<String, String>{
+        declarations.add(<String, Object>{
+          'id': '$relative:${index + 1}',
           'file': relative,
+          'line': index + 1,
           'signature': normalized,
         });
       }
     }
   }
 
-  final tests = <Map<String, String>>[];
+  final tests = <Map<String, Object>>[];
   final testPattern = RegExp(
-    r'''\b(?:test|it|describe)\s*\(\s*['"`]([^'"`]+)['"`]''',
+    r'''\b(test|it|describe)\s*\(\s*['"`]([^'"`]+)['"`]''',
   );
   for (final file in sourceFiles.where(
     (file) => file.path.endsWith('.test.ts'),
   )) {
     final contents = file.readAsStringSync();
+    final relative = _relative(root, file);
     for (final match in testPattern.allMatches(contents)) {
-      tests.add(<String, String>{
-        'file': _relative(root, file),
-        'name': match.group(1)!,
+      final line =
+          '\n'.allMatches(contents.substring(0, match.start)).length + 1;
+      final kind = match.group(1)!;
+      tests.add(<String, Object>{
+        'id': '$relative:$line:$kind',
+        'file': relative,
+        'line': line,
+        'kind': kind,
+        'name': match.group(2)!,
       });
     }
   }
@@ -100,7 +111,7 @@ Future<void> main(List<String> arguments) async {
   }
 
   final snapshot = <String, Object>{
-    'schemaVersion': 1,
+    'schemaVersion': 2,
     'repository': 'https://github.com/xtermjs/xterm.js',
     'revision': revision,
     'packageVersion': '6.0.0',
