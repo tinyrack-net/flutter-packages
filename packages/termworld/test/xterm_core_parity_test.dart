@@ -948,6 +948,28 @@ void main() {
       expect(terminal.getSelectionPosition(), isNull);
     });
 
+    test('column selection preserves rectangular text boundaries', () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+      addTearDown(terminal.dispose);
+      await terminal.writeAndWait('abcdefghij\r\nklmnopqrst\r\nuvwxyz');
+
+      terminal.selectColumns(2, 0, 4, 2);
+
+      expect(terminal.selectionColumnMode, isTrue);
+      expect(terminal.getSelection(), 'cd\nmn\nwx');
+      expect(
+        terminal.getSelectionPosition(),
+        const TerminalBufferRange(
+          start: TerminalBufferPosition(2, 0),
+          end: TerminalBufferPosition(4, 2),
+        ),
+      );
+      terminal.selectColumns(4, 2, 2, 0);
+      expect(terminal.getSelection(), 'cd\nmn\nwx');
+      terminal.select(0, 0, 1);
+      expect(terminal.selectionColumnMode, isFalse);
+    });
+
     test('tracks buffers, modes, marker, decoration, and selection', () async {
       final terminal = Terminal(options: TerminalOptions(cols: 5, rows: 2));
       addTearDown(terminal.dispose);

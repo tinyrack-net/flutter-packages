@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -12,7 +13,7 @@ import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
 
-enum _PointerSelectionMode { normal, word, line }
+enum _PointerSelectionMode { normal, word, line, column }
 
 /// Flutter renderer and input surface for a headless [Terminal].
 class TerminalView extends StatefulWidget {
@@ -111,6 +112,9 @@ final class _TerminalViewState extends State<TerminalView> {
   Duration? _lastClickTime;
   int _clickCount = 0;
   double _wheelPartialScroll = 0;
+  Timer? _dragScrollTimer;
+  int _dragScrollAmount = 0;
+  int _dragSelectionColumn = 0;
 
   @override
   void initState() {
@@ -250,6 +254,7 @@ final class _TerminalViewState extends State<TerminalView> {
     _clearLinkCache();
     _cursorBlinkTimer?.cancel();
     _cursorBlinkIdleTimer?.cancel();
+    _dragScrollTimer?.cancel();
     _focusNode.removeListener(_handleFocusChange);
     _renderListener?.dispose();
     _cursorMoveListener?.dispose();
@@ -460,8 +465,11 @@ final class _TerminalViewState extends State<TerminalView> {
           existing.end.x,
           existing.end.y,
         );
-        _pointerSelectionMode = _PointerSelectionMode.normal;
+        _pointerSelectionMode = widget.terminal.selectionColumnMode
+            ? _PointerSelectionMode.column
+            : _PointerSelectionMode.normal;
         _extendSelection(bufferCell);
+        _startDragScroll();
         return;
       }
     }
@@ -473,10 +481,26 @@ final class _TerminalViewState extends State<TerminalView> {
       _ => null,
     };
     if (range == null) {
-      _pointerSelectionMode = _PointerSelectionMode.normal;
+      final columnSelection =
+          HardwareKeyboard.instance.isAltPressed &&
+          !(defaultTargetPlatform == TargetPlatform.macOS &&
+              widget.terminal.options.macOptionClickForcesSelection);
+      _pointerSelectionMode = columnSelection
+          ? _PointerSelectionMode.column
+          : _PointerSelectionMode.normal;
       _selectionAnchor = bufferCell;
       _selectionAnchorEnd = TerminalCellOffset(bufferCell.x + 1, bufferCell.y);
-      widget.terminal.select(bufferCell.x, bufferCell.y, 0);
+      if (columnSelection) {
+        widget.terminal.selectColumns(
+          bufferCell.x,
+          bufferCell.y,
+          bufferCell.x,
+          bufferCell.y,
+        );
+      } else {
+        widget.terminal.select(bufferCell.x, bufferCell.y, 0);
+      }
+      _startDragScroll();
       return;
     }
     _pointerSelectionMode = _clickCount == 2
@@ -485,6 +509,7 @@ final class _TerminalViewState extends State<TerminalView> {
     _selectionAnchor = TerminalCellOffset(range.start.x, range.start.y);
     _selectionAnchorEnd = TerminalCellOffset(range.end.x, range.end.y);
     _selectRange(range);
+    _startDragScroll();
   }
 
   void _onPointerMove(PointerMoveEvent event) {
@@ -501,9 +526,18 @@ final class _TerminalViewState extends State<TerminalView> {
     if (anchor == null || _pressedMouseButton != TerminalMouseButton.left) {
       return;
     }
+    _dragScrollAmount = _mouseDragScrollAmount(event.localPosition);
+    _dragSelectionColumn = cell.x;
+    final selectionColumn = switch (_dragScrollAmount) {
+      > 0 => widget.terminal.cols - 1,
+      < 0 => 0,
+      _ => cell.x,
+    };
     _extendSelection(
       TerminalCellOffset(
-        cell.x,
+        _pointerSelectionMode == _PointerSelectionMode.column
+            ? cell.x
+            : selectionColumn,
         widget.terminal.viewportY + cell.y,
       ),
     );
@@ -523,8 +557,28 @@ final class _TerminalViewState extends State<TerminalView> {
         allowWhitespaceOnly: true,
       ),
       _PointerSelectionMode.line => _wrappedLineRange(current.y),
+      _PointerSelectionMode.column => TerminalBufferRange(
+        start: TerminalBufferPosition(current.x, current.y),
+        end: TerminalBufferPosition(current.x + 1, current.y),
+      ),
     };
     if (currentRange == null) return;
+    if (_pointerSelectionMode == _PointerSelectionMode.column) {
+      _selectRange(
+        TerminalBufferRange(
+          start: TerminalBufferPosition(
+            math.min(anchor.x, current.x),
+            anchor.y,
+          ),
+          end: TerminalBufferPosition(
+            math.max(anchor.x, current.x) + 1,
+            current.y,
+          ),
+        ),
+        columnMode: true,
+      );
+      return;
+    }
     final columns = widget.terminal.cols;
     final anchorOffset = anchor.y * columns + anchor.x;
     final currentOffset = currentRange.start.y * columns + currentRange.start.x;
@@ -641,7 +695,19 @@ final class _TerminalViewState extends State<TerminalView> {
     );
   }
 
-  void _selectRange(TerminalBufferRange range) {
+  void _selectRange(
+    TerminalBufferRange range, {
+    bool columnMode = false,
+  }) {
+    if (columnMode) {
+      widget.terminal.selectColumns(
+        range.start.x,
+        range.start.y,
+        range.end.x,
+        range.end.y,
+      );
+      return;
+    }
     final columns = widget.terminal.cols;
     final start = range.start.y * columns + range.start.x;
     final end = range.end.y * columns + range.end.x;
@@ -661,14 +727,59 @@ final class _TerminalViewState extends State<TerminalView> {
       TerminalMouseAction.up,
     );
     _pressedMouseButton = TerminalMouseButton.none;
+    _stopDragScroll();
     _selectionAnchor = null;
     _selectionAnchorEnd = null;
   }
 
   void _onPointerCancel(PointerCancelEvent event) {
     _pressedMouseButton = TerminalMouseButton.none;
+    _stopDragScroll();
     _selectionAnchor = null;
     _selectionAnchorEnd = null;
+  }
+
+  void _startDragScroll() {
+    _dragScrollTimer ??= Timer.periodic(
+      const Duration(milliseconds: 50),
+      (_) => _dragScroll(),
+    );
+  }
+
+  void _stopDragScroll() {
+    _dragScrollTimer?.cancel();
+    _dragScrollTimer = null;
+    _dragScrollAmount = 0;
+  }
+
+  int _mouseDragScrollAmount(Offset position) {
+    final dimensions = widget.terminal.dimensions;
+    if (dimensions == null) return 0;
+    final top = (widget.padding ?? EdgeInsets.zero).top;
+    final height = dimensions.cellHeight * widget.terminal.rows;
+    var offset = position.dy - top;
+    if (offset >= 0 && offset <= height) return 0;
+    if (offset > height) offset -= height;
+    final normalized = offset.clamp(-50.0, 50.0) / 50;
+    return normalized.sign.toInt() + (normalized * 14).round();
+  }
+
+  void _dragScroll() {
+    if (_dragScrollAmount == 0 ||
+        _selectionAnchor == null ||
+        _pressedMouseButton != TerminalMouseButton.left) {
+      return;
+    }
+    widget.terminal.scrollLines(_dragScrollAmount);
+    final row = _dragScrollAmount > 0
+        ? widget.terminal.viewportY + widget.terminal.rows - 1
+        : widget.terminal.viewportY;
+    final column = _pointerSelectionMode == _PointerSelectionMode.column
+        ? _dragSelectionColumn
+        : _dragScrollAmount > 0
+        ? widget.terminal.cols - 1
+        : 0;
+    _extendSelection(TerminalCellOffset(column, row));
   }
 
   void _onPointerHover(PointerHoverEvent event) {
@@ -1364,6 +1475,11 @@ final class _TerminalPainter extends CustomPainter {
 
   bool _selected(TerminalBufferRange? range, int column, int row) {
     if (range == null || row < range.start.y || row > range.end.y) return false;
+    if (terminal.selectionColumnMode) {
+      final startColumn = math.min(range.start.x, range.end.x);
+      final endColumn = math.max(range.start.x, range.end.x);
+      return column >= startColumn && column < endColumn;
+    }
     if (range.start.y == range.end.y) {
       return column >= range.start.x && column < range.end.x;
     }

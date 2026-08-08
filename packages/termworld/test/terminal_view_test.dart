@@ -894,6 +894,62 @@ void main() {
     await mouse.removePointer();
   });
 
+  testWidgets('alt drag selects columns and dragging outside scrolls', (
+    tester,
+  ) async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+    addTearDown(terminal.dispose);
+    await terminal.writeAndWait(
+      'abcdefghij\r\nklmnopqrst\r\nuvwxyzABCD\r\n0123456789\r\nABCDEFGHIJ',
+    );
+    terminal.scrollToTop();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 200,
+            height: 100,
+            child: TerminalView(terminal: terminal, autoResize: false),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final dimensions = terminal.dimensions!;
+    final origin = tester.getTopLeft(find.byType(TerminalView));
+    Offset cell(int column, int row) =>
+        origin +
+        Offset(
+          (column + 0.5) * dimensions.cellWidth,
+          (row + 0.5) * dimensions.cellHeight,
+        );
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer(location: cell(2, 0));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await mouse.down(cell(2, 0));
+    await mouse.moveTo(cell(3, 2));
+    await mouse.up();
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.pump();
+    expect(terminal.selectionColumnMode, isTrue);
+    expect(terminal.getSelection(), 'cd\nmn\nwx');
+
+    terminal
+      ..clearSelection()
+      ..scrollToTop();
+    await mouse.moveTo(cell(0, 0));
+    await mouse.down(cell(0, 0));
+    await mouse.moveTo(
+      origin + Offset(dimensions.cellWidth, dimensions.cellHeight * 5),
+    );
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(terminal.viewportY, greaterThan(0));
+    await mouse.up();
+    await mouse.removePointer();
+  });
+
   testWidgets(
     'reattaches when terminal, focus, controller, or readonly changes',
     (

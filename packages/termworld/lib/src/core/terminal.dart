@@ -629,6 +629,7 @@ final class Terminal extends DisposableStore {
   bool _draining = false;
   int _viewportY = 0;
   TerminalBufferRange? _selection;
+  bool _selectionColumnMode = false;
   TerminalRenderDimensions? _dimensions;
   final List<TerminalMarker> _markers = <TerminalMarker>[];
   final List<TerminalDecoration> _decorations = <TerminalDecoration>[];
@@ -1088,6 +1089,24 @@ final class Terminal extends DisposableStore {
   String getSelection() {
     final selection = _selection;
     if (selection == null || selection.start == selection.end) return '';
+    if (_selectionColumnMode) {
+      if (selection.start.x == selection.end.x) return '';
+      final startColumn = math.min(selection.start.x, selection.end.x);
+      final endColumn = math.max(selection.start.x, selection.end.x);
+      final output = <String>[];
+      for (var y = selection.start.y; y <= selection.end.y; y++) {
+        final line = buffer.active.getLine(y);
+        if (line == null) continue;
+        output.add(
+          line.translateToString(
+            trimRight: true,
+            startColumn: startColumn,
+            endColumn: endColumn,
+          ),
+        );
+      }
+      return output.join('\n');
+    }
     final output = StringBuffer();
     for (var y = selection.start.y; y <= selection.end.y; y++) {
       final line = buffer.active.getLine(y);
@@ -1113,10 +1132,14 @@ final class Terminal extends DisposableStore {
   TerminalBufferRange? getSelectionPosition() =>
       hasSelection() ? _selection : null;
 
+  /// Whether the active pointer selection is rectangular.
+  bool get selectionColumnMode => _selectionColumnMode;
+
   /// xterm-compatible `clearSelection` API.
   void clearSelection() {
     if (_selection == null) return;
     _selection = null;
+    _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
@@ -1141,6 +1164,27 @@ final class Terminal extends DisposableStore {
       start: TerminalBufferPosition(column, row),
       end: TerminalBufferPosition(endColumn, endRow),
     );
+    _selectionColumnMode = false;
+    _onSelectionChange.fire(TerminalVoid.value);
+  }
+
+  /// Selects a rectangular region using xterm's column-selection semantics.
+  void selectColumns(
+    int startColumn,
+    int startRow,
+    int endColumn,
+    int endRow,
+  ) {
+    final reversed = startRow > endRow;
+    _selection = TerminalBufferRange(
+      start: reversed
+          ? TerminalBufferPosition(endColumn, endRow)
+          : TerminalBufferPosition(startColumn, startRow),
+      end: reversed
+          ? TerminalBufferPosition(startColumn, startRow)
+          : TerminalBufferPosition(endColumn, endRow),
+    );
+    _selectionColumnMode = true;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
@@ -1161,6 +1205,7 @@ final class Terminal extends DisposableStore {
           ? TerminalBufferPosition(0, startRow)
           : TerminalBufferPosition(cols, endRow),
     );
+    _selectionColumnMode = false;
     _onSelectionChange.fire(TerminalVoid.value);
   }
 
