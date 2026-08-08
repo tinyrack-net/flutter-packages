@@ -262,6 +262,14 @@
     "src/common/SortedList.test.ts": {
       "implementation": ["lib/src/core/sorted_list.dart"],
       "tests": ["test/upstream_sorted_list_parity_test.dart"]
+    },
+    "src/common/StringBuilder.ts": {
+      "implementation": ["lib/src/core/string_builder.dart"],
+      "tests": ["test/upstream_string_builder_parity_test.dart"]
+    },
+    "src/common/StringBuilder.test.ts": {
+      "implementation": ["lib/src/core/string_builder.dart"],
+      "tests": ["test/upstream_string_builder_parity_test.dart"]
     }
   },
   "tests": {
@@ -533,6 +541,93 @@
       "dartTestName": "set, get",
       "dartTestKind": "test",
       "dartTestPath": "TwoKeyMap/set, get"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should accept a single chunk exactly at the limit": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should accept a single chunk exactly at the limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should accept data up to the limit": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should accept data up to the limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should accumulate many chunks before hitting the limit": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should accumulate many chunks before hitting the limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should allow appending again after reset following a limit breach": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should allow appending again after reset following a limit breach",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should allow zero-length appends at the limit": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should allow zero-length appends at the limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should expose the configured limit": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should expose the configured limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should reject a single chunk larger than the limit": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should reject a single chunk larger than the limit",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should reject data exceeding the limit and clear the buffer": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should reject data exceeding the limit and clear the buffer",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should reject when limit is zero and any data is appended": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should reject when limit is zero and any data is appended",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:LimitedStringBuilder should start empty": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should start empty",
+      "dartTestKind": "test",
+      "dartTestPath": "LimitedStringBuilder/should start empty"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should accumulate many small chunks without quadratic concatenation": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should accumulate many small chunks without quadratic concatenation",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should allow appending after reset": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should allow appending after reset",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should append a single chunk": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should append a single chunk",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should handle empty chunks": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should handle empty chunks",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should join multiple chunks in order": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should join multiple chunks in order",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should reset accumulated data": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should reset accumulated data",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/StringBuilder.test.ts:StringBuilder should start empty": {
+      "dartTestFile": "test/upstream_string_builder_parity_test.dart",
+      "dartTestName": "should start empty",
+      "dartTestKind": "test",
+      "dartTestPath": "StringBuilder/should start empty"
     }
   }
 }
