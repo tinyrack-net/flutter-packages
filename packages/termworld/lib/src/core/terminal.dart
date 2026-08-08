@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'package:termworld/src/core/addon.dart';
 import 'package:termworld/src/core/addon_manager.dart';
 import 'package:termworld/src/core/buffer.dart';
+import 'package:termworld/src/core/clipboard.dart';
 import 'package:termworld/src/core/decoration_service.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
@@ -766,11 +767,11 @@ final class Terminal extends DisposableStore {
 
   /// Normalizes, sanitizes, and optionally brackets pasted text.
   void paste(String data) {
-    var prepared = data.replaceAll(RegExp(r'\r?\n'), '\r');
-    if (_engine.bracketedPasteMode && !options.ignoreBracketedPasteMode) {
-      prepared = prepared.replaceAll('\u001b', '\u241b');
-      prepared = '\u001b[200~$prepared\u001b[201~';
-    }
+    final prepared = bracketTextForPaste(
+      prepareTextForTerminal(data),
+      bracketedPasteMode:
+          _engine.bracketedPasteMode && !options.ignoreBracketedPasteMode,
+    );
     input(prepared);
   }
 

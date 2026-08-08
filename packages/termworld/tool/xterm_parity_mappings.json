@@ -137,6 +137,17 @@
     }
   },
   "sources": {
+    "src/browser/Clipboard.ts": {
+      "implementation": [
+        "lib/src/core/clipboard.dart",
+        "lib/src/core/terminal.dart"
+      ],
+      "tests": ["test/upstream_browser_clipboard_parity_test.dart"]
+    },
+    "src/browser/Clipboard.test.ts": {
+      "implementation": ["lib/src/core/clipboard.dart"],
+      "tests": ["test/upstream_browser_clipboard_parity_test.dart"]
+    },
     "addons/addon-search/src/DecorationManager.ts": {
       "implementation": ["lib/addon_search.dart"],
       "tests": ["test/upstream_search_parity_test.dart"]
@@ -626,6 +637,9 @@
     }
   },
   "tests": {
+    "unit:src/browser/Clipboard.test.ts:evaluatePastedTextProcessing should bracket pasted text in bracketedPasteMode": {"dartTestFile":"test/upstream_browser_clipboard_parity_test.dart","dartTestName":"should bracket pasted text in bracketedPasteMode","dartTestKind":"test"},
+    "unit:src/browser/Clipboard.test.ts:evaluatePastedTextProcessing should escape embedded escape sequences in pasted text only when bracketed": {"dartTestFile":"test/upstream_browser_clipboard_parity_test.dart","dartTestName":"should escape embedded escape sequences in pasted text only when bracketed","dartTestKind":"test"},
+    "unit:src/browser/Clipboard.test.ts:evaluatePastedTextProcessing should replace carriage return and/or line feed with carriage return": {"dartTestFile":"test/upstream_browser_clipboard_parity_test.dart","dartTestName":"should replace carriage return and/or line feed with carriage return","dartTestKind":"test"},
     "unit:addons/addon-search/src/DecorationManager.test.ts:DecorationManager should only add one overview ruler marker per buffer line": {"dartTestFile":"test/upstream_search_parity_test.dart","dartTestName":"should only add one overview ruler marker per buffer line","dartTestKind":"test"},
     "unit:addons/addon-search/src/DecorationManager.test.ts:DecorationManager should split highlight decorations for a wrapped match": {"dartTestFile":"test/upstream_search_parity_test.dart","dartTestName":"should split highlight decorations for a wrapped match","dartTestKind":"test"},
     "unit:src/browser/renderer/shared/RendererUtils.test.ts:RendererUtils computeNextVariantOffset": {"dartTestFile":"test/upstream_renderer_utils_parity_test.dart","dartTestName":"computeNextVariantOffset","dartTestKind":"test"},
