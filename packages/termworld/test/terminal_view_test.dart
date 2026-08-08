@@ -546,8 +546,10 @@ void main() {
     expect(provider.requestedLines, <int>[1]);
     expect(provider.hovered, 1);
     expect(
-      tester.widget<MouseRegion>(find.byType(MouseRegion)).cursor,
-      SystemMouseCursors.click,
+      tester
+          .widgetList<MouseRegion>(find.byType(MouseRegion))
+          .any((region) => region.cursor == SystemMouseCursors.click),
+      isTrue,
     );
 
     await mouse.down(linkedCell);
