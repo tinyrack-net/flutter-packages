@@ -9,7 +9,7 @@ import 'package:termworld_example/main.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('committed graphemes cross the text-input boundary once', (
+  testWidgets('all IME transitions cross the text-input boundary once', (
     tester,
   ) async {
     final controller = TermworldExampleController();
@@ -30,14 +30,103 @@ void main() {
     await _injectEditingValue(
       tester,
       const TextEditingValue(
-        text: '한글 👩🏽‍💻 ',
-        selection: TextSelection.collapsed(offset: 10),
+        text: '한글',
+        selection: TextSelection.collapsed(offset: 2),
       ),
     );
+    expect(controller.output, '한글');
+
+    // Kana composition cancellation must not leak preedit text.
+    await _injectEditingValue(
+      tester,
+      const TextEditingValue(
+        text: 'かな',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      ),
+    );
+    await _injectEditingValue(tester, TextEditingValue.empty);
+    expect(controller.output, '한글');
+
+    // Chinese phonetic input and candidate replacements remain preedit until
+    // the final candidate is committed.
+    for (final value in const <TextEditingValue>[
+      TextEditingValue(
+        text: 'zhong',
+        selection: TextSelection.collapsed(offset: 5),
+        composing: TextRange(start: 0, end: 5),
+      ),
+      TextEditingValue(
+        text: '中國',
+        selection: TextSelection.collapsed(offset: 2),
+        composing: TextRange(start: 0, end: 2),
+      ),
+      TextEditingValue(
+        text: '中文',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    ]) {
+      await _injectEditingValue(tester, value);
+    }
+    expect(controller.output, '한글中文');
+
+    // A dead key plus combining mark is one grapheme payload.
+    await _injectEditingValue(
+      tester,
+      const TextEditingValue(
+        text: '\u00b4',
+        selection: TextSelection.collapsed(offset: 1),
+        composing: TextRange(start: 0, end: 1),
+      ),
+    );
+    await _injectEditingValue(
+      tester,
+      const TextEditingValue(
+        text: 'e\u0301',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
+
+    await _injectEditingValue(
+      tester,
+      const TextEditingValue(
+        text: '👩🏽‍💻',
+        selection: TextSelection.collapsed(offset: 7),
+      ),
+    );
+
+    // Focus loss commits an active reconversion exactly once.
+    await _injectEditingValue(
+      tester,
+      const TextEditingValue(
+        text: '재변환',
+        selection: TextSelection.collapsed(offset: 3),
+        composing: TextRange(start: 0, end: 3),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('focus-target')));
     await tester.pumpAndSettle();
 
-    expect(controller.output, '한글 👩🏽‍💻 ');
-    expect(find.text('한글 👩🏽‍💻 ', findRichText: true), findsOneWidget);
+    expect(controller.output, '한글中文e\u0301👩🏽‍💻재변환');
+  });
+
+  testWidgets('clipboard paste normalizes newlines and brackets once', (
+    tester,
+  ) async {
+    final controller = TermworldExampleController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(TermworldExampleApp(controller: controller));
+    await tester.pumpAndSettle();
+    controller
+      ..clearOutput()
+      ..setBracketedPaste(enabled: true);
+    await tester.pumpAndSettle();
+    await Clipboard.setData(const ClipboardData(text: '한글\nかな'));
+
+    await tester.tap(find.byKey(const ValueKey<String>('paste-clipboard')));
+    await tester.pumpAndSettle();
+
+    expect(controller.output, '\u001b[200~한글\rかな\u001b[201~');
   });
 
   testWidgets('hardware keys produce the same VT sequences', (tester) async {
