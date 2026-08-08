@@ -137,6 +137,14 @@
     }
   },
   "sources": {
+    "src/browser/services/CharacterJoinerService.ts": {
+      "implementation": ["lib/src/core/character_joiner_service.dart"],
+      "tests": ["test/upstream_character_joiner_service_parity_test.dart"]
+    },
+    "src/browser/services/CharacterJoinerService.test.ts": {
+      "implementation": ["lib/src/core/character_joiner_service.dart"],
+      "tests": ["test/upstream_character_joiner_service_parity_test.dart"]
+    },
     "src/browser/ColorContrastCache.ts": {
       "implementation": ["lib/src/flutter/theme_service.dart"],
       "tests": ["test/upstream_theme_service_parity_test.dart"]
@@ -594,6 +602,30 @@
     }
   },
   "tests": {
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService doesn't process joins on differently-styled characters": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"doesn't process joins on differently-styled characters","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService doesn't process same-styled ranges that only have one character": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"doesn't process same-styled ranges that only have one character","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles adjacent ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles adjacent ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles emojis at the end of ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles emojis at the end of ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles emojis in the middle of ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles emojis in the middle of ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles fullwidth characters at the end of ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles fullwidth characters at the end of ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles fullwidth characters in the middle of ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles fullwidth characters in the middle of ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles ranges after wide and emoji characters": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles ranges after wide and emoji characters","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService handles ranges that extend all the way to the end of the line": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"handles ranges that extend all the way to the end of the line","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService has no joiners upon creation": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"has no joiners upon creation","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService processes the input using all provided joiners": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"processes the input using all provided joiners","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging connects more than two ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"connects more than two ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging connects two ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"connects two ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging extends the beginning of a range": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"extends the beginning of a range","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging extends the end of a range": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"extends the end of a range","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging extends the last range": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"extends the last range","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging inserts a new range before the existing ones": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"inserts a new range before the existing ones","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging inserts after the last range": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"inserts after the last range","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService range merging inserts in between two ranges": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"inserts in between two ranges","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService removes deregistered joiners from future calls": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"removes deregistered joiners from future calls","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService returns an empty list of ranges if the line is empty": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"returns an empty list of ranges if the line is empty","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService returns an empty list of ranges if there is nothing to be joined": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"returns an empty list of ranges if there is nothing to be joined","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService returns false when trying to deregister a joiner that does not exist": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"returns false when trying to deregister a joiner that does not exist","dartTestKind":"test"},
+    "unit:src/browser/services/CharacterJoinerService.test.ts:CharacterJoinerService returns ranges matched by the registered joiners": {"dartTestFile":"test/upstream_character_joiner_service_parity_test.dart","dartTestName":"returns ranges matched by the registered joiners","dartTestKind":"test"},
     "unit:src/browser/ColorContrastCache.test.ts:ColorContrastCache should clear all values on clear": {
       "dartTestFile": "test/upstream_theme_service_parity_test.dart",
       "dartTestName": "should clear all values on clear",
