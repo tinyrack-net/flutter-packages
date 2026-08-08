@@ -906,8 +906,9 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     with DeltaTextInputClient {
   TextInputConnection? _connection;
   TextEditingValue _editingValue = TextEditingValue.empty;
+  TextEditingValue _platformEditingValue = TextEditingValue.empty;
   String _committedPrefix = '';
-  bool _awaitingResetEcho = false;
+  String _resetEchoPrefix = '';
 
   bool get _isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
@@ -974,8 +975,9 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   void _resetEditingState() {
     _editingValue = TextEditingValue.empty;
+    _platformEditingValue = TextEditingValue.empty;
     _committedPrefix = '';
-    _awaitingResetEcho = false;
+    _resetEchoPrefix = '';
     _connection?.setEditingState(_editingValue);
   }
 
@@ -1005,13 +1007,14 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   @override
-  TextEditingValue? get currentTextEditingValue => _editingValue;
+  TextEditingValue? get currentTextEditingValue => _platformEditingValue;
 
   @override
   AutofillScope? get currentAutofillScope => null;
 
   @override
   void updateEditingValue(TextEditingValue value) {
+    _platformEditingValue = value;
     _accept(value);
     _finishCommittedInput();
   }
@@ -1019,30 +1022,20 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     for (final delta in deltas) {
-      _accept(delta.apply(_editingValue));
+      _platformEditingValue = delta.apply(_platformEditingValue);
+      _accept(_platformEditingValue);
     }
     _finishCommittedInput();
   }
 
   void _accept(TextEditingValue value) {
-    if (_awaitingResetEcho) {
-      _awaitingResetEcho = false;
-      if (value.text.isEmpty) {
-        _editingValue = value;
-        _committedPrefix = '';
-        widget.onComposingChanged();
-        return;
-      }
-      if (!_startsWithCommittedPrefix(value.text)) {
-        _committedPrefix = '';
-      }
-    }
-    _editingValue = value;
-    final composing = value.composing;
+    final normalized = _withoutResetEcho(value);
+    _editingValue = normalized;
+    final composing = normalized.composing;
     final committedEnd = composing.isValid && !composing.isCollapsed
         ? composing.start
-        : value.text.length;
-    _reconcileCommitted(value.text.substring(0, committedEnd));
+        : normalized.text.length;
+    _reconcileCommitted(normalized.text.substring(0, committedEnd));
     widget.onComposingChanged();
   }
 
@@ -1051,21 +1044,48 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     // xterm clears its hidden textarea after committed input. Keeping the
     // committed value makes a later platform synchronization to an empty
     // editing value look like a user deletion and emits duplicate DEL bytes.
+    _resetEchoPrefix = _platformEditingValue.text;
     _editingValue = TextEditingValue.empty;
-    _awaitingResetEcho = true;
+    _platformEditingValue = TextEditingValue.empty;
+    _committedPrefix = '';
     _connection?.setEditingState(_editingValue);
     widget.onComposingChanged();
   }
 
-  bool _startsWithCommittedPrefix(String text) {
-    if (_committedPrefix.isEmpty) return false;
-    final committed = _committedPrefix.characters.toList();
-    final next = text.characters.toList();
-    if (next.length < committed.length) return false;
-    for (var index = 0; index < committed.length; index++) {
-      if (committed[index] != next[index]) return false;
+  TextEditingValue _withoutResetEcho(TextEditingValue value) {
+    final prefix = _resetEchoPrefix;
+    if (prefix.isEmpty) return value;
+    if (value.text.isEmpty) {
+      _resetEchoPrefix = '';
+      _committedPrefix = '';
+      return value;
     }
-    return true;
+    if (!value.text.startsWith(prefix)) {
+      _resetEchoPrefix = '';
+      _committedPrefix = '';
+      return value;
+    }
+    final offset = prefix.length;
+    int adjusted(int position) => position < 0
+        ? position
+        : (position - offset).clamp(0, value.text.length - offset);
+    final selection = value.selection;
+    final composing = value.composing;
+    return TextEditingValue(
+      text: value.text.substring(offset),
+      selection: TextSelection(
+        baseOffset: adjusted(selection.baseOffset),
+        extentOffset: adjusted(selection.extentOffset),
+        affinity: selection.affinity,
+        isDirectional: selection.isDirectional,
+      ),
+      composing: composing.isValid
+          ? TextRange(
+              start: adjusted(composing.start),
+              end: adjusted(composing.end),
+            )
+          : TextRange.empty,
+    );
   }
 
   void _reconcileCommitted(String next) {
