@@ -544,8 +544,9 @@ void main() {
       () => TerminalDecoration(marker: marker, x: -1),
       throwsArgumentError,
     );
+    expect(TerminalDecoration(marker: marker, width: 0).width, 0);
     expect(
-      () => TerminalDecoration(marker: marker, width: 0),
+      () => TerminalDecoration(marker: marker, width: -1),
       throwsArgumentError,
     );
   });
