@@ -246,6 +246,14 @@
     "src/common/Lifecycle.ts": {
       "implementation": ["lib/src/core/disposable.dart"],
       "tests": ["test/lifecycle_parity_test.dart"]
+    },
+    "src/common/SortedList.ts": {
+      "implementation": ["lib/src/core/sorted_list.dart"],
+      "tests": ["test/upstream_sorted_list_parity_test.dart"]
+    },
+    "src/common/SortedList.test.ts": {
+      "implementation": ["lib/src/core/sorted_list.dart"],
+      "tests": ["test/upstream_sorted_list_parity_test.dart"]
     }
   },
   "tests": {
@@ -457,6 +465,41 @@
     "unit:src/common/Event.test.ts:Emitter should not fire after dispose": {
       "dartTestFile": "test/lifecycle_parity_test.dart",
       "dartTestName": "should not fire after dispose",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList clear": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "clear",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList custom key": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "custom key",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList delete": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "delete",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList getKeyIterator": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "getKeyIterator",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList insert should allow duplicates of the same key": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "should allow duplicates of the same key",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList insert should maintain sorted values": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "should maintain sorted values",
+      "dartTestKind": "test"
+    },
+    "unit:src/common/SortedList.test.ts:SortedList values should iterate correctly when list items change during iteration": {
+      "dartTestFile": "test/upstream_sorted_list_parity_test.dart",
+      "dartTestName": "should iterate correctly when list items change during iteration",
       "dartTestKind": "test"
     }
   }
