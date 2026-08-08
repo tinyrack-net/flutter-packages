@@ -1493,7 +1493,8 @@
     "addons/addon-ligatures/src/fontLigatures/flatten.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/walk.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
     "addons/addon-ligatures/src/fontLigatures/merge.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
-    "addons/addon-ligatures/src/fontLigatures/merge.test.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]}
+    "addons/addon-ligatures/src/fontLigatures/merge.test.ts": {"implementation":["lib/src/addons/ligature_tables.dart"],"tests":["test/upstream_ligature_tables_parity_test.dart"]},
+    "addons/addon-ligatures/src/fontLigatures/index.ts": {"implementation":["lib/src/addons/ligature_font.dart"],"tests":["test/upstream_ligature_font_parity_test.dart"]}
   },
   "tests": {
     "unit:addons/addon-ligatures/src/fontLigatures/merge.test.ts:addon-ligatures - merge mergeTrees combines disjoint trees": {"dartTestFile":"test/upstream_ligature_tables_parity_test.dart","dartTestName":"combines disjoint trees","dartTestKind":"test"},
