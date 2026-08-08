@@ -47,6 +47,9 @@
     "addons/addon-web-links/typings/addon-web-links.d.ts:44": {"implementation":"lib/addon_web_links.dart","symbol":"hover;"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:50": {"implementation":"lib/addon_web_links.dart","symbol":"leave;"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:55": {"implementation":"lib/addon_web_links.dart","symbol":"RegExp? urlPattern"},
+    "addons/addon-webgl/typings/addon-webgl.d.ts:12": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"class WebglAddon extends"},
+    "addons/addon-webgl/typings/addon-webgl.d.ts:35": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"WebglAddon({this.customGlyphs = true"},
+    "addons/addon-webgl/typings/addon-webgl.d.ts:75": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"final bool customGlyphs"},
     "addons/addon-attach/typings/addon-attach.d.ts:9": {
       "implementation": "lib/addon_attach.dart",
       "symbol": "bidirectional"
