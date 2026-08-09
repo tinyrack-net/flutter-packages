@@ -347,7 +347,10 @@ final class TerminalCell {
       backgroundMode == TerminalColorMode.defaultColor;
 
   /// Color used to draw an underline.
-  TerminalCellColor get underlineColor => _cell.attributes.underlineColor;
+  TerminalCellColor get underlineColor =>
+      _cell.attributes.underlineColor.mode == TerminalColorMode.defaultColor
+      ? _cell.attributes.foreground
+      : _cell.attributes.underlineColor;
 
   /// Packed underline palette index or RGB value.
   int get underlineColorValue => underlineColor.value;

@@ -1584,6 +1584,8 @@ final class _TerminalCoreEngine {
         case 4:
           _attributes.underline = group.length > 1
               ? switch (group[1]) {
+                  0 => TerminalUnderlineStyle.none,
+                  1 => TerminalUnderlineStyle.single,
                   2 => TerminalUnderlineStyle.double,
                   3 => TerminalUnderlineStyle.curly,
                   4 => TerminalUnderlineStyle.dotted,
@@ -1682,6 +1684,25 @@ final class _TerminalCoreEngine {
         ),
         lastIndex: index,
       );
+    }
+    if (index + 1 < params.length) {
+      final next = params[index + 1];
+      if (next.length >= 5 && next[0] == 2) {
+        return (
+          color: TerminalCellColor.rgb(
+            next[next.length - 3].clamp(0, 255),
+            next[next.length - 2].clamp(0, 255),
+            next.last.clamp(0, 255),
+          ),
+          lastIndex: index + 1,
+        );
+      }
+      if (next.length >= 2 && next[0] == 5) {
+        return (
+          color: TerminalCellColor.palette(next[1].clamp(0, 255)),
+          lastIndex: index + 1,
+        );
+      }
     }
     if (index + 1 < params.length && _param(params, index + 1, 0) == 5) {
       return (
