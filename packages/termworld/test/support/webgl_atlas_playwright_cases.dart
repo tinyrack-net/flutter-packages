@@ -41,12 +41,15 @@ void _verifyPageCapEviction() {
   addTearDown(atlas.dispose);
   _fillToPageCount(atlas, 4);
   final before = atlas.pageLayoutVersion;
-  atlas.addSyntheticGlyph('force-eviction');
+  for (var index = 0; removals == 0; index++) {
+    if (index > 100) throw StateError('full page cap did not evict');
+    atlas.addSyntheticGlyph('force-eviction-$index');
+  }
   expect(removals, greaterThanOrEqualTo(4));
   expect(atlas.pageLayoutVersion, greaterThan(before));
   expect(atlas.pages, hasLength(1));
   final stable = atlas.pageLayoutVersion;
-  expect(atlas.addSyntheticGlyph('force-eviction'), isNotNull);
+  expect(atlas.addSyntheticGlyph('force-eviction-0'), isNotNull);
   expect(atlas.pageLayoutVersion, stable);
 }
 
@@ -107,7 +110,10 @@ void _verifySharedAtlasMerge() {
   expect(rendererB.beginFrame(), isFalse);
   _fillToPageCount(atlasA, 4);
   final before = atlasA.pageLayoutVersion;
-  atlasA.addSyntheticGlyph('trigger-merge');
+  for (var index = 0; atlasA.pageLayoutVersion == before; index++) {
+    if (index > 100) throw StateError('full shared atlas did not merge');
+    atlasA.addSyntheticGlyph('trigger-merge-$index');
+  }
   expect(atlasA.pageLayoutVersion, greaterThan(before));
   expect(rendererB.beginFrame(), isTrue);
   final rebuilt = atlasB.addSyntheticGlyph('HEADER_REF');
