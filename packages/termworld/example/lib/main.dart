@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:termworld/addon_webgl.dart';
 import 'package:termworld/termworld.dart';
 
 void main() => runApp(const TermworldExampleApp());
@@ -12,6 +13,9 @@ final class TermworldExampleController extends ChangeNotifier {
   /// Creates an example controller and its terminal engine.
   TermworldExampleController() {
     terminal = Terminal();
+    if (WebglAddon.isSupported) {
+      terminal.loadAddon(WebglAddon());
+    }
     terminal.onData.listen(_recordOutput);
     terminal.write('\u001b[1;36mtermworld\u001b[0m\r\n한글 IME: ');
   }

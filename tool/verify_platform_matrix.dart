@@ -84,6 +84,15 @@ List<String> verifyPackages(String root) {
       violations.add('termworld: Linux IBus CI is missing "$marker"');
     }
   }
+  for (final browser in const <String>['chromium', 'firefox', 'webkit']) {
+    final marker = '          - $browser';
+    if (!workflowText.contains(marker)) {
+      violations.add('termworld: browser matrix is missing "$browser"');
+    }
+  }
+  if (!workflowText.contains('L4 web termworld browser conformance')) {
+    violations.add('termworld: cross-browser L4 renderer step is missing');
+  }
   if (workflowText.contains('mise')) {
     violations.add(
       'termworld: Linux IBus CI must use the workflow-installed Flutter SDK',

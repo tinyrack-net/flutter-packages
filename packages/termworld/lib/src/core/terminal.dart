@@ -957,6 +957,9 @@ final class Terminal extends DisposableStore {
     if (_engine.reportFocusMode) _reportCurrentFocus();
   }
 
+  /// Current focus snapshot consumed by renderer addons.
+  bool get rendererHasFocus => _hasFocus;
+
   void _reportCurrentFocus() => _triggerData(
     _hasFocus ? '\u001b[I' : '\u001b[O',
   );

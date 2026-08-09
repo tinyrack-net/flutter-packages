@@ -336,6 +336,47 @@ jobs:
         run: flutter build web --release
         working-directory: packages/termworld/example
 
+  web-browsers:
+    name: Web renderer (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+          - webkit
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: Install the pinned Playwright browser
+        env:
+          PLAYWRIGHT_ROOT: ${{ runner.temp }}/termworld-playwright
+        run: |
+          npm install --prefix "$PLAYWRIGHT_ROOT" playwright@1.55.0
+          "$PLAYWRIGHT_ROOT/node_modules/.bin/playwright" install --with-deps \
+            "${{ matrix.browser }}"
+      - name: Build the termworld browser renderer
+        run: flutter build web --release
+        working-directory: packages/termworld/example
+      - name: L4 web termworld browser conformance (${{ matrix.browser }})
+        env:
+          PLAYWRIGHT_ROOT: ${{ runner.temp }}/termworld-playwright
+        run: |
+          python3 -m http.server 8080 \
+            --directory packages/termworld/example/build/web &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          node tool/run_termworld_browser_conformance.cjs \
+            "${{ matrix.browser }}"
+
   android:
     name: Android (API ${{ matrix.api-level }})
     runs-on: ubuntu-latest

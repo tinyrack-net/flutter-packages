@@ -19,6 +19,7 @@ import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/cell_color_resolver.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
+import 'package:termworld/src/flutter/webgl_surface.dart';
 
 enum _PointerSelectionMode { normal, word, line, column }
 
@@ -485,21 +486,23 @@ final class _TerminalViewState extends State<TerminalView> {
             overrides: widget.terminal.colorOverrides,
           );
       final style = _effectiveStyle;
-      final renderer = CustomPaint(
-        painter: _TerminalPainter(
-          terminal: widget.terminal,
-          theme: theme,
-          style: style,
-          padding: widget.padding ?? EdgeInsets.zero,
-          backgroundOpacity: widget.backgroundOpacity,
-          focused: _focusNode.hasFocus,
-          cursorInitialized: _hasBeenFocused,
-          cursorVisible: _cursorVisible,
-          hoveredLink: _hoveredLink,
-          decodedImages: _decodedImages,
-        ),
-        size: constraints.biggest,
-      );
+      final renderer =
+          terminalWebglSurface(widget.terminal) ??
+          CustomPaint(
+            painter: _TerminalPainter(
+              terminal: widget.terminal,
+              theme: theme,
+              style: style,
+              padding: widget.padding ?? EdgeInsets.zero,
+              backgroundOpacity: widget.backgroundOpacity,
+              focused: _focusNode.hasFocus,
+              cursorInitialized: _hasBeenFocused,
+              cursorVisible: _cursorVisible,
+              hoveredLink: _hoveredLink,
+              decodedImages: _decodedImages,
+            ),
+            size: constraints.biggest,
+          );
       final composingText = _inputKey.currentState?.composingText ?? '';
       final padding = widget.padding ?? EdgeInsets.zero;
       final dimensions = widget.terminal.dimensions;
