@@ -122,6 +122,8 @@ final class _TerminalViewState extends State<TerminalView> {
   bool _cursorVisible = true;
   bool _cursorBlinkIdle = false;
   bool _hasBeenFocused = false;
+  (String, double, double, FontWeight, double)? _measuredCellStyle;
+  double _measuredCellWidth = 0;
   TerminalMouseButton _pressedMouseButton = TerminalMouseButton.none;
   TerminalCellOffset? _selectionAnchor;
   TerminalCellOffset? _selectionAnchorEnd;
@@ -207,6 +209,10 @@ final class _TerminalViewState extends State<TerminalView> {
     });
     _cursorMoveListener = widget.terminal.onCursorMove.listen((_) {
       _restartCursorBlinkAnimation();
+      // The IME candidate window follows the cursor cell.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _inputKey.currentState?.updateInputGeometry();
+      });
     });
     _scrollListener = widget.terminal.onScroll.listen((_) {
       if (mounted) setState(() {});
@@ -564,6 +570,7 @@ final class _TerminalViewState extends State<TerminalView> {
               autofocus: widget.autofocus,
               readOnly: widget.readOnly,
               terminal: widget.terminal,
+              padding: padding,
               onKeyEvent: _onKeyEvent,
               onComposingChanged: () {
                 if (mounted) setState(() {});
@@ -1448,7 +1455,7 @@ final class _TerminalViewState extends State<TerminalView> {
     final pixelRatio = MediaQuery.devicePixelRatioOf(context);
     final style = _effectiveStyle;
     final cellHeight = style.fontSize * style.height;
-    final cellWidth = style.fontSize * 0.6 + style.letterSpacing;
+    final cellWidth = _measureCellWidth(style);
     final padding = widget.padding ?? EdgeInsets.zero;
     final columns = ((size.width - padding.horizontal) / cellWidth).floor();
     final rows = ((size.height - padding.vertical) / cellHeight).floor();
@@ -1466,7 +1473,46 @@ final class _TerminalViewState extends State<TerminalView> {
       if (widget.autoResize && columns > 0 && rows > 0) {
         widget.terminal.resize(columns, rows);
       }
+      _inputKey.currentState?.updateInputGeometry();
     });
+  }
+
+  /// Measures the advance of one monospace cell in [style].
+  ///
+  /// The painter positions every cell at `column * cellWidth` while glyphs are
+  /// drawn with the font's real metrics. An estimated width — the old
+  /// `fontSize * 0.6` — disagrees with almost every font's actual advance, so
+  /// the column count reported to the shell never matches the width the view
+  /// can draw, and long lines wrap at the wrong column and shear the layout.
+  double _measureCellWidth(TerminalStyle style) {
+    final key = (
+      style.fontFamily,
+      style.fontSize,
+      style.height,
+      style.fontWeight,
+      style.letterSpacing,
+    );
+    if (key == _measuredCellStyle) return _measuredCellWidth;
+    final textStyle = style.toTextStyle();
+    final one = TextPainter(
+      text: TextSpan(text: 'W', style: textStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    final two = TextPainter(
+      text: TextSpan(text: 'WW', style: textStyle),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    // The difference isolates one advance while keeping exactly one
+    // letter-spacing share per cell, matching how a run of cells lays out.
+    var width = two.width - one.width;
+    one.dispose();
+    two.dispose();
+    if (!width.isFinite || width <= 0) {
+      width = style.fontSize * 0.6 + style.letterSpacing;
+    }
+    _measuredCellStyle = key;
+    _measuredCellWidth = width;
+    return width;
   }
 }
 
@@ -1841,6 +1887,7 @@ final class _TerminalTextInput extends StatefulWidget {
     required this.autofocus,
     required this.readOnly,
     required this.terminal,
+    required this.padding,
     required this.onKeyEvent,
     required this.onComposingChanged,
     required this.child,
@@ -1851,6 +1898,7 @@ final class _TerminalTextInput extends StatefulWidget {
   final bool autofocus;
   final bool readOnly;
   final Terminal terminal;
+  final EdgeInsets padding;
   final FocusOnKeyEventCallback onKeyEvent;
   final VoidCallback onComposingChanged;
   final Widget child;
@@ -1958,6 +2006,32 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
       ),
     )..setEditingState(_editingValue);
     _connection?.show();
+    updateInputGeometry();
+  }
+
+  /// Tells the platform where the terminal cursor cell sits on screen.
+  ///
+  /// The IME positions its candidate and preedit windows from this geometry.
+  /// Without it they open at the window origin, far from where the person is
+  /// typing — most visibly for Korean and Japanese candidate selection.
+  void updateInputGeometry() {
+    final connection = _connection;
+    if (connection == null || !connection.attached || !mounted) return;
+    final box = context.findRenderObject();
+    if (box is! RenderBox || !box.hasSize || !box.attached) return;
+    final dimensions = widget.terminal.dimensions;
+    if (dimensions == null) return;
+    connection.setEditableSizeAndTransform(box.size, box.getTransformTo(null));
+    final buffer = widget.terminal.buffer.active;
+    final caret = Rect.fromLTWH(
+      widget.padding.left + buffer.cursorX * dimensions.cellWidth,
+      widget.padding.top + buffer.cursorY * dimensions.cellHeight,
+      dimensions.cellWidth,
+      dimensions.cellHeight,
+    );
+    connection
+      ..setComposingRect(caret)
+      ..setCaretRect(caret);
   }
 
   void _closeConnection() {
@@ -2043,7 +2117,11 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   void _suppressPhysicalCommitEcho(String text) {
     if (_isComposing || text.isEmpty) return;
-    _resetEchoPrefix = text;
+    // Appended rather than assigned: a physical key can land while the echo
+    // of an earlier committed reset is still armed — Hangul then Space leaves
+    // the platform text carrying both — and replacing the prefix would make
+    // that combined echo look like fresh user input, re-sending everything.
+    _resetEchoPrefix += text;
   }
 
   TextEditingValue _withoutResetEcho(TextEditingValue value) {
