@@ -1683,22 +1683,22 @@ final class _TerminalCoreEngine {
         lastIndex: index,
       );
     }
-    if (index + 2 < params.length && _param(params, index + 1, 0) == 5) {
+    if (index + 1 < params.length && _param(params, index + 1, 0) == 5) {
       return (
         color: TerminalCellColor.palette(
           _param(params, index + 2, 0).clamp(0, 255),
         ),
-        lastIndex: index + 2,
+        lastIndex: math.min(index + 2, params.length - 1),
       );
     }
-    if (index + 4 < params.length && _param(params, index + 1, 0) == 2) {
+    if (index + 1 < params.length && _param(params, index + 1, 0) == 2) {
       return (
         color: TerminalCellColor.rgb(
           _param(params, index + 2, 0).clamp(0, 255),
           _param(params, index + 3, 0).clamp(0, 255),
           _param(params, index + 4, 0).clamp(0, 255),
         ),
-        lastIndex: index + 4,
+        lastIndex: math.min(index + 4, params.length - 1),
       );
     }
     return (
