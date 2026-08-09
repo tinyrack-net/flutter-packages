@@ -67,6 +67,9 @@ final class TerminalBufferPosition {
   // Safe without Flutter's @immutable: this value type has only final fields.
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => Object.hash(x, y);
+
+  @override
+  String toString() => 'TerminalBufferPosition($x, $y)';
 }
 
 /// An inclusive terminal buffer range.
@@ -90,6 +93,9 @@ final class TerminalBufferRange {
   // Safe without Flutter's @immutable: this value type has only final fields.
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   int get hashCode => Object.hash(start, end);
+
+  @override
+  String toString() => 'TerminalBufferRange(start: $start, end: $end)';
 }
 
 /// A structural change to the buffer's logical line collection.
@@ -347,7 +353,21 @@ final class TerminalCell {
       backgroundMode == TerminalColorMode.defaultColor;
 
   /// Color used to draw an underline.
-  TerminalCellColor get underlineColor => _cell.attributes.underlineColor;
+  ///
+  /// xterm retains the raw extended color when underline styling is disabled,
+  /// but hides that value until extended attributes become active again. Its
+  /// public cell API therefore falls back to the foreground in that state.
+  TerminalCellColor get underlineColor {
+    final attributes = _cell.attributes;
+    final hasExtended =
+        attributes.underline != TerminalUnderlineStyle.none ||
+        attributes.hyperlinkId != 0;
+    if (!hasExtended ||
+        attributes.underlineColor.mode == TerminalColorMode.defaultColor) {
+      return attributes.foreground;
+    }
+    return attributes.underlineColor;
+  }
 
   /// Packed underline palette index or RGB value.
   int get underlineColorValue => underlineColor.value;
@@ -417,13 +437,25 @@ final class TerminalCell {
 
   /// Whether this cell carries any xterm extended attribute data.
   bool get hasExtendedAttributes =>
-      underlineStyle != TerminalUnderlineStyle.none ||
-      !isUnderlineColorDefault ||
-      underlineVariantOffset != 0;
+      underlineStyle != TerminalUnderlineStyle.none || hyperlinkId != 0;
 
   /// Whether all attributes have their default values.
-  bool get isAttributeDefault =>
-      _cell.attributes.sameAs(TerminalCellAttributes());
+  bool get isAttributeDefault {
+    final attributes = _cell.attributes;
+    return attributes.foreground.mode == TerminalColorMode.defaultColor &&
+        attributes.background.mode == TerminalColorMode.defaultColor &&
+        !attributes.bold &&
+        !attributes.dim &&
+        !attributes.italic &&
+        attributes.underline == TerminalUnderlineStyle.none &&
+        !attributes.blink &&
+        !attributes.inverse &&
+        !attributes.invisible &&
+        !attributes.strikethrough &&
+        !attributes.overline &&
+        !attributes.protected &&
+        attributes.hyperlinkId == 0;
+  }
 
   /// Whether this cell's attributes equal those of [other].
   bool attributesEqual(TerminalCell other) {
