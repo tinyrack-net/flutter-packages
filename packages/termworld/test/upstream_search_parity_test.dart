@@ -26,7 +26,7 @@ void main() {
 
     tearDown(() => terminal.dispose());
 
-    test('Simple Search and escaped literal search', () async {
+    test('xterm SearchAddon Simple Search', () async {
       await terminal.writeAndWait(
         'dafhdjfldshafhldsahfkjhldhjkftestlhfdsakjfhdjhlfdsjkafhjdlk',
       );
@@ -39,7 +39,23 @@ void main() {
       expect(terminal.getSelection(), r'$^1_3{}test$#');
     });
 
-    test('Incremental Find Next', () async {
+    test('xterm SearchAddon Scrolling Search', () async {
+      final data = StringBuffer();
+      for (var row = 0; row < 100; row++) {
+        if (row == 52) data.write(r'$^1_3{}test$#');
+        data.write('${'x' * 50}\r\n');
+      }
+      await terminal.writeAndWait(data.toString());
+      expect(search.findNext(r'$^1_3{}test$#'), isTrue);
+      expect(terminal.getSelection(), r'$^1_3{}test$#');
+      final selectedRow = terminal.getSelectionPosition()!.start.y;
+      expect(
+        selectedRow,
+        inInclusiveRange(terminal.viewportY, terminal.viewportY + 23),
+      );
+    });
+
+    test('xterm SearchAddon Incremental Find Next', () async {
       await terminal.writeAndWait(
         'package.lock pack package.json package.ups\r\npackage.jsonc',
       );
@@ -52,7 +68,7 @@ void main() {
       expect(terminal.getSelection(), 'package.jsonc');
     });
 
-    test('Incremental Find Previous', () async {
+    test('xterm SearchAddon Incremental Find Previous', () async {
       await terminal.writeAndWait(
         'package.jsonc\r\npackage.json pack package.lock',
       );
@@ -65,7 +81,7 @@ void main() {
       expect(terminal.getSelection(), 'package.jsonc');
     });
 
-    test('regex honors case sensitivity and ignores empty matches', () async {
+    test('xterm SearchAddon Simple Regex', () async {
       await terminal.writeAndWait('abc123defABCD');
       expect(
         search.findNext(
@@ -96,14 +112,14 @@ void main() {
       expect(terminal.hasSelection(), isFalse);
     });
 
-    test('single result remains selected when search wraps', () async {
+    test('xterm SearchAddon single result remains selected', () async {
       await terminal.writeAndWait('abc def');
       expect(search.findNext('abc'), isTrue);
       expect(search.findNext('abc'), isTrue);
       expect(terminal.getSelection(), 'abc');
     });
 
-    test('wide and surrogate characters map to buffer columns', () async {
+    test('xterm SearchAddon wide unicode bounds', () async {
       await terminal.writeAndWait('中文xx𝄞𝄞');
       expect(search.findNext('中'), isTrue);
       expect(terminal.getSelection(), '中');
@@ -182,7 +198,7 @@ void main() {
       expect(terminal.getSelectionPosition()!.start.x, 0);
     });
 
-    test('result events and decorations match forward cycling', () async {
+    test('xterm SearchAddon forward result values', () async {
       final events = <TerminalSearchResult>[];
       search.onDidChangeResults.listen(events.add);
       await terminal.writeAndWait('abc bc c');
@@ -230,6 +246,169 @@ void main() {
       expect(terminal.decorations, isEmpty);
     });
 
+    test('xterm SearchAddon forward results require decorations', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('abc');
+      expect(search.findNext('a'), isTrue);
+      expect(events, isEmpty);
+      expect(
+        search.findNext(
+          'b',
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      expect(_resultTuples(events), <(int, int)>[(1, 0)]);
+    });
+
+    test('xterm SearchAddon reverse results require decorations', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('abc');
+      expect(search.findPrevious('a'), isTrue);
+      expect(events, isEmpty);
+      expect(
+        search.findPrevious(
+          'b',
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      expect(_resultTuples(events), <(int, int)>[(1, 0)]);
+    });
+
+    test('xterm SearchAddon reverse result values', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('abc bc c');
+      const options = TerminalSearchOptions(decorations: _decorations);
+      expect(search.findPrevious('a', options: options), isTrue);
+      terminal.clearSelection();
+      expect(search.findPrevious('b', options: options), isTrue);
+      expect(search.findPrevious('d', options: options), isFalse);
+      expect(search.findPrevious('c', options: options), isTrue);
+      expect(search.findPrevious('c', options: options), isTrue);
+      expect(search.findPrevious('c', options: options), isTrue);
+      expect(
+        _resultTuples(events),
+        <(int, int)>[
+          (1, 0),
+          (2, 1),
+          (0, -1),
+          (3, 2),
+          (3, 1),
+          (3, 0),
+        ],
+      );
+    });
+
+    test('xterm SearchAddon forward incremental results', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('d abc aabc d');
+      const options = TerminalSearchOptions(
+        incremental: true,
+        decorations: _decorations,
+      );
+      for (final term in <String>['a', 'ab', 'abc', 'abc', 'd', 'abcd']) {
+        search.findNext(term, options: options);
+      }
+      expect(
+        _resultTuples(events),
+        <(int, int)>[
+          (3, 0),
+          (2, 0),
+          (2, 0),
+          (2, 1),
+          (2, 1),
+          (0, -1),
+        ],
+      );
+    });
+
+    test('xterm SearchAddon reverse incremental results', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('d abc aabc d');
+      const options = TerminalSearchOptions(
+        incremental: true,
+        decorations: _decorations,
+      );
+      for (final term in <String>['a', 'ab', 'abc', 'abc', 'd', 'abcd']) {
+        search.findPrevious(term, options: options);
+      }
+      expect(
+        _resultTuples(events),
+        <(int, int)>[
+          (3, 2),
+          (2, 1),
+          (2, 1),
+          (2, 0),
+          (2, 1),
+          (0, -1),
+        ],
+      );
+    });
+
+    test('xterm SearchAddon forward result limit', () async {
+      search.dispose();
+      search = SearchAddon();
+      terminal.loadAddon(search);
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      final line = '${'a bc' * 10}\r\n';
+      await terminal.writeAndWait(line * 150);
+      const options = TerminalSearchOptions(decorations: _decorations);
+      expect(search.findNext('a', options: options), isTrue);
+      expect(search.findNext('a', options: options), isTrue);
+      expect(search.findNext('bc', options: options), isTrue);
+      expect(
+        _resultTuples(events),
+        <(int, int)>[(1000, 0), (1000, 1), (1000, 1)],
+      );
+    });
+
+    test('xterm SearchAddon reverse result limit', () async {
+      search.dispose();
+      search = SearchAddon();
+      terminal.loadAddon(search);
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      final line = '${'a bc' * 10}\r\n';
+      await terminal.writeAndWait(line * 150);
+      const options = TerminalSearchOptions(decorations: _decorations);
+      expect(search.findPrevious('a', options: options), isTrue);
+      expect(search.findPrevious('a', options: options), isTrue);
+      expect(search.findPrevious('bc', options: options), isTrue);
+      expect(
+        _resultTuples(events),
+        <(int, int)>[(1000, -1), (1000, -1), (1000, -1)],
+      );
+    });
+
+    test('xterm SearchAddon forward refresh after write', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('abc bc c\r\n' * 2);
+      const options = TerminalSearchOptions(decorations: _decorations);
+      expect(search.findNext('abc', options: options), isTrue);
+      await terminal.writeAndWait('abc bc c\r\n');
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      expect(_resultTuples(events), <(int, int)>[(2, 0), (3, 0)]);
+    });
+
+    test('xterm SearchAddon reverse refresh after write', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('abc bc c\r\n' * 2);
+      const options = TerminalSearchOptions(decorations: _decorations);
+      expect(search.findPrevious('abc', options: options), isTrue);
+      await terminal.writeAndWait('abc bc c\r\n');
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      expect(_resultTuples(events), <(int, int)>[(2, 1), (3, 1)]);
+    });
+
     test('highlight limit reports only tracked matches', () async {
       search.dispose();
       search = SearchAddon(highlightLimit: 2);
@@ -250,6 +429,32 @@ void main() {
       expect(search.findNext('abc'), isTrue);
       expect(search.findPrevious('abc'), isTrue);
       expect(events, <String>['before', 'after', 'before', 'after']);
+    });
+
+    test('xterm SearchAddon before and after findNext', () async {
+      final events = _searchEvents(search);
+      await terminal.writeAndWait('abc');
+      search.findNext('a');
+      expect(events, <String>['before', 'after']);
+    });
+
+    test('xterm SearchAddon before and after findPrevious', () async {
+      final events = _searchEvents(search);
+      await terminal.writeAndWait('abc');
+      search.findPrevious('a');
+      expect(events, <String>['before', 'after']);
+    });
+
+    test('xterm SearchAddon events for each call', () async {
+      final events = _searchEvents(search);
+      await terminal.writeAndWait('abc abc');
+      search
+        ..findNext('abc')
+        ..findNext('abc');
+      expect(
+        events,
+        <String>['before', 'after', 'before', 'after'],
+      );
     });
 
     test('empty search and no match clear selection', () async {
@@ -390,6 +595,17 @@ Future<String> _issue2444Fixture() async {
   if (!Platform.isWindows) fixture = fixture.replaceAll('\n', '\n\r');
   return fixture;
 }
+
+List<String> _searchEvents(SearchAddon search) {
+  final events = <String>[];
+  search.onBeforeSearch.listen((_) => events.add('before'));
+  search.onAfterSearch.listen((_) => events.add('after'));
+  return events;
+}
+
+List<(int, int)> _resultTuples(List<TerminalSearchResult> events) => events
+    .map((event) => (event.resultCount, event.resultIndex))
+    .toList(growable: false);
 
 String _selectedSuffix(Terminal terminal, int trailingLength) {
   final selection = terminal.getSelectionPosition()!;
