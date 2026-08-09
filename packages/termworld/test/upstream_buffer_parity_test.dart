@@ -2,6 +2,96 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/termworld_headless.dart';
 
 void main() {
+  test('xterm Buffer 00', () {
+    final buffer = TerminalBufferNamespace(
+      columns: 80,
+      rows: 24,
+      scrollback: 1000,
+    );
+    addTearDown(buffer.dispose);
+    expect(buffer.normal.maximumLength, 1024);
+  });
+
+  test('xterm Buffer 01', () {
+    final buffer = TerminalBufferNamespace(
+      columns: 80,
+      rows: 24,
+      scrollback: 1000,
+    );
+    addTearDown(buffer.dispose);
+    expect(buffer.normal.scrollBottom, 23);
+  });
+
+  test('xterm Buffer 02', () {
+    final buffer = TerminalBufferNamespace(
+      columns: 80,
+      rows: 24,
+      scrollback: 1000,
+    );
+    addTearDown(buffer.dispose);
+    expect(buffer.normal.length, 24);
+    expect(buffer.normal.getLine(0), isNotNull);
+    expect(buffer.normal.getLine(23), isNotNull);
+  });
+
+  test('xterm Buffer 03', () {
+    final buffer = _rangeBuffer();
+    expect(buffer.getWrappedRangeForLine(0), (first: 0, last: 0));
+  });
+
+  test('xterm Buffer 04', () {
+    final buffer = _rangeBuffer();
+    expect(buffer.getWrappedRangeForLine(3), (first: 3, last: 3));
+  });
+
+  test('xterm Buffer 05', () {
+    final buffer = _rangeBuffer();
+    expect(buffer.getWrappedRangeForLine(9), (first: 9, last: 9));
+  });
+
+  test('xterm Buffer 06', () {
+    final buffer = _rangeBuffer()..getLine(1)!.isWrapped = true;
+    expect(buffer.getWrappedRangeForLine(0), (first: 0, last: 1));
+  });
+
+  test('xterm Buffer 07', () {
+    final buffer = _rangeBuffer()..getLine(3)!.isWrapped = true;
+    expect(buffer.getWrappedRangeForLine(3), (first: 2, last: 3));
+  });
+
+  test('xterm Buffer 08', () {
+    final buffer = _rangeBuffer()..getLine(4)!.isWrapped = true;
+    expect(buffer.getWrappedRangeForLine(3), (first: 3, last: 4));
+  });
+
+  test('xterm Buffer 09', () {
+    final buffer = _rangeBuffer()
+      ..getLine(3)!.isWrapped = true
+      ..getLine(4)!.isWrapped = true;
+    expect(buffer.getWrappedRangeForLine(3), (first: 2, last: 4));
+  });
+
+  test('xterm Buffer 10', () {
+    final buffer = _rangeBuffer()..getLine(9)!.isWrapped = true;
+    expect(buffer.getWrappedRangeForLine(9), (first: 8, last: 9));
+  });
+
+  test('xterm Buffer 11', () {
+    final buffer = _rangeBuffer();
+    for (var row = 1; row <= 3; row++) {
+      buffer.getLine(row)!.isWrapped = true;
+    }
+    expect(buffer.getWrappedRangeForLine(3), (first: 0, last: 3));
+  });
+
+  test('xterm Buffer 12', () {
+    final buffer = _rangeBuffer();
+    for (var row = 7; row <= 9; row++) {
+      buffer.getLine(row)!.isWrapped = true;
+    }
+    expect(buffer.getWrappedRangeForLine(7), (first: 6, last: 9));
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -297,4 +387,14 @@ void main() {
       expect(first.isDisposed, isTrue);
     },
   );
+}
+
+TerminalBuffer _rangeBuffer() {
+  final namespace = TerminalBufferNamespace(
+    columns: 20,
+    rows: 10,
+    scrollback: 0,
+  );
+  addTearDown(namespace.dispose);
+  return namespace.normal;
 }

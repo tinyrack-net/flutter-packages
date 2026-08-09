@@ -1080,6 +1080,12 @@ final class TerminalBuffer implements Disposable {
   /// Maximum number of retained scrollback lines.
   int get scrollback => _scrollback;
   int _scrollback;
+
+  /// Maximum line capacity, equivalent to xterm's circular-list max length.
+  int get maximumLength => _rows + _scrollback;
+
+  /// Inclusive bottom row of the scrolling viewport.
+  int get scrollBottom => _rows - 1;
   final List<TerminalBufferLine> _lines = <TerminalBufferLine>[];
   final BufferLineStringCache _stringCache = BufferLineStringCache();
   int _columns;
@@ -1177,6 +1183,23 @@ final class TerminalBuffer implements Disposable {
   /// Returns the absolute buffer line at [index].
   TerminalBufferLine? getLine(int index) =>
       index < 0 || index >= length ? null : _lines[index];
+
+  /// Returns the first and last row of the wrapped logical line containing
+  /// [lineIndex].
+  ({int first, int last}) getWrappedRangeForLine(int lineIndex) {
+    if (lineIndex < 0 || lineIndex >= length) {
+      throw RangeError.range(lineIndex, 0, length - 1, 'lineIndex');
+    }
+    var first = lineIndex;
+    while (first > 0 && _lines[first].isWrapped) {
+      first--;
+    }
+    var last = lineIndex;
+    while (last + 1 < length && _lines[last + 1].isWrapped) {
+      last++;
+    }
+    return (first: first, last: last);
+  }
 
   /// Line containing the cursor.
   TerminalBufferLine get currentLine => _lines[absoluteCursorY];
