@@ -29,7 +29,8 @@ void main() {
           selection: 0x0000ffff,
         ),
       );
-      expect(result.foreground & TerminalWebglAttributes.inverse, isNonZero);
+      expect(_rgb(result.foreground), 0x00ff00);
+      expect(result.foreground & TerminalWebglAttributes.inverse, 0);
       expect(_rgb(result.background), 0x7f0080);
     });
 
@@ -71,6 +72,115 @@ void main() {
       expect(_rgb(result.foreground), 0xff0000);
       expect(result.foreground & TerminalWebglAttributes.inverse, 0);
     });
+
+    test('WebGL selection blending background', () {
+      final colors = _webglColors(
+        ansi: const <int>[0x000000ff, 0xcc0000ff],
+      );
+      const red = TerminalWebglAttributes.colorModePalette16 | 1;
+      const trueRed = TerminalWebglAttributes.colorModeRgb | 0xcc0000;
+      expect(
+        _rgb(_webgl(colors: colors, background: red).background),
+        0xe68080,
+      );
+      expect(
+        _rgb(_webgl(colors: colors, inverse: true).background),
+        0xffffff,
+      );
+      expect(
+        _rgb(
+          _webgl(
+            colors: colors,
+            foreground: red | TerminalWebglAttributes.inverse,
+          ).background,
+        ),
+        0xe68080,
+      );
+      expect(
+        _rgb(_webgl(colors: colors, background: trueRed).background),
+        0xe68080,
+      );
+    });
+
+    test('WebGL selection blending powerline symbols', () {
+      final colors = _webglColors(
+        ansi: const <int>[0x000000ff, 0xcc0000ff, 0x00cc00ff],
+      );
+      const red = TerminalWebglAttributes.colorModePalette16 | 1;
+      const green = TerminalWebglAttributes.colorModePalette16 | 2;
+      expect(
+        _rgb(_webgl(colors: colors, code: 0xe0b4).foreground),
+        0xffffff,
+      );
+      expect(
+        _rgb(
+          _webgl(
+            colors: colors,
+            code: 0xe0b4,
+            foreground: red,
+            background: green,
+          ).foreground,
+        ),
+        0xe68080,
+      );
+      expect(
+        _rgb(
+          _webgl(
+            colors: colors,
+            code: 0xe0b4,
+            foreground: green,
+            background: red,
+          ).foreground,
+        ),
+        0x80e680,
+      );
+      expect(
+        _rgb(
+          _webgl(
+            colors: colors,
+            code: 0xe0b4,
+            foreground: red | TerminalWebglAttributes.inverse,
+            background: green,
+          ).foreground,
+        ),
+        0x80e680,
+      );
+      expect(
+        _rgb(
+          _webgl(
+            colors: colors,
+            code: 0xe0b4,
+            foreground: green | TerminalWebglAttributes.inverse,
+            background: red,
+          ).foreground,
+        ),
+        0xe68080,
+      );
+    });
+
+    test('DOM inactive selection replaces regular cell background', () {
+      final theme = _theme(
+        selection: const Color(0xffff0000),
+        inactiveSelection: const Color(0xff0000ff),
+      );
+      expect(_dom(theme: theme).background, const Color(0xffff0000));
+      expect(
+        _dom(theme: theme, focused: false).background,
+        const Color(0xff0000ff),
+      );
+    });
+
+    test('WebGL inactive selection replaces regular cell background', () {
+      final colors = _webglColors(
+        selection: 0xff0000ff,
+        inactiveSelection: 0x0000ffff,
+      );
+      expect(_rgb(_webgl(colors: colors).background), 0xff0000);
+      expect(
+        _rgb(_webgl(colors: colors, focused: false).background),
+        0x0000ff,
+      );
+    });
   });
 }
 
@@ -98,6 +208,9 @@ TerminalWebglCellColorResult _webgl({
   required TerminalWebglCellColorSet colors,
   bool inverse = false,
   bool focused = true,
+  int code = 0x25a0,
+  int? foreground,
+  int background = 0,
 }) =>
     TerminalWebglCellColorResolver(
       colors: colors,
@@ -107,9 +220,10 @@ TerminalWebglCellColorResult _webgl({
       isCellSelected: (_, _) => true,
     ).resolve(
       TerminalWebglPackedCell(
-        code: 0x25a0,
-        foreground: inverse ? TerminalWebglAttributes.inverse : 0,
-        background: 0,
+        code: code,
+        foreground:
+            foreground ?? (inverse ? TerminalWebglAttributes.inverse : 0),
+        background: background,
       ),
       0,
       0,
@@ -139,13 +253,14 @@ TerminalTheme _theme({
 );
 
 TerminalWebglCellColorSet _webglColors({
+  List<int> ansi = const <int>[],
   int foreground = 0xffffffff,
   int background = 0x000000ff,
   int selection = 0xffffffff,
   int? inactiveSelection,
   int? selectionForeground,
 }) => TerminalWebglCellColorSet(
-  ansi: const <int>[],
+  ansi: ansi,
   foregroundRgba: foreground,
   backgroundRgba: background,
   selectionBackgroundOpaqueRgba: selection,
