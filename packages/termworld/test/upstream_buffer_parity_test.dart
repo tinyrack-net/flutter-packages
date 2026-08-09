@@ -316,6 +316,63 @@ void main() {
     }
   });
 
+  test('xterm Buffer 32', () {
+    final buffers = _bufferNamespace()
+      ..resize(85, 29, TerminalCellAttributes());
+    expect(buffers.normal.length, 29);
+    for (var row = 0; row < 29; row++) {
+      expect(buffers.normal.getLine(row)!.length, 85);
+    }
+  });
+
+  test('xterm Buffer 33', () {
+    final buffers = _bufferNamespace()
+      ..resize(75, 24, TerminalCellAttributes());
+    expect(buffers.normal.length, 24);
+  });
+
+  test('xterm Buffer 34', () {
+    final buffers = _bufferNamespace()..resize(5, 10, TerminalCellAttributes());
+    expect(buffers.normal.length, 10);
+    for (var row = 0; row < 10; row++) {
+      expect(buffers.normal.getLine(row)!.length, 5);
+    }
+  });
+
+  test('xterm Buffer 35', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace()..resize(5, 10, attributes);
+    for (var column = 0; column < 5; column++) {
+      buffers.normal
+          .getLine(0)!
+          .setCell(
+            column,
+            String.fromCharCode('a'.codeUnitAt(0) + column),
+            1,
+            attributes,
+          );
+    }
+    buffers.normal.cursorY = 1;
+    expect(buffers.normal.getLine(0)!.translateToString(), 'abcde');
+    buffers.resize(1, 10, attributes);
+    expect(buffers.normal.length, 10);
+    for (var row = 0; row < 5; row++) {
+      expect(
+        buffers.normal.getLine(row)!.translateToString(),
+        String.fromCharCode('a'.codeUnitAt(0) + row),
+      );
+    }
+    for (var row = 5; row < 10; row++) {
+      expect(buffers.normal.getLine(row)!.translateToString(), ' ');
+    }
+    buffers.resize(5, 10, attributes);
+    expect(buffers.normal.length, 10);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'abcde');
+    for (var row = 1; row < 10; row++) {
+      expect(buffers.normal.getLine(row)!.translateToString(), '     ');
+    }
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
