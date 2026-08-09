@@ -794,6 +794,86 @@ void main() {
     );
   });
 
+  test('xterm Buffer 56', () {
+    final buffers = _smallerCase(cursorY: 3);
+    _expectSmallerCase(
+      buffers,
+      cursorY: 6,
+      displayY: 0,
+      baseY: 0,
+      length: 10,
+      contentStart: 0,
+    );
+  });
+
+  test('xterm Buffer 57', () {
+    final buffers = _smallerCase(cursorY: 9);
+    _expectSmallerCase(
+      buffers,
+      cursorY: 9,
+      displayY: 3,
+      baseY: 3,
+      length: 13,
+      contentStart: 0,
+    );
+  });
+
+  test('xterm Buffer 58', () {
+    final buffers = _smallerCase(cursorY: 9, baseY: 10, displayY: 10);
+    _expectSmallerCase(
+      buffers,
+      cursorY: 9,
+      displayY: 13,
+      baseY: 13,
+      length: 23,
+      contentStart: 10,
+    );
+  });
+
+  test('xterm Buffer 59', () {
+    final buffers = _smallerCase(cursorY: 9, baseY: 10, displayY: 5);
+    _expectSmallerCase(
+      buffers,
+      cursorY: 9,
+      displayY: 5,
+      baseY: 13,
+      length: 23,
+      contentStart: 10,
+    );
+  });
+
+  test('xterm Buffer 60', () {
+    final buffers = _smallerCase(
+      cursorY: 13,
+      baseY: 10,
+      displayY: 10,
+      scrollback: 10,
+    );
+    _expectSmallerCase(
+      buffers,
+      displayY: 10,
+      baseY: 10,
+      length: 20,
+      contentStart: 7,
+    );
+  });
+
+  test('xterm Buffer 61', () {
+    final buffers = _smallerCase(
+      cursorY: 13,
+      baseY: 10,
+      displayY: 5,
+      scrollback: 10,
+    );
+    _expectSmallerCase(
+      buffers,
+      displayY: 5,
+      baseY: 10,
+      length: 20,
+      contentStart: 7,
+    );
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -1289,5 +1369,68 @@ void _expectLargerCase(
   );
   for (var row = 0; row < length; row++) {
     expect(buffers.normal.getLine(row)!.isWrapped, isFalse);
+  }
+}
+
+TerminalBufferNamespace _smallerCase({
+  required int cursorY,
+  int baseY = 0,
+  int displayY = 0,
+  int scrollback = 1000,
+}) {
+  final attributes = TerminalCellAttributes();
+  final buffers = _bufferNamespace(scrollback: scrollback)
+    ..resize(4, 10, attributes);
+  for (var index = 0; index < baseY; index++) {
+    buffers.normal.scroll(attributes);
+  }
+  final start = buffers.normal.baseY;
+  _writeAsciiLine(buffers.normal, start, 'abcd', attributes);
+  _writeAsciiLine(buffers.normal, start + 1, 'efgh', attributes);
+  _writeAsciiLine(buffers.normal, start + 2, 'ijkl', attributes);
+  buffers.normal
+    ..cursorY = cursorY
+    ..displayY = displayY;
+  return buffers;
+}
+
+void _expectSmallerCase(
+  TerminalBufferNamespace buffers, {
+  required int displayY,
+  required int baseY,
+  required int length,
+  required int contentStart,
+  int? cursorY,
+}) {
+  buffers.resize(2, 10, TerminalCellAttributes());
+  if (cursorY != null) expect(buffers.normal.cursorY, cursorY);
+  expect(
+    (
+      buffers.normal.viewportY,
+      buffers.normal.baseY,
+      buffers.normal.length,
+    ),
+    (displayY, baseY, length),
+  );
+  expect(_fullLines(buffers.normal, contentStart), everyElement('  '));
+  expect(
+    <String>[
+      for (var row = contentStart; row < contentStart + 6; row++)
+        buffers.normal.getLine(row)!.translateToString(),
+    ],
+    <String>['ab', 'cd', 'ef', 'gh', 'ij', 'kl'],
+  );
+  expect(
+    <String>[
+      for (var row = contentStart + 6; row < length; row++)
+        buffers.normal.getLine(row)!.translateToString(),
+    ],
+    everyElement('  '),
+  );
+  for (var row = 0; row < length; row++) {
+    expect(
+      buffers.normal.getLine(row)!.isWrapped,
+      <int>{contentStart + 1, contentStart + 3, contentStart + 5}.contains(row),
+    );
   }
 }
