@@ -1805,7 +1805,10 @@ final class _TerminalCoreEngine {
       final mode = group[0];
       if (prefix != '?') {
         if (mode == 4) insertMode = enabled;
-        if (mode == 20) lineFeedMode = enabled;
+        if (mode == 20) {
+          lineFeedMode = enabled;
+          options.convertEol = enabled;
+        }
         continue;
       }
       switch (mode) {
@@ -2025,6 +2028,7 @@ final class _TerminalCoreEngine {
     active
       ..savedCursorX = active.cursorX
       ..savedCursorY = active.cursorY
+      ..savedCursorAbsoluteY = active.baseY + active.cursorY
       ..savedAttributes = _attributes.copy()
       ..savedCharsets = <String>[_g0, _g1, _g2, _g3]
       ..savedCharsetLevel = _activeCharset;
@@ -2038,7 +2042,10 @@ final class _TerminalCoreEngine {
     final active = buffer.active;
     active
       ..cursorX = active.savedCursorX.clamp(0, _columns - 1)
-      ..cursorY = active.savedCursorY.clamp(0, _rows - 1);
+      ..cursorY = (active.savedCursorAbsoluteY - active.baseY).clamp(
+        0,
+        _rows - 1,
+      );
     _attributes = active.savedAttributes.copy();
     _g0 = active.savedCharsets[0];
     _g1 = active.savedCharsets[1];
@@ -2126,6 +2133,7 @@ final class _TerminalCoreEngine {
     buffer.active
       ..savedCursorX = 0
       ..savedCursorY = 0
+      ..savedCursorAbsoluteY = 0
       ..savedAttributes = TerminalCellAttributes()
       ..savedCharsets = <String>['B', 'B', 'B', 'B']
       ..savedCharsetLevel = 0;

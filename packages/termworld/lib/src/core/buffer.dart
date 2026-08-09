@@ -1216,6 +1216,9 @@ final class TerminalBuffer implements Disposable {
   /// Saved cursor row.
   int savedCursorY = 0;
 
+  /// Absolute saved row used to preserve DECSC across viewport resize.
+  int savedCursorAbsoluteY = 0;
+
   /// Attributes restored together with the saved cursor.
   TerminalCellAttributes savedAttributes = TerminalCellAttributes();
 
