@@ -112,7 +112,7 @@ Future<void> _clearCase(String name) async {
   expect(buffer.length, terminal.rows);
   expect(buffer.getLine(0)!.translateToString(), prompt);
   for (var row = 1; row < terminal.rows; row++) {
-    expect(buffer.getLine(row)!.translateToString(), isEmpty);
+    expect(buffer.getLine(row)!.translateToString(trimRight: true), isEmpty);
   }
 }
 
@@ -248,7 +248,7 @@ Future<void> _bufferScrollCase(String name) async {
     expect(buffer.getLine(0)!.getCell(0)!.chars, 'b');
   } else {
     expect(buffer.getLine(0)!.getCell(0)!.chars, 'a');
-    expect(buffer.getLine(5)!.translateToString(), isEmpty);
+    expect(buffer.getLine(5)!.translateToString(trimRight: true), isEmpty);
   }
 }
 
@@ -392,6 +392,16 @@ Future<void> _convertEolCase() async {
   await converting.writeAndWait(
     Uint8List.fromList('Hello\nWorld'.codeUnits),
   );
-  expect(regular.buffer.active.getLine(1)!.translateToString(), '     World');
-  expect(converting.buffer.active.getLine(1)!.translateToString(), 'World');
+  final regularFirst = regular.buffer.active.getLine(0)!;
+  final regularSecond = regular.buffer.active.getLine(1)!;
+  expect(regularFirst.translateToString(), 'Hello          ');
+  expect(regularSecond.translateToString(), '     World     ');
+  expect(regularFirst.translateToString(trimRight: true), 'Hello');
+  expect(regularSecond.translateToString(trimRight: true), '     World');
+  final convertingFirst = converting.buffer.active.getLine(0)!;
+  final convertingSecond = converting.buffer.active.getLine(1)!;
+  expect(convertingFirst.translateToString(), 'Hello          ');
+  expect(convertingSecond.translateToString(), 'World          ');
+  expect(convertingFirst.translateToString(trimRight: true), 'Hello');
+  expect(convertingSecond.translateToString(trimRight: true), 'World');
 }

@@ -1482,7 +1482,7 @@ final class TerminalBuffer implements Disposable {
     final start = baseY + row;
     final end = baseY + last + 1;
     _insertLines(start, amount);
-    _deleteLines(end, amount);
+    _deleteLines(end, amount, reverseDisposal: true);
     _lines
       ..insertAll(
         start,
@@ -1711,9 +1711,17 @@ final class TerminalBuffer implements Disposable {
     );
   }
 
-  void _deleteLines(int index, int amount) {
+  void _deleteLines(
+    int index,
+    int amount, {
+    bool reverseDisposal = false,
+  }) {
     final end = index + amount;
-    for (final marker in List<TerminalMarker>.of(_markers)) {
+    final markers = List<TerminalMarker>.of(_markers);
+    if (reverseDisposal) {
+      markers.sort((left, right) => right.line.compareTo(left.line));
+    }
+    for (final marker in markers) {
       if (marker.line >= index && marker.line < end) {
         marker.dispose();
       } else if (marker.line >= end) {
