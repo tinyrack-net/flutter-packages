@@ -35,9 +35,7 @@ void main() {
     addTearDown(terminal.dispose);
     final reports = <String>[];
     terminal.onBinary.listen(reports.add);
-    final write = terminal.writeAndWait('\u001b[?1003h');
-    await tester.pump();
-    await write;
+    await _writeAndPump(tester, terminal, '\u001b[?1003h');
     final key = GlobalKey();
     await _pumpView(tester, terminal, key, left: false);
 
@@ -63,9 +61,7 @@ Future<Terminal> _pumpMouseTerminal(
     options: TerminalOptions(mouseEventsRequireAlt: mouseEventsRequireAlt),
   );
   addTearDown(terminal.dispose);
-  final write = terminal.writeAndWait('\u001b[?1003h');
-  await tester.pump();
-  await write;
+  await _writeAndPump(tester, terminal, '\u001b[?1003h');
   await _pumpView(
     tester,
     terminal,
@@ -92,6 +88,19 @@ Future<void> _pumpView(
     ),
   ),
 );
+
+Future<void> _writeAndPump(
+  WidgetTester tester,
+  Terminal terminal,
+  String data,
+) async {
+  var parsed = false;
+  terminal.write(data, onParsed: () => parsed = true);
+  for (var attempt = 0; attempt < 10 && !parsed; attempt++) {
+    await tester.pump();
+  }
+  expect(parsed, isTrue, reason: 'the queued DEC mouse mode was not parsed');
+}
 
 MouseCursor _cursor(WidgetTester tester) =>
     tester.widget<MouseRegion>(find.byType(MouseRegion).last).cursor;

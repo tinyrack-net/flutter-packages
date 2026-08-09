@@ -204,7 +204,11 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
+    // Layout reports dimensions in a post-frame callback. Two bounded pumps
+    // execute that callback and the resulting resize frame without waiting on
+    // unrelated renderer timers.
+    await tester.pump();
+    await tester.pump();
 
     expect(terminal.dimensions, isNotNull);
     expect(terminal.cols, greaterThan(10));
