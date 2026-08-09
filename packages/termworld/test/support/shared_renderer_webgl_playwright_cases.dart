@@ -16,11 +16,14 @@ const _cellHeight = 10;
 
 /// Executes one pinned xterm WebGL shared-renderer Playwright behavior.
 Future<void> verifyWebglSharedRendererPlaywrightCase(
-  WidgetTester tester,
-  String behavior,
-) async {
+  String behavior, {
+  WidgetTester? tester,
+}) async {
   if (behavior.contains('cursor') ||
       behavior.contains('selection should not be displayed')) {
+    if (tester == null) {
+      throw StateError('renderer pixel regressions require WidgetTester');
+    }
     await _verifyRenderedRegression(tester, behavior);
     return;
   }

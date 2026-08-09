@@ -3,271 +3,238 @@ import 'package:flutter_test/flutter_test.dart';
 import 'support/shared_renderer_webgl_playwright_cases.dart';
 
 void main() {
-  testWidgets(
+  test(
     'background 0-15 bright',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 0-15 bright',
     ),
   );
-  testWidgets(
+  test(
     'background 0-15 inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 0-15 inverse',
     ),
   );
-  testWidgets(
+  test(
     'background true color grey',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color grey',
     ),
   );
-  testWidgets(
+  test(
     'background 0-15 invisible',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 0-15 invisible',
     ),
   );
-  testWidgets(
+  test(
     'should adjust 0-15 colors on white background',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'minimumContrastRatio should adjust 0-15 colors on '
       'white background',
     ),
   );
-  testWidgets(
+  test(
     'background true color red',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color red',
     ),
   );
-  testWidgets(
+  test(
     'background true color grey inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color grey inverse',
     ),
   );
   testWidgets(
     '#4790: cursor should not be displayed before focusing',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'standalone tests (Shadow dom) regression tests #4790: '
       'cursor should not be displayed before focusing',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     'foreground true color grey invisible',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color grey invisible',
     ),
   );
-  testWidgets(
+  test(
     'foreground 0-7 drawBoldTextInBrightColors',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 0-7 drawBoldTextInBrightColors',
     ),
   );
-  testWidgets(
+  test(
     'foreground 0-15 inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 0-15 inverse',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color grey inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color grey inverse',
     ),
   );
-  testWidgets(
+  test(
     'background 16-255',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 16-255',
     ),
   );
-  testWidgets(
+  test(
     'background true color green inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color green inverse',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color grey',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color grey',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color blue',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color blue',
     ),
   );
-  testWidgets(
+  test(
     'foreground 16-255 dim',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 16-255 dim',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color green',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color green',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color green inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color green inverse',
     ),
   );
-  testWidgets(
+  test(
     '#4759: minimum contrast ratio should be respected on inverse text',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'regression tests #4759: minimum contrast ratio should '
       'be respected on inverse text',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color blue inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color blue inverse',
     ),
   );
-  testWidgets(
+  test(
     // Exact pinned identity remains one literal.
     // ignore: lines_longer_than_80_chars
     '#4759: minimum contrast ratio should be respected on selected inverse text',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'regression tests #4759: minimum contrast ratio should '
       'be respected on selected inverse text',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color red',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color red',
     ),
   );
-  testWidgets(
+  test(
     'background 16-255 dim',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 16-255 dim',
     ),
   );
-  testWidgets(
+  test(
     'foreground 16-255 inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 16-255 inverse',
     ),
   );
-  testWidgets(
+  test(
     'transparent background inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'allowTransparency transparent background inverse',
     ),
   );
-  testWidgets(
+  test(
     'foreground true color red inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground true color red inverse',
     ),
   );
-  testWidgets(
+  test(
     'background 0-15',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 0-15',
     ),
   );
   testWidgets(
     '#4799: cursor should be in the correct position',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'regression tests #4799: cursor should be in the '
       'correct position',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     'background true color blue inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color blue inverse',
     ),
   );
-  testWidgets(
+  test(
     'background 16-255 inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 16-255 inverse',
     ),
   );
   testWidgets(
     '#4790: cursor should not be displayed before focusing',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'standalone tests regression tests #4790: cursor should '
       'not be displayed before focusing',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     'foreground 16-255 invisible',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 16-255 invisible',
     ),
   );
-  testWidgets(
+  test(
     'background true color red inverse',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color red inverse',
     ),
   );
   testWidgets(
     '#5241 cursor with alpha should blend color with background color',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'regression tests #5241 cursor with alpha should blend '
       'color with background color',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     'background 16-255 invisible',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background 16-255 invisible',
     ),
   );
-  testWidgets(
+  test(
     'should enforce half the contrast for dim cells',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'minimumContrastRatio should enforce half the contrast '
       'for dim cells',
     ),
@@ -277,91 +244,82 @@ void main() {
     // ignore: lines_longer_than_80_chars
     '#4917 The selection should not be displayed if it is not within the scope of the viewport.',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'regression tests #4917 The selection should not be '
       'displayed if it is not within the scope of the '
       'viewport.',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     'foreground 0-15 bright',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 0-15 bright',
     ),
   );
   testWidgets(
     '#4773: block cursor should render when the cell is selected',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'regression tests #4773: block cursor should render '
       'when the cell is selected',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     'background true color grey invisible',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color grey invisible',
     ),
   );
-  testWidgets(
+  test(
     'foreground 0-15',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'colors foreground 0-15',
     ),
   );
   testWidgets(
     '#5241 cursorAccent with alpha should blend color with background color',
     (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
       'regression tests #5241 cursorAccent with alpha should '
       'blend color with background color',
+      tester: tester,
     ),
   );
-  testWidgets(
+  test(
     // Exact pinned identity remains one literal.
     // ignore: lines_longer_than_80_chars
     '#4758: multiple invisible text characters without SGR change should not be rendered',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'regression tests #4758: multiple invisible text '
       'characters without SGR change should not be rendered',
     ),
   );
-  testWidgets(
+  test(
     'background true color green',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color green',
     ),
   );
-  testWidgets(
+  test(
     'foreground 0-15 invisible',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 0-15 invisible',
     ),
   );
-  testWidgets(
+  test(
     'foreground 16-255',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'foreground 16-255',
     ),
   );
-  testWidgets(
+  test(
     'background true color blue',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'background true color blue',
     ),
   );
-  testWidgets(
+  test(
     'should adjust 0-15 colors on black background',
-    (tester) => verifyWebglSharedRendererPlaywrightCase(
-      tester,
+    () => verifyWebglSharedRendererPlaywrightCase(
       'minimumContrastRatio should adjust 0-15 colors on '
       'black background',
     ),

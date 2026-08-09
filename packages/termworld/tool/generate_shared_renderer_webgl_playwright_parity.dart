@@ -48,7 +48,8 @@ void main() {
       'WebglRenderer.test.js WebGL Renderer Integration Tests ',
       '',
     );
-    out.writeln('  testWidgets(');
+    final widget = _isWidgetBehavior(behavior);
+    out.writeln('  ${widget ? 'testWidgets' : 'test'}(');
     if (name.length > 73) {
       out
         ..writeln('    // Exact pinned identity remains one literal.')
@@ -56,13 +57,17 @@ void main() {
     }
     out
       ..writeln('    ${_quote(name)},')
-      ..writeln('    (tester) => verifyWebglSharedRendererPlaywrightCase(')
-      ..writeln('      tester,');
+      ..writeln(
+        widget
+            ? '    (tester) => verifyWebglSharedRendererPlaywrightCase('
+            : '    () => verifyWebglSharedRendererPlaywrightCase(',
+      );
     final chunks = _chunks(behavior).toList();
     for (var index = 0; index < chunks.length; index++) {
       final separator = index == chunks.length - 1 ? ',' : '';
       out.writeln('      ${_quote(chunks[index])}$separator');
     }
+    if (widget) out.writeln('      tester: tester,');
     out
       ..writeln('    ),')
       ..writeln('  );');
@@ -70,24 +75,57 @@ void main() {
   out.writeln('}');
   File('${package.path}/$_target').writeAsStringSync(out.toString());
 
+  var original = mappingsFile.readAsStringSync();
+  for (final entry in cases) {
+    final mapping = mapped[entry['id']] as Map<String, Object?>?;
+    if (mapping?['dartTestFile'] != _target) continue;
+    final behavior = (entry['fullName']! as String).replaceFirst(
+      'WebglRenderer.test.js WebGL Renderer Integration Tests ',
+      '',
+    );
+    final kind = _isWidgetBehavior(behavior) ? 'testWidgets' : 'test';
+    final id = jsonEncode(entry['id']);
+    final start = original.indexOf('    $id: {');
+    final end = original.indexOf('\n', start);
+    if (start < 0 || end < 0) throw StateError('mapping line missing: $id');
+    final line = original.substring(start, end);
+    original = original.replaceRange(
+      start,
+      end,
+      line.replaceFirst(
+        RegExp('"dartTestKind":"(?:test|testWidgets)"'),
+        '"dartTestKind":"$kind"',
+      ),
+    );
+  }
+  mappingsFile.writeAsStringSync(original);
+
   if (cases.isEmpty) return;
   final additions = StringBuffer();
   for (final entry in cases.where(
     (entry) => !mapped.containsKey(entry['id']),
   )) {
+    final behavior = (entry['fullName']! as String).replaceFirst(
+      'WebglRenderer.test.js WebGL Renderer Integration Tests ',
+      '',
+    );
+    final kind = _isWidgetBehavior(behavior) ? 'testWidgets' : 'test';
     additions
       ..write('    ${jsonEncode(entry['id'])}: {')
       ..write('"dartTestFile":"$_target",')
       ..write('"dartTestName":${jsonEncode(entry['name'])},')
       ..write('"dartTestPath":${jsonEncode(entry['fullName'])},')
-      ..write('"dartTestKind":"testWidgets"},\n');
+      ..write('"dartTestKind":"$kind"},\n');
   }
   const marker = '  "tests": {\n';
-  final original = mappingsFile.readAsStringSync();
   mappingsFile.writeAsStringSync(
     original.replaceFirst(marker, '$marker$additions'),
   );
 }
+
+bool _isWidgetBehavior(String behavior) =>
+    behavior.contains('cursor') ||
+    behavior.contains('selection should not be displayed');
 
 String _quote(String value) {
   if (value.contains(r'$') && !value.contains("'")) return "r'$value'";
