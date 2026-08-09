@@ -22,10 +22,14 @@ gsettings set org.freedesktop.ibus.engine.hangul initial-input-mode 'hangul'
 gsettings set org.freedesktop.ibus.engine.hangul disable-latin-mode false
 gsettings set org.freedesktop.ibus.engine.hangul preedit-mode 'syllable'
 gsettings set org.freedesktop.ibus.engine.hangul word-commit false
-gsettings set org.freedesktop.ibus.engine.hangul switch-keys 'Shift+space'
-gsettings set org.freedesktop.ibus.engine.hangul on-keys 'Hangul'
+gsettings set org.freedesktop.ibus.engine.hangul switch-keys 'Hangul'
+gsettings set org.freedesktop.ibus.engine.hangul on-keys ''
 
 ibus-daemon --daemonize --xim
+# Give the Hangul keysym a dedicated non-locking physical key. Without this,
+# xdotool resolves Hangul through the CapsLock keycode on Xvfb and leaves the
+# XKB lock active even after all modifier key-up events have been sent.
+setxkbmap -option '' -option korean:ralt_hangul
 engine_ready=false
 for _ in $(seq 1 50); do
   if ibus list-engine | grep -q 'hangul - Hangul' &&

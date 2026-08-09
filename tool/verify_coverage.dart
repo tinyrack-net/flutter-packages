@@ -40,6 +40,7 @@ Future<void> main(List<String> arguments) async {
         'test',
         '--coverage',
         '--branch-coverage',
+        '--reporter=expanded',
         '--test-randomize-ordering-seed=random',
       ],
       workingDirectory: directory,

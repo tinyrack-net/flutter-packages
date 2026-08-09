@@ -15,6 +15,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FLUTTER_VERSION: 3.44.4
 
@@ -47,9 +51,12 @@ jobs:
         run: dart run tool/verify_platform_matrix.dart
       - name: Verify the pinned xterm parity manifest
         run: dart run tool/verify_xterm_parity.dart
+      - name: Verify termworld has no xterm dependency or delegation
+        run: dart run tool/verify_termworld_dependencies.dart
 
   dart:
-    name: Dart (${{ matrix.os }})
+    name: Dart (${{ matrix.os }}, shard ${{ matrix.shard }})
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -57,6 +64,11 @@ jobs:
           - ubuntu-latest
           - macos-26
           - windows-2025
+        shard:
+          - 0
+          - 1
+          - 2
+          - 3
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -65,14 +77,16 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter pub get
-      - name: L1 and L2 Dart unit and widget tests
-        run: |
-          flutter test packages/dropwell/test --test-randomize-ordering-seed=random
-          flutter test packages/termworld/test --test-randomize-ordering-seed=random
+      - name: Dropwell L1 and L2 Dart unit and widget tests
+        if: ${{ matrix.shard == 0 }}
+        run: flutter test packages/dropwell/test --test-randomize-ordering-seed=random
+      - name: Termworld L1 and L2 Dart unit and widget tests
+        run: dart run tool/run_flutter_test_shard.dart packages/termworld ${{ matrix.shard }} 4
 
   coverage:
     name: Coverage
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
@@ -81,6 +95,12 @@ jobs:
           channel: stable
       - run: flutter pub get
       - run: dart run tool/verify_coverage.dart
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dart-coverage
+          path: packages/*/coverage/lcov.info
+          if-no-files-found: error
 
   windows:
     name: Windows (${{ matrix.os }})
@@ -244,7 +264,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install --no-install-recommends -y \
-            ibus ibus-gtk3 ibus-hangul xdotool xclip dbus-x11 xvfb scrot x11-utils \
+            ibus ibus-gtk3 ibus-hangul xdotool xclip dbus-x11 xvfb scrot x11-utils x11-xserver-utils \
             clang cmake ninja-build pkg-config libgtk-3-dev
       - name: Run the Linux IBus Hangul E2E
         env:
@@ -309,11 +329,53 @@ jobs:
             --target=integration_test/conformance_test.dart \
             -d web-server \
             --browser-name=chrome \
-            --web-browser-flag=--headless=new
+            --web-browser-flag=--headless=new \
+            --web-browser-flag=--enable-features=ClipboardAPI
         working-directory: packages/termworld/example
       - name: L5 web termworld release build
         run: flutter build web --release
         working-directory: packages/termworld/example
+
+  web-browsers:
+    name: Web renderer (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        browser:
+          - chromium
+          - firefox
+          - webkit
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Resolve the termworld example app
+        run: flutter pub get
+        working-directory: packages/termworld/example
+      - name: Install the pinned Playwright browser
+        env:
+          PLAYWRIGHT_ROOT: ${{ runner.temp }}/termworld-playwright
+        run: |
+          npm install --prefix "$PLAYWRIGHT_ROOT" playwright@1.55.0
+          "$PLAYWRIGHT_ROOT/node_modules/.bin/playwright" install --with-deps \
+            "${{ matrix.browser }}"
+      - name: Build the termworld browser renderer
+        run: flutter build web --release
+        working-directory: packages/termworld/example
+      - name: L4 web termworld browser conformance (${{ matrix.browser }})
+        env:
+          PLAYWRIGHT_ROOT: ${{ runner.temp }}/termworld-playwright
+        run: |
+          python3 -m http.server 8080 \
+            --directory packages/termworld/example/build/web &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          xvfb-run -a node tool/run_termworld_browser_conformance.cjs \
+            "${{ matrix.browser }}"
 
   android:
     name: Android (API ${{ matrix.api-level }})
@@ -385,6 +447,10 @@ jobs:
   ios:
     name: iOS
     runs-on: macos-26
+    # Simulator test processes occasionally stop producing output. Bound the
+    # required job so a stuck host is reported and retried instead of holding
+    # every newer parity run indefinitely.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2

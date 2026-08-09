@@ -4,13 +4,6 @@ reference:
   revision: 904ae935269eef5ec6a1415b64463c3d02eff1eb
   package_version: 6.0.0
 
-upstream_fixture_exclusions:
-  # These are excluded by the pinned src/browser/Terminal2.test.ts harness.
-  # Equivalent focused InputHandler contracts are ported into the core test.
-  t0084-CBT: cursor backward tab focused test
-  t0103-reverse_wrap: reverse-wraparound focused test
-  t0504-vim: DECSET 1049 alternate-buffer focused test
-
 contracts:
   core:
     entrypoint: lib/termworld_headless.dart
@@ -19,8 +12,10 @@ contracts:
       - lib/src/core/buffer.dart
       - lib/src/core/parser.dart
       - lib/src/core/options.dart
+      - lib/src/core/write_buffer.dart
     tests:
       - test/xterm_core_parity_test.dart
+      - test/upstream_write_buffer_parity_test.dart
   flutter:
     entrypoint: lib/termworld.dart
     implementation:
@@ -89,6 +84,7 @@ required_terminal_api:
   - scrollToLine
   - clear
   - write
+  - writeSync
   - writeln
   - paste
   - refresh

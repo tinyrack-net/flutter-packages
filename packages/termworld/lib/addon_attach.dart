@@ -21,34 +21,86 @@ final class AttachAddon extends ManagedTerminalAddon {
   final bool bidirectional;
 
   StreamSubscription<Object?>? _subscription;
+  final List<Object> _incoming = <Object>[];
+  Timer? _incomingTimer;
+  _AttachSocketState _socketState = _AttachSocketState.connecting;
 
   @override
   void onActivate(Terminal terminal) {
+    unawaited(
+      socket.ready.then(
+        (_) {
+          if (!isDisposed) _socketState = _AttachSocketState.open;
+        },
+        onError: (Object _) {
+          _socketState = _AttachSocketState.closed;
+          dispose();
+        },
+      ),
+    );
     if (bidirectional) {
-      own(terminal.onData.listen(socket.sink.add));
-      own(
+      add(terminal.onData.listen(_send));
+      add(
         terminal.onBinary.listen((data) {
-          socket.sink.add(Uint8List.fromList(data.codeUnits));
+          _send(
+            Uint8List.fromList(
+              data.codeUnits.map((value) => value & 0xff).toList(),
+            ),
+          );
         }),
       );
     }
     _subscription = socket.stream.listen(
       (event) {
         if (event is String || event is Uint8List) {
-          terminal.write(event as Object);
+          _queueIncoming(terminal, event as Object);
         } else if (event is List<int>) {
-          terminal.write(Uint8List.fromList(event));
+          _queueIncoming(terminal, Uint8List.fromList(event));
         }
       },
-      onError: (_) => dispose(),
-      onDone: dispose,
+      onError: (_) {
+        _socketState = _AttachSocketState.closed;
+        dispose();
+      },
+      onDone: () {
+        _socketState = _AttachSocketState.closed;
+        dispose();
+      },
     );
+  }
+
+  void _queueIncoming(Terminal terminal, Object data) {
+    _incoming.add(data);
+    _incomingTimer ??= Timer(Duration.zero, () {
+      _incomingTimer = null;
+      if (isDisposed) return;
+      final pending = List<Object>.of(_incoming);
+      _incoming.clear();
+      pending.forEach(terminal.write);
+    });
+  }
+
+  void _send(Object data) {
+    switch (_socketState) {
+      case _AttachSocketState.open:
+        socket.sink.add(data);
+      case _AttachSocketState.connecting:
+        throw StateError('Attach addon was loaded before socket was open');
+      case _AttachSocketState.closed:
+        throw StateError('Attach addon socket is closed');
+    }
   }
 
   @override
   void dispose() {
+    if (isDisposed) return;
+    _incomingTimer?.cancel();
+    _incomingTimer = null;
+    _incoming.clear();
     unawaited(_subscription?.cancel());
     _subscription = null;
     super.dispose();
   }
 }
+
+enum _AttachSocketState { connecting, open, closed }

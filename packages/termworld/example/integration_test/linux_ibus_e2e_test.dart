@@ -75,6 +75,7 @@ void main() {
     await harness.keys(<String>[...'gksrmf'.split(''), 'space']);
     await harness.toggleLanguage();
     await harness.keys('a b c minus 4 2 space'.split(' '));
+    await harness.waitForOutput('한글 abc-42 ');
     await harness.toggleLanguage();
     await harness.keys(<String>[...'dkssud'.split(''), 'space']);
     await harness.waitForOutput('한글 abc-42 안녕 ');
@@ -84,6 +85,7 @@ void main() {
     await harness.toggleLanguage();
     await harness.waitForOutput('한');
     await harness.keys(<String>['a', 'b', 'c', 'space']);
+    await harness.waitForOutput('한abc ');
     await harness.toggleLanguage();
     await harness.keys(<String>['d', 'k', 's', 'space']);
     await harness.waitForOutput('한abc 안 ');
@@ -147,6 +149,7 @@ final class _ImeHarness {
   final TermworldExampleController controller;
   final String windowId;
   Process? _clipboard;
+  bool _hangulEngine = true;
 
   String get output => controller.output;
 
@@ -233,41 +236,67 @@ final class _ImeHarness {
   Future<void> keys(List<String> keys) async {
     final filtered = keys.where((key) => key.isNotEmpty).toList();
     if (filtered.isEmpty) return;
+    await _releaseModifiers();
     for (final key in filtered) {
       await _run('xdotool', <String>[
-        'keydown',
+        'key',
         '--clearmodifiers',
-        key,
-        'sleep',
-        '0.04',
-        'keyup',
+        '--delay',
+        '40',
         key,
       ]);
+      await tester.pump(const Duration(milliseconds: 20));
     }
+    // IBus can enqueue the final key-up/text-input delivery after xdotool has
+    // returned. Drain that boundary before a following engine switch so the
+    // last committed character cannot be cancelled by the new engine.
+    await tester.pump(const Duration(milliseconds: 80));
     await tester.pumpAndSettle();
   }
 
   Future<void> toggleLanguage() async {
-    await _run('xdotool', <String>[
-      'keydown',
-      '--clearmodifiers',
-      'Shift_L',
-      'sleep',
-      '0.04',
-      'keydown',
-      'space',
-      'sleep',
-      '0.04',
-      'keyup',
-      'space',
-      'keyup',
-      'Shift_L',
-    ]);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.pumpAndSettle();
+    await _releaseModifiers();
+    final target = _hangulEngine ? 'xkb:us::eng' : 'hangul';
+    await _run('ibus', <String>['engine', target]);
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      final current = await _run('ibus', <String>['engine']);
+      if (current.stdout.toString().trim() == target) break;
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    final current = await _run('ibus', <String>['engine']);
+    expect(current.stdout.toString().trim(), target);
+    _hangulEngine = !_hangulEngine;
+    await _releaseModifiers();
     await tester.pumpAndSettle();
   }
 
+  Future<void> _releaseModifiers() async {
+    await _run('xdotool', <String>[
+      'keyup',
+      'Shift_L',
+      'keyup',
+      'Shift_R',
+      'keyup',
+      'Control_L',
+      'keyup',
+      'Control_R',
+      'keyup',
+      'Alt_L',
+      'keyup',
+      'Alt_R',
+    ]);
+    final keyboardState = await _run('xset', <String>['q']);
+    if (RegExp(r'Caps Lock:\s+on').hasMatch(keyboardState.stdout as String)) {
+      await _run('xdotool', <String>['key', 'Caps_Lock']);
+    }
+  }
+
   Future<void> chord(List<String> modifiers, String key) async {
-    final arguments = <String>['keydown', '--clearmodifiers'];
+    await _releaseModifiers();
+    final arguments = <String>['keydown'];
     for (final modifier in modifiers) {
       arguments.addAll(<String>[modifier, 'sleep', '0.04', 'keydown']);
     }
@@ -280,6 +309,7 @@ final class _ImeHarness {
         ],
       ]);
     await _run('xdotool', arguments);
+    await _releaseModifiers();
     await tester.pumpAndSettle();
   }
 

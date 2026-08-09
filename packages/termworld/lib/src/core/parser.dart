@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:termworld/src/core/disposable.dart';
+import 'package:termworld/src/core/parser_constants.dart';
 
 /// Identifies a CSI, DCS, ESC, or APC function.
 final class TerminalFunctionIdentifier {
@@ -49,9 +50,57 @@ typedef TerminalOscHandler = FutureOr<bool> Function(String data);
 /// xterm-compatible `Function` API.
 typedef TerminalApcHandler = FutureOr<bool> Function(String data);
 
+/// Receives a contiguous run of printable parser input.
+typedef TerminalPrintHandler = FutureOr<void> Function(String data);
+
+/// Receives one executable C0 control character.
+typedef TerminalExecuteHandler = FutureOr<void> Function(int code);
+
+/// Describes an invalid parser transition before recovery.
+final class TerminalParsingState {
+  /// Creates an xterm-compatible parsing error snapshot.
+  const TerminalParsingState({
+    required this.position,
+    required this.code,
+    required this.currentState,
+    required this.collect,
+    required this.parameters,
+    this.abort = false,
+  });
+
+  /// Input position of the invalid code point.
+  final int position;
+
+  /// Invalid code point.
+  final int code;
+
+  /// Numeric [ParserState] index at the point of failure.
+  final int currentState;
+
+  /// Collected prefix and intermediate bytes.
+  final String collect;
+
+  /// Parameters accumulated before the failure.
+  final List<TerminalParameter> parameters;
+
+  /// Whether parsing should abort immediately.
+  final bool abort;
+}
+
+/// Inspects and may replace a parser error recovery snapshot.
+typedef TerminalParserErrorHandler =
+    TerminalParsingState Function(TerminalParsingState state);
+
 /// Custom parser handler registry with xterm's newest-handler-first ordering.
 final class TerminalParser implements Disposable {
-  static const int _maximumPayload = 10 * 1024 * 1024;
+  /// Creates a parser with an optional security gate for custom CSI handlers.
+  TerminalParser([this._customCsiHandlerAllowed]);
+
+  final bool Function(
+    TerminalFunctionIdentifier identifier,
+    List<TerminalParameter> parameters,
+  )?
+  _customCsiHandlerAllowed;
 
   final Map<String, List<TerminalCsiHandler>> _csi =
       <String, List<TerminalCsiHandler>>{};
@@ -63,8 +112,26 @@ final class TerminalParser implements Disposable {
       <int, List<TerminalOscHandler>>{};
   final Map<String, List<TerminalApcHandler>> _apc =
       <String, List<TerminalApcHandler>>{};
+  final Map<int, TerminalExecuteHandler> _execute =
+      <int, TerminalExecuteHandler>{};
+  TerminalPrintHandler? _printHandler;
+  TerminalParserErrorHandler? _errorHandler;
   String _pending = '';
   bool _isDisposed = false;
+  bool _isProcessing = false;
+  int _currentState = ParserState.ground.index;
+
+  /// Initial parser state, always xterm's `GROUND` state.
+  int get initialState => ParserState.ground.index;
+
+  /// Current numeric parser state between input chunks.
+  int get currentState => _currentState;
+
+  /// Restores parser state and abandons incomplete input.
+  void reset() {
+    _pending = '';
+    _currentState = initialState;
+  }
 
   /// xterm-compatible `registerCsiHandler` API.
   Disposable registerCsiHandler(
@@ -72,11 +139,33 @@ final class TerminalParser implements Disposable {
     TerminalCsiHandler handler,
   ) => _register(_csi, _validate(identifier, csiOrDcs: true).key, handler);
 
+  /// Deprecated xterm alias for [registerCsiHandler].
+  Disposable addCsiHandler(
+    TerminalFunctionIdentifier identifier,
+    TerminalCsiHandler handler,
+  ) => registerCsiHandler(identifier, handler);
+
+  /// Removes every CSI handler registered for [identifier].
+  void clearCsiHandler(TerminalFunctionIdentifier identifier) {
+    _csi.remove(_validate(identifier, csiOrDcs: true).key);
+  }
+
   /// xterm-compatible `registerDcsHandler` API.
   Disposable registerDcsHandler(
     TerminalFunctionIdentifier identifier,
     TerminalDcsHandler handler,
   ) => _register(_dcs, _validate(identifier, csiOrDcs: true).key, handler);
+
+  /// Deprecated xterm alias for [registerDcsHandler].
+  Disposable addDcsHandler(
+    TerminalFunctionIdentifier identifier,
+    TerminalDcsHandler handler,
+  ) => registerDcsHandler(identifier, handler);
+
+  /// Removes every DCS handler registered for [identifier].
+  void clearDcsHandler(TerminalFunctionIdentifier identifier) {
+    _dcs.remove(_validate(identifier, csiOrDcs: true).key);
+  }
 
   /// xterm-compatible `registerEscHandler` API.
   Disposable registerEscHandler(
@@ -84,23 +173,95 @@ final class TerminalParser implements Disposable {
     TerminalEscHandler handler,
   ) => _register(_esc, _validate(identifier).key, handler);
 
+  /// Deprecated xterm alias for [registerEscHandler].
+  Disposable addEscHandler(
+    TerminalFunctionIdentifier identifier,
+    TerminalEscHandler handler,
+  ) => registerEscHandler(identifier, handler);
+
+  /// Removes every ESC handler registered for [identifier].
+  void clearEscHandler(TerminalFunctionIdentifier identifier) {
+    _esc.remove(_validate(identifier).key);
+  }
+
   /// xterm-compatible `registerOscHandler` API.
-  Disposable registerOscHandler(int identifier, TerminalOscHandler handler) {
-    if (identifier < 0) {
-      throw ArgumentError.value(
-        identifier,
-        'identifier',
-        'must be non-negative',
-      );
-    }
-    return _register(_osc, identifier, handler);
+  Disposable registerOscHandler(int identifier, TerminalOscHandler handler) =>
+      _register(_osc, identifier, handler);
+
+  /// Deprecated xterm alias for [registerOscHandler].
+  Disposable addOscHandler(int identifier, TerminalOscHandler handler) =>
+      registerOscHandler(identifier, handler);
+
+  /// Removes every OSC handler registered for [identifier].
+  void clearOscHandler(int identifier) {
+    _osc.remove(identifier);
   }
 
   /// xterm-compatible `registerApcHandler` API.
   Disposable registerApcHandler(
     TerminalFunctionIdentifier identifier,
     TerminalApcHandler handler,
-  ) => _register(_apc, _validate(identifier).key, handler);
+  ) {
+    final validated = _validate(identifier);
+    // APC has no prefix byte. xterm intentionally clears it before deriving
+    // the handler identifier, while preserving intermediates and final byte.
+    final apcIdentifier = TerminalFunctionIdentifier(
+      intermediates: validated.intermediates,
+      finalByte: validated.finalByte,
+    );
+    return _register(_apc, apcIdentifier.key, handler);
+  }
+
+  /// Removes every APC handler registered for [identifier].
+  void clearApcHandler(TerminalFunctionIdentifier identifier) {
+    final validated = _validate(identifier);
+    _apc.remove(
+      TerminalFunctionIdentifier(
+        intermediates: validated.intermediates,
+        finalByte: validated.finalByte,
+      ).key,
+    );
+  }
+
+  /// Replaces the printable data handler.
+  // xterm exposes this as a method; retaining the name is API parity.
+  // ignore: use_setters_to_change_properties
+  void setPrintHandler(TerminalPrintHandler handler) {
+    _printHandler = handler;
+  }
+
+  /// Restores default printable data forwarding.
+  void clearPrintHandler() {
+    _printHandler = null;
+  }
+
+  /// Replaces the handler for one executable control [flag].
+  void setExecuteHandler(String flag, TerminalExecuteHandler handler) {
+    if (flag.length != 1) {
+      throw ArgumentError.value(flag, 'flag', 'must contain one character');
+    }
+    _execute[flag.codeUnitAt(0)] = handler;
+  }
+
+  /// Restores default forwarding for executable control [flag].
+  void clearExecuteHandler(String flag) {
+    if (flag.length != 1) {
+      throw ArgumentError.value(flag, 'flag', 'must contain one character');
+    }
+    _execute.remove(flag.codeUnitAt(0));
+  }
+
+  /// Replaces the invalid-transition recovery handler.
+  // xterm exposes this as a method; retaining the name is API parity.
+  // ignore: use_setters_to_change_properties
+  void setErrorHandler(TerminalParserErrorHandler handler) {
+    _errorHandler = handler;
+  }
+
+  /// Restores default invalid-transition recovery.
+  void clearErrorHandler() {
+    _errorHandler = null;
+  }
 
   TerminalFunctionIdentifier _validate(
     TerminalFunctionIdentifier identifier, {
@@ -160,39 +321,130 @@ final class TerminalParser implements Disposable {
     FutureOr<void> Function(String data) emit,
   ) async {
     if (_isDisposed) throw StateError('TerminalParser has been disposed');
-    final source = '$_pending$chunk';
-    _pending = '';
-    var index = 0;
-    while (index < source.length) {
-      final escape = source.indexOf('\u001b', index);
-      if (escape < 0) {
-        await emit(source.substring(index));
-        break;
-      }
-      if (escape > index) await emit(source.substring(index, escape));
-      final parsed = await _parseAt(source, escape);
-      if (parsed == null) {
-        _pending = source.substring(escape);
-        break;
-      }
-      if (!parsed.handled) await emit(parsed.sequence);
-      index = parsed.end;
+    if (_isProcessing) {
+      throw StateError(
+        'improper continuation due to previous async handler, '
+        'giving up parsing',
+      );
     }
-    if (_pending.length > _maximumPayload) {
+    _isProcessing = true;
+    try {
+      final source = '$_pending${_normalizeC1(chunk)}';
       _pending = '';
-      throw StateError('Parser payload exceeded the 10 MB xterm limit');
+      var index = 0;
+      while (index < source.length) {
+        final escape = source.indexOf('\u001b', index);
+        if (escape < 0) {
+          await _emitGround(source.substring(index), emit);
+          _currentState = ParserState.ground.index;
+          break;
+        }
+        if (escape > index) {
+          await _emitGround(source.substring(index, escape), emit);
+        }
+        final parsed = await _parseAt(source, escape, emit);
+        if (parsed == null) {
+          _pending = source.substring(escape);
+          _currentState = _pendingState(_pending);
+          break;
+        }
+        if (!parsed.handled) await emit(parsed.sequence);
+        index = parsed.end;
+        _currentState = ParserState.ground.index;
+      }
+    } finally {
+      _isProcessing = false;
     }
   }
 
-  Future<_ParsedSequence?> _parseAt(String source, int start) async {
+  int _pendingState(String pending) {
+    if (pending.length < 2) return ParserState.escape.index;
+    return switch (pending.codeUnitAt(1)) {
+      0x5b => ParserState.csiEntry.index,
+      0x5d => ParserState.oscString.index,
+      0x50 => ParserState.dcsEntry.index,
+      0x5f => ParserState.apcEntry.index,
+      0x58 || 0x5e => ParserState.sosPmString.index,
+      _ => ParserState.escape.index,
+    };
+  }
+
+  Future<void> _emitGround(
+    String data,
+    FutureOr<void> Function(String data) emit,
+  ) async {
+    if (_printHandler == null && _execute.isEmpty) {
+      await emit(data);
+      return;
+    }
+    final printable = StringBuffer();
+    Future<void> flushPrintable() async {
+      if (printable.isEmpty) return;
+      final value = printable.toString();
+      printable.clear();
+      final handler = _printHandler;
+      if (handler == null) {
+        await emit(value);
+      } else {
+        await handler(value);
+      }
+    }
+
+    for (final rune in data.runes) {
+      if (!_isExecutable(rune)) {
+        printable.writeCharCode(rune);
+        continue;
+      }
+      await flushPrintable();
+      final handler = _execute[rune];
+      if (handler == null) {
+        await emit(String.fromCharCode(rune));
+      } else {
+        await handler(rune);
+      }
+    }
+    await flushPrintable();
+  }
+
+  String _normalizeC1(String source) {
+    StringBuffer? result;
+    var copied = 0;
+    for (var index = 0; index < source.length; index++) {
+      final replacement = switch (source.codeUnitAt(index)) {
+        0x90 => '\u001bP',
+        0x98 => '\u001bX',
+        0x9b => '\u001b[',
+        0x9c => '\u001b\\',
+        0x9d => '\u001b]',
+        0x9e => '\u001b^',
+        0x9f => '\u001b_',
+        _ => null,
+      };
+      if (replacement == null) continue;
+      (result ??= StringBuffer())
+        ..write(source.substring(copied, index))
+        ..write(replacement);
+      copied = index + 1;
+    }
+    if (result == null) return source;
+    result.write(source.substring(copied));
+    return result.toString();
+  }
+
+  Future<_ParsedSequence?> _parseAt(
+    String source,
+    int start,
+    FutureOr<void> Function(String data) emit,
+  ) async {
     if (start + 1 >= source.length) return null;
     final introducer = source.codeUnitAt(start + 1);
     final parsed = await switch (introducer) {
-      0x5b => _parseCsi(source, start),
+      0x5b => _parseCsi(source, start, emit),
       0x5d => _parseOsc(source, start),
       0x50 => _parseDcs(source, start),
       0x5f => _parseApc(source, start),
-      _ => _parseEsc(source, start),
+      0x58 || 0x5e => _parseIgnoredString(source, start),
+      _ => _parseEsc(source, start, emit),
     };
     final searchEnd = parsed?.end ?? source.length;
     for (var index = start + 1; index < searchEnd; index++) {
@@ -208,32 +460,104 @@ final class TerminalParser implements Disposable {
     return parsed;
   }
 
-  Future<_ParsedSequence?> _parseCsi(String source, int start) async {
-    final finalIndex = _findFinal(source, start + 2, 0x40);
+  Future<_ParsedSequence?> _parseCsi(
+    String source,
+    int start,
+    FutureOr<void> Function(String data) emit,
+  ) async {
+    final body = StringBuffer();
+    final executed = StringBuffer();
+    var finalIndex = -1;
+    for (var index = start + 2; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      if (code == 0x18 || code == 0x1a) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index + 1),
+          index + 1,
+          handled: true,
+        );
+      }
+      if (code == 0x1b) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index),
+          index,
+          handled: true,
+        );
+      }
+      if (code >= 0x40 && code <= 0x7e) {
+        finalIndex = index;
+        break;
+      }
+      if (code >= 0xa0) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        _errorHandler?.call(
+          TerminalParsingState(
+            position: index,
+            code: code,
+            currentState: ParserState.csiParam.index,
+            collect: _identifier(body.toString(), 'm').prefix,
+            parameters: _parameters(_parameterPart(body.toString())),
+          ),
+        );
+        return _ParsedSequence(
+          source.substring(start, index + 1),
+          index + 1,
+          handled: true,
+        );
+      }
+      if (_isExecutable(code)) {
+        executed.writeCharCode(code);
+      } else if (code != 0x7f) {
+        body.writeCharCode(code);
+      }
+    }
     if (finalIndex < 0) return null;
-    final body = source.substring(start + 2, finalIndex);
-    final identifier = _identifier(body, source[finalIndex]);
-    final handled = await _callNewest(
-      _csi[identifier.key],
-      (handler) => handler(_parameters(_parameterPart(body))),
-    );
+    if (executed.isNotEmpty) await emit(executed.toString());
+    final bodyValue = body.toString();
+    final identifier = _identifier(bodyValue, source[finalIndex]);
+    final parameters = _parameters(_parameterPart(bodyValue));
+    final handlers = _csi[identifier.key];
+    late final bool handled;
+    if (handlers != null &&
+        !(_customCsiHandlerAllowed?.call(identifier, parameters) ?? true)) {
+      handled = true;
+    } else {
+      handled = await _callNewest(
+        handlers,
+        (handler) => handler(parameters),
+      );
+    }
     return _ParsedSequence(
-      source.substring(start, finalIndex + 1),
+      '\u001b[$bodyValue${source[finalIndex]}',
       finalIndex + 1,
       handled: handled,
     );
   }
 
+  bool _isExecutable(int code) =>
+      code <= 0x17 || code == 0x19 || code >= 0x1c && code <= 0x1f;
+
   Future<_ParsedSequence?> _parseOsc(String source, int start) async {
-    final terminator = _stringTerminator(source, start + 2);
+    final terminator = _stringTerminator(
+      source,
+      start + 2,
+      bellTerminates: true,
+    );
     if (terminator == null) return null;
-    final body = source.substring(start + 2, terminator.start);
+    final body = _stringPayload(
+      source.substring(start + 2, terminator.start),
+      _StringPayloadKind.osc,
+    );
     final separator = body.indexOf(';');
     final identifier = int.tryParse(
       separator < 0 ? body : body.substring(0, separator),
     );
     final data = separator < 0 ? '' : body.substring(separator + 1);
     final handled =
+        terminator.success &&
+        data.length <= parserPayloadLimit &&
         !(identifier == null) &&
         await _callNewest(_osc[identifier], (handler) => handler(data));
     return _ParsedSequence(
@@ -250,11 +574,17 @@ final class TerminalParser implements Disposable {
     if (terminator == null) return null;
     final header = source.substring(start + 2, finalIndex);
     final identifier = _identifier(header, source[finalIndex]);
-    final data = source.substring(finalIndex + 1, terminator.start);
-    final handled = await _callNewest(
-      _dcs[identifier.key],
-      (handler) => handler(data, _parameters(_parameterPart(header))),
+    final data = _stringPayload(
+      source.substring(finalIndex + 1, terminator.start),
+      _StringPayloadKind.dcs,
     );
+    final handled =
+        terminator.success &&
+        data.length <= parserPayloadLimit &&
+        await _callNewest(
+          _dcs[identifier.key],
+          (handler) => handler(data, _parameters(_parameterPart(header))),
+        );
     return _ParsedSequence(
       source.substring(start, terminator.end),
       terminator.end,
@@ -269,11 +599,14 @@ final class TerminalParser implements Disposable {
     if (terminator == null) return null;
     final header = source.substring(start + 2, finalIndex);
     final identifier = _identifier(header, source[finalIndex]);
-    final data = source.substring(finalIndex + 1, terminator.start);
-    final handled = await _callNewest(
-      _apc[identifier.key],
-      (handler) => handler(data),
+    final data = _stringPayload(
+      source.substring(finalIndex + 1, terminator.start),
+      _StringPayloadKind.apc,
     );
+    final handled =
+        terminator.success &&
+        data.length <= parserPayloadLimit &&
+        await _callNewest(_apc[identifier.key], (handler) => handler(data));
     return _ParsedSequence(
       source.substring(start, terminator.end),
       terminator.end,
@@ -281,20 +614,71 @@ final class TerminalParser implements Disposable {
     );
   }
 
-  Future<_ParsedSequence?> _parseEsc(String source, int start) async {
-    final finalIndex = _findFinal(source, start + 1, 0x30);
+  Future<_ParsedSequence?> _parseIgnoredString(
+    String source,
+    int start,
+  ) async {
+    final terminator = _stringTerminator(source, start + 2);
+    if (terminator == null) return null;
+    return _ParsedSequence(
+      source.substring(start, terminator.end),
+      terminator.end,
+      handled: true,
+    );
+  }
+
+  Future<_ParsedSequence?> _parseEsc(
+    String source,
+    int start,
+    FutureOr<void> Function(String data) emit,
+  ) async {
+    final body = StringBuffer();
+    final executed = StringBuffer();
+    var finalIndex = -1;
+    for (var index = start + 1; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      if (code == 0x18 || code == 0x1a) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        await emit(source[index]);
+        return _ParsedSequence(
+          source.substring(start, index + 1),
+          index + 1,
+          handled: true,
+        );
+      }
+      if (code == 0x1b) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index),
+          index,
+          handled: true,
+        );
+      }
+      if (code >= 0x30 && code <= 0x7e) {
+        finalIndex = index;
+        break;
+      }
+      if (_isExecutable(code)) {
+        executed.writeCharCode(code);
+      } else if (code >= 0x20 && code <= 0x2f) {
+        body.writeCharCode(code);
+      }
+    }
     if (finalIndex < 0) return null;
-    final body = source.substring(start + 1, finalIndex);
+    if (executed.isNotEmpty) await emit(executed.toString());
+    final bodyValue = body.toString();
     final identifier = TerminalFunctionIdentifier(
-      intermediates: body,
+      intermediates: bodyValue,
       finalByte: source[finalIndex],
     );
-    final handled = await _callNewest(
-      _esc[identifier.key],
-      (handler) => handler(),
-    );
+    final handled =
+        await _callNewest(
+          _esc[identifier.key],
+          (handler) => handler(),
+        ) ||
+        (bodyValue.isEmpty && source.codeUnitAt(finalIndex) == 0x5c);
     return _ParsedSequence(
-      source.substring(start, finalIndex + 1),
+      '\u001b$bodyValue${source[finalIndex]}',
       finalIndex + 1,
       handled: handled,
     );
@@ -308,19 +692,53 @@ final class TerminalParser implements Disposable {
     return -1;
   }
 
-  _Terminator? _stringTerminator(String source, int start) {
+  _Terminator? _stringTerminator(
+    String source,
+    int start, {
+    bool bellTerminates = false,
+  }) {
     for (var index = start; index < source.length; index++) {
-      if (source.codeUnitAt(index) == 0x07) {
-        return _Terminator(index, index + 1);
+      final code = source.codeUnitAt(index);
+      if (bellTerminates && code == 0x07) {
+        return _Terminator(index, index + 1, success: true);
       }
-      if (source.codeUnitAt(index) == 0x1b) {
-        if (index + 1 >= source.length) return null;
-        if (source.codeUnitAt(index + 1) == 0x5c) {
-          return _Terminator(index, index + 2);
+      if (code == 0x18 || code == 0x1a) {
+        return _Terminator(index, index + 1, success: false);
+      }
+      if (code == 0x1b) {
+        if (index + 1 < source.length && source.codeUnitAt(index + 1) == 0x5c) {
+          return _Terminator(index, index + 2, success: true);
         }
+        // ESC ends the string successfully and starts a fresh escape
+        // sequence. Leave it unconsumed so the outer parser processes it.
+        return _Terminator(index, index, success: true);
       }
     }
     return null;
+  }
+
+  String _stringPayload(String source, _StringPayloadKind kind) {
+    StringBuffer? result;
+    var copied = 0;
+    for (var index = 0; index < source.length; index++) {
+      final code = source.codeUnitAt(index);
+      final ignored = switch (kind) {
+        _StringPayloadKind.osc => _isExecutable(code),
+        _StringPayloadKind.dcs => code == 0x7f,
+        _StringPayloadKind.apc =>
+          code == 0x7f ||
+              code <= 0x07 ||
+              code >= 0x0e && code <= 0x17 ||
+              code == 0x19 ||
+              code >= 0x1c && code <= 0x1f,
+      };
+      if (!ignored) continue;
+      (result ??= StringBuffer()).write(source.substring(copied, index));
+      copied = index + 1;
+    }
+    if (result == null) return source;
+    result.write(source.substring(copied));
+    return result.toString();
   }
 
   TerminalFunctionIdentifier _identifier(String body, String finalByte) {
@@ -354,19 +772,30 @@ final class TerminalParser implements Disposable {
 
   List<TerminalParameter> _parameters(String source) {
     if (source.isEmpty) return <TerminalParameter>[0];
-    return source
-        .split(';')
-        .map<TerminalParameter>((parameter) {
-          if (parameter.contains(':')) {
-            return parameter
-                .split(':')
-                .map((value) => int.tryParse(value) ?? 0)
-                .toList(growable: false);
-          }
-          return int.tryParse(parameter) ?? 0;
-        })
-        .toList(growable: false);
+    const maximumParameters = 32;
+    const maximumSubParameters = 32;
+    final result = <TerminalParameter>[];
+    var subParameterCount = 0;
+    for (final parameter in source.split(';').take(maximumParameters)) {
+      final values = parameter.split(':');
+      result.add(_parameterValue(values.first, 0));
+      if (values.length == 1 || subParameterCount >= maximumSubParameters) {
+        continue;
+      }
+      final remaining = maximumSubParameters - subParameterCount;
+      final subParameters = values
+          .skip(1)
+          .take(remaining)
+          .map((value) => _parameterValue(value, -1))
+          .toList(growable: false);
+      subParameterCount += subParameters.length;
+      if (subParameters.isNotEmpty) result.add(subParameters);
+    }
+    return result;
   }
+
+  int _parameterValue(String source, int fallback) =>
+      (int.tryParse(source) ?? fallback).clamp(-1, 0x7fffffff);
 
   Future<bool> _callNewest<H>(
     List<H>? handlers,
@@ -387,11 +816,15 @@ final class TerminalParser implements Disposable {
     if (_isDisposed) return;
     _isDisposed = true;
     _pending = '';
+    _currentState = initialState;
     _csi.clear();
     _dcs.clear();
     _esc.clear();
     _osc.clear();
     _apc.clear();
+    _execute.clear();
+    _printHandler = null;
+    _errorHandler = null;
   }
 }
 
@@ -404,8 +837,11 @@ final class _ParsedSequence {
 }
 
 final class _Terminator {
-  const _Terminator(this.start, this.end);
+  const _Terminator(this.start, this.end, {required this.success});
 
   final int start;
   final int end;
+  final bool success;
 }
+
+enum _StringPayloadKind { osc, dcs, apc }

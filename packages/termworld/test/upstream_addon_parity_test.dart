@@ -1,0 +1,678 @@
+import 'dart:convert';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:termworld/addon_image.dart';
+import 'package:termworld/addon_progress.dart';
+import 'package:termworld/addon_serialize.dart';
+import 'package:termworld/addon_unicode11.dart';
+import 'package:termworld/addon_unicode_graphemes.dart';
+import 'package:termworld/termworld_headless.dart';
+
+void main() {
+  group('ProgressAddon', () {
+    late Terminal terminal;
+    late ProgressAddon addon;
+    late List<TerminalProgress> changes;
+
+    setUp(() {
+      terminal = Terminal();
+      addon = ProgressAddon();
+      changes = <TerminalProgress>[];
+      terminal.loadAddon(addon);
+      addon.onChange.listen(changes.add);
+    });
+
+    tearDown(() => terminal.dispose());
+
+    test('initial values should be 0;0', () {
+      _expectProgress(addon.progress, TerminalProgressState.remove, 0);
+    });
+
+    test('state 0: remove', () async {
+      await _write(terminal, 0);
+      await _write(terminal, 0, '12');
+      expect(changes, hasLength(2));
+      for (final change in changes) {
+        _expectProgress(change, TerminalProgressState.remove, 0);
+      }
+    });
+
+    test('state 1: set', () async {
+      await _write(terminal, 1, '10');
+      await _write(terminal, 1, '50');
+      await _write(terminal, 1, '23');
+      expect(changes.map((change) => change.value), <int>[10, 50, 23]);
+    });
+
+    test('state 1: set - special sequence handling', () async {
+      await _write(terminal, 1);
+      await _write(terminal, 1, '12x');
+      await _write(terminal, 1, '123');
+      expect(changes.map((change) => change.value), <int>[0, 100]);
+    });
+
+    test('state 2: error - preserve previous value on empty/0', () async {
+      await _write(terminal, 1, '12');
+      await _write(terminal, 2);
+      await _write(terminal, 2, '');
+      await _write(terminal, 2, '0');
+      expect(changes.map((change) => change.value), <int>[12, 12, 12, 12]);
+    });
+
+    test('state 2: error - with new value', () async {
+      await _write(terminal, 1, '12');
+      await _write(terminal, 2, '25');
+      await _write(terminal, 2, '123');
+      expect(changes.map((change) => change.value), <int>[12, 25, 100]);
+    });
+
+    test('state 3: indeterminate - keeps value untouched', () async {
+      await _write(terminal, 1, '12');
+      await _write(terminal, 3);
+      await _write(terminal, 3, '123');
+      expect(changes.map((change) => change.value), <int>[12, 12, 12]);
+    });
+
+    test('state 4: pause - preserve previous value on empty/0', () async {
+      await _write(terminal, 1, '12');
+      await _write(terminal, 4);
+      await _write(terminal, 4, '');
+      await _write(terminal, 4, '0');
+      expect(changes.map((change) => change.value), <int>[12, 12, 12, 12]);
+    });
+
+    test('state 4: pause - with new value', () async {
+      await _write(terminal, 1, '12');
+      await _write(terminal, 4, '25');
+      await _write(terminal, 4, '123');
+      expect(changes.map((change) => change.value), <int>[12, 25, 100]);
+    });
+
+    test('invalid sequences should not emit anything', () async {
+      await _write(terminal, 5, '12');
+      await _write(terminal, 1, ' 123xxxx');
+      await terminal.writeAndWait('\u001b]9;4;1;2;3\u001b\\');
+      expect(changes, isEmpty);
+    });
+  });
+
+  group('Unicode11Addon', () {
+    test('wcwidth V11 emoji test', () {
+      final terminal = Terminal(
+        options: TerminalOptions(allowProposedApi: true),
+      );
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(Unicode11Addon());
+      expect(terminal.unicode.versions, contains('11'));
+      terminal.unicode.activeVersion = '11';
+      expect(
+        _stringCellWidth(terminal, List<String>.filled(10, '🤣').join()),
+        20,
+      );
+    });
+  });
+
+  group('addon-image/test/ImageAddon.test.ts public accessors', () {
+    test('storage accessors are unavailable before activation', () {
+      final addon = ImageAddon();
+      addTearDown(addon.dispose);
+      expect(addon.storageLimit, -1);
+      expect(addon.storageUsage, -1);
+      addon
+        ..storageLimit = 1
+        ..showPlaceholder = false;
+      expect(addon.showPlaceholder, isFalse);
+    });
+
+    test('get/set storage limit and synchronous pressure eviction', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon(
+        options: const ImageAddonOptions(
+          storageLimit: 0.5,
+          iipSizeLimit: 1000000,
+        ),
+      );
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      expect(addon.storageLimit, 0.5);
+      expect(addon.storageUsage, 0);
+      expect(() => addon.storageLimit = 0.49, throwsRangeError);
+      expect(() => addon.storageLimit = 1000.1, throwsRangeError);
+
+      final payload = base64.encode(_fakePng(300, 250, 300000));
+      await terminal.writeAndWait(
+        '\u001b]1337;File=inline=1:$payload\u0007',
+      );
+      await terminal.writeAndWait(
+        '\u001b]1337;File=inline=1:$payload\u0007',
+      );
+      expect(addon.images, hasLength(1));
+      expect(addon.storageUsage, closeTo(0.3, 0.000001));
+      addon.storageLimit = 0.5;
+      expect(addon.storageLimit, 0.5);
+    });
+
+    test('invalid constructor limit retains 10 MB storage fallback', () {
+      final terminal = Terminal();
+      final addon = ImageAddon(
+        options: const ImageAddonOptions(storageLimit: 0.1),
+      );
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      expect(addon.storageLimit, 10);
+    });
+
+    test(
+      'image event is void and reset preserves mutable placeholder',
+      () async {
+        final terminal = Terminal();
+        final addon = ImageAddon();
+        final changes = <TerminalVoid>[];
+        addTearDown(terminal.dispose);
+        terminal.loadAddon(addon);
+        addon.onImageAdded.listen(changes.add);
+        addon.showPlaceholder = false;
+        await terminal.writeAndWait(
+          '\u001b]1337;File=inline=1:'
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u0007',
+        );
+        expect(changes, <TerminalVoid>[TerminalVoid.value]);
+        expect(addon.reset(), isFalse);
+        expect(addon.showPlaceholder, isFalse);
+        expect(addon.storageUsage, 0);
+      },
+    );
+
+    test('DA1 and XTSMGRAPHICS reports match xterm image addon', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final data = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(data.add);
+      terminal.updateDimensions(
+        const TerminalRenderDimensions(
+          width: 100,
+          height: 50,
+          cellWidth: 10,
+          cellHeight: 10,
+          devicePixelRatio: 1,
+        ),
+      );
+
+      await terminal.writeAndWait(
+        '\u001b[c'
+        '\u001b[?1;1S'
+        '\u001b[?1;3;256S'
+        '\u001b[?1;1S'
+        '\u001b[?1;3;4097S'
+        '\u001b[?1;4S'
+        '\u001b[?2;1S'
+        '\u001b[?2;4S'
+        '\u001b[?2;3S'
+        '\u001b[?3;1S',
+      );
+      expect(
+        data,
+        <String>[
+          '\u001b[?62;4;9;22c',
+          '\u001b[?1;0;4096S',
+          '\u001b[?1;0;256S',
+          '\u001b[?1;0;256S',
+          '\u001b[?1;2S',
+          '\u001b[?1;0;4096S',
+          '\u001b[?2;0;100;50S',
+          '\u001b[?2;0;4096;4096S',
+          '\u001b[?2;2S',
+          '\u001b[?3;1S',
+        ],
+      );
+      expect(terminal.options.windowOptions.getWinSizePixels, isTrue);
+      expect(terminal.options.windowOptions.getCellSizePixels, isTrue);
+      expect(terminal.options.windowOptions.getWinSizeChars, isTrue);
+    });
+
+    test('DECSET 80 controls sixel scrolling and reset restores it', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+
+      await terminal.writeAndWait('\u001b[?80h\u001bPqA\u001b\\');
+      expect(addon.images.single.scrolls, isFalse);
+      await terminal.writeAndWait('\u001b[!p\u001bPqB\u001b\\');
+      expect(addon.images.single.scrolls, isTrue);
+      await terminal.writeAndWait('\u001b[?80h\u001bc\u001bPqC\u001b\\');
+      expect(addon.images.single.scrolls, isTrue);
+    });
+
+    test(
+      'IIP validates headers, metrics, names and payload alphabet',
+      () async {
+        final terminal = Terminal();
+        final addon = ImageAddon();
+        addTearDown(terminal.dispose);
+        terminal.loadAddon(addon);
+        final payload = base64.encode(_fakePng(12, 7, 32));
+        final name = base64.encode(utf8.encode('한글.png'));
+
+        await terminal.writeAndWait(
+          '\u001b]1337;File=inline=0:$payload\u0007'
+          '\u001b]1337;File=inline=x:$payload\u0007'
+          '\u001b]1337;File=inline=1;width=bad:$payload\u0007'
+          '\u001b]1337;File=inline=1:%%%%\u0007'
+          '\u001b]1337;File=inline=1;size=1;name=$name;'
+          'width=3;height=4px;preserveAspectRatio=0:$payload\u0007',
+        );
+
+        expect(addon.images, hasLength(1));
+        expect(addon.images.single.pixelWidth, 21);
+        expect(addon.images.single.pixelHeight, 4);
+        expect(addon.images.single.name, '한글.png');
+        expect(addon.images.single.storageBytes, 12 * 7 * 4);
+      },
+    );
+
+    test('IIP multipart chunks and cell-size report', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final reports = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(reports.add);
+      terminal.updateDimensions(
+        const TerminalRenderDimensions(
+          width: 800,
+          height: 480,
+          cellWidth: 10,
+          cellHeight: 20,
+          devicePixelRatio: 2,
+        ),
+      );
+      final payload = base64.encode(_fakePng(2, 3, 32));
+      final split = payload.length ~/ 2;
+
+      await terminal.writeAndWait(
+        '\u001b]1337;ReportCellSize\u0007'
+        '\u001b]1337;FilePart=${payload.substring(0, split)}\u0007'
+        '\u001b]1337;FileEnd\u0007'
+        '\u001b]1337;MultipartFile=inline=1\u0007'
+        '\u001b]1337;FilePart=${payload.substring(0, split)}\u0007'
+        '\u001b]1337;FilePart=${payload.substring(split)}\u0007'
+        '\u001b]1337;FileEnd\u0007',
+      );
+
+      expect(
+        reports,
+        <String>['\u001b]1337;ReportCellSize=20.000;10.000;2.000\u001b\\'],
+      );
+      expect(addon.images, hasLength(1));
+      expect(
+        (addon.images.single.pixelWidth, addon.images.single.pixelHeight),
+        (
+          2,
+          3,
+        ),
+      );
+    });
+
+    test('Kitty transmit, chunk, placement and delete lifecycle', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final responses = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(responses.add);
+      final payload = base64.encode(_fakePng(3, 2, 32));
+      final split = payload.length ~/ 2;
+
+      await terminal.writeAndWait(
+        '\u001b_Ga=t,f=100,i=42;$payload\u001b\\'
+        '\u001b_Ga=p,i=42,p=9,c=4,r=2,z=-1,C=1\u001b\\',
+      );
+      expect(addon.images, hasLength(1));
+      expect(addon.images.single.kittyId, 42);
+      expect(addon.images.single.placementId, 9);
+      expect(addon.images.single.columns, 4);
+      expect(addon.images.single.rows, 2);
+      expect(addon.images.single.zIndex, -1);
+      expect(terminal.buffer.active.cursorX, 0);
+      expect(
+        responses,
+        <String>[
+          '\u001b_Gi=42;OK\u001b\\',
+          '\u001b_Gi=42,p=9;OK\u001b\\',
+        ],
+      );
+
+      responses.clear();
+      await terminal.writeAndWait(
+        '\u001b_Ga=T,f=100,i=99,m=1;${payload.substring(0, split)}'
+        '\u001b\\'
+        '\u001b_Gm=0;${payload.substring(split)}\u001b\\',
+      );
+      expect(addon.images, hasLength(2));
+      expect(addon.images.last.kittyId, 99);
+      expect(responses, <String>['\u001b_Gi=99;OK\u001b\\']);
+
+      await terminal.writeAndWait('\u001b_Ga=d,d=i,i=42\u001b\\');
+      expect(addon.images.map((image) => image.kittyId), <int?>[99]);
+      await terminal.writeAndWait('\u001b_Ga=d,d=A\u001b\\');
+      expect(addon.images, isEmpty);
+    });
+
+    test('Kitty queries, validation and quiet responses', () async {
+      final terminal = Terminal();
+      final addon = ImageAddon();
+      final responses = <String>[];
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      terminal.onData.listen(responses.add);
+
+      await terminal.writeAndWait(
+        '\u001b_Ga=q,i=1\u001b\\'
+        '\u001b_Ga=q,i=2,t=f;\u001b\\'
+        '\u001b_Ga=q,i=3,f=24;AQID\u001b\\'
+        '\u001b_Ga=q,i=4,f=24,s=1,v=1;AQID\u001b\\'
+        '\u001b_Ga=t,i=5;%%%\u001b\\'
+        '\u001b_Ga=t,i=6,I=7;AQID\u001b\\'
+        '\u001b_Ga=q,i=8,q=1\u001b\\'
+        '\u001b_Ga=t,i=9,q=2;%%%\u001b\\'
+        '\u001b_Ga=p,i=404\u001b\\',
+      );
+
+      expect(
+        responses,
+        <String>[
+          '\u001b_Gi=1;OK\u001b\\',
+          '\u001b_Gi=2;EINVAL:unsupported transmission medium\u001b\\',
+          '\u001b_Gi=3;EINVAL:width and height required for raw pixel data\u001b\\',
+          '\u001b_Gi=4;OK\u001b\\',
+          '\u001b_Gi=5;EINVAL:invalid base64 data\u001b\\',
+          '\u001b_Gi=6;EINVAL:cannot specify both i and I keys\u001b\\',
+          '\u001b_Gi=404;ENOENT:image not found\u001b\\',
+        ],
+      );
+    });
+  });
+
+  group('UnicodeGraphemesAddon', () {
+    test('wcwidth V15 emoji test', () {
+      final terminal = Terminal(
+        options: TerminalOptions(allowProposedApi: true),
+      );
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(UnicodeGraphemesAddon());
+      expect(terminal.unicode.versions, <String>['6', '15', '15-graphemes']);
+      expect(
+        _stringCellWidth(terminal, List<String>.filled(10, '🤣').join()),
+        20,
+      );
+      expect(_stringCellWidth(terminal, '👶🏿👶'), 4);
+      expect(_stringCellWidth(terminal, '👩‍👩‍👦'), 2);
+      expect(_stringCellWidth(terminal, '=🏋️=\u{f3cb}🏾‍♀='), 7);
+      expect(_stringCellWidth(terminal, '👩👩‍🎓👨🏿‍🎓'), 6);
+      expect(_stringCellWidth(terminal, '🇳🇴/'), 3);
+      expect(_stringCellWidth(terminal, '🇳/🇴'), 3);
+      expect(_stringCellWidth(terminal, 'á'), 1);
+      expect(_stringCellWidth(terminal, '{각가}'), 6);
+      expect(_stringCellWidth(terminal, '가=횅='), 6);
+      expect(_stringCellWidth(terminal, '(⚰︎)'), 3);
+      expect(_stringCellWidth(terminal, '(⚰️)'), 4);
+      expect(_stringCellWidth(terminal, '<É️g️a️l️i️️t️é️>'), 16);
+    });
+  });
+
+  test(
+    'addon-serialize preserves attributes, ranges, modes and safe HTML',
+    () async {
+      final terminal = Terminal(options: TerminalOptions(cols: 12, rows: 3));
+      final addon = SerializeAddon();
+      addTearDown(terminal.dispose);
+      terminal.loadAddon(addon);
+      await terminal.writeAndWait(
+        <String>[
+          '\u001b[1;2;3;4;5;7;8;9;38;2;1;2;3;48;5;200mstyled',
+          '\u001b[0m\r\nplain\r\nlast',
+          '\u001b[?1;6h\u001b[?25;7l\u001b[4h\u001b=\u001b[?2004h',
+          '\u001b[2;1H',
+        ].join(),
+      );
+
+      final serialized = addon.serialize();
+      expect(serialized, contains('7;1;4;5;8;3;2;9'));
+      expect(serialized, contains('38;2;1;2;3'));
+      expect(serialized, contains('48;5;200'));
+      expect(serialized, endsWith('\u001b[?7l'));
+      expect(
+        addon.serialize(
+          options: const TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: 1, end: 1),
+            excludeModes: true,
+          ),
+        ),
+        startsWith('plain'),
+      );
+
+      final marker = terminal.registerMarker()!;
+      expect(
+        addon.serialize(
+          options: TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: marker, end: marker),
+            excludeModes: true,
+          ),
+        ),
+        startsWith('plain'),
+      );
+      expect(
+        () => addon.serialize(
+          options: const TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: 'bad', end: 1),
+          ),
+        ),
+        throwsArgumentError,
+      );
+      expect(
+        () => addon.serialize(
+          options: const TerminalSerializeOptions(
+            range: TerminalSerializeRange(start: 2, end: 1),
+          ),
+        ),
+        throwsRangeError,
+      );
+      expect(
+        () => addon.serialize(
+          options: const TerminalSerializeOptions(scrollback: -1),
+        ),
+        throwsArgumentError,
+      );
+
+      terminal.select(0, 1, 5);
+      expect(
+        addon.serializeAsHtml(
+          options: const TerminalHtmlSerializeOptions(
+            onlySelection: true,
+            includeGlobalBackground: true,
+          ),
+        ),
+        contains('<div><span>plain</span></div>'),
+      );
+      terminal.clearSelection();
+      expect(
+        addon.serializeAsHtml(
+          options: const TerminalHtmlSerializeOptions(
+            range: TerminalHtmlSerializeRange(
+              startLine: 1,
+              endLine: 2,
+              startColumn: 1,
+            ),
+          ),
+        ),
+        contains('<div><span>lain'),
+      );
+      expect(
+        addon.serializeAsHtml(
+          options: const TerminalHtmlSerializeOptions(scrollback: 0),
+        ),
+        startsWith('<html><body><!--StartFragment--><pre>'),
+      );
+    },
+  );
+
+  test('addon-serialize includes and excludes the alternate buffer', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
+    final addon = SerializeAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait('normal\u001b[?1049h\u001b[Halt');
+
+    expect(addon.serialize(), 'normal\u001b[?1049h\u001b[Halt');
+    expect(
+      addon.serialize(
+        options: const TerminalSerializeOptions(
+          excludeAltBuffer: true,
+        ),
+      ),
+      'normal',
+    );
+  });
+
+  test('addon-serialize ports xterm HTML cell styles and framing', () async {
+    final terminal = Terminal(options: TerminalOptions(cols: 32, rows: 2));
+    final addon = SerializeAddon();
+    addTearDown(terminal.dispose);
+    terminal.loadAddon(addon);
+    await terminal.writeAndWait(
+      ' <a>&\u001b[1;3;4:3;9;38;5;46;48;2;1;2;3mstyled\u001b[0m',
+    );
+
+    final html = addon.serializeAsHtml();
+    expect(html, startsWith('<html><body><!--StartFragment--><pre>'));
+    expect(
+      html,
+      contains(
+        'color: #000000; background-color: #ffffff; '
+        'font-family: monospace; font-size: 15px;',
+      ),
+    );
+    expect(html, contains('&lt;a>&amp;'));
+    expect(
+      html,
+      contains(
+        "<span style='color: #00ff00; background-color: #010203; "
+        'font-weight: bold; text-decoration: underline wavy line-through; '
+        'text-decoration-color: #00ff00; '
+        "font-style: italic;'>styled</span>",
+      ),
+    );
+    expect(
+      html,
+      endsWith('</div></pre><!--EndFragment--></body></html>'),
+    );
+  });
+
+  test('Marker and decoration lifecycle follows tracked line changes', () {
+    final factory = TerminalMarkerFactory();
+    final marker = factory.create(2);
+    final disposed = <String>[];
+    marker.onDispose.listen((_) => disposed.add('marker'));
+    marker.move(3);
+    expect(marker.line, 5);
+    final nextMarker = factory.create(0);
+    expect(nextMarker.id, marker.id + 1);
+    nextMarker.dispose();
+    TerminalDecoration(
+        marker: marker,
+        anchor: TerminalDecorationAnchor.right,
+        x: 1,
+        width: 2,
+        height: 2,
+        backgroundColor: '#000000',
+        foregroundColor: '#ffffff',
+        layer: TerminalDecorationLayer.top,
+      )
+      ..onRender.listen((_) => disposed.add('render'))
+      ..onDispose.listen((_) => disposed.add('decoration'))
+      ..rendered()
+      ..dispose()
+      ..rendered()
+      ..dispose();
+    marker
+      ..move(-10)
+      ..move(1)
+      ..dispose();
+    expect(disposed, <String>['render', 'decoration', 'marker']);
+    expect(marker.line, -1);
+    final finalMarker = factory.create(0);
+    expect(finalMarker.id, marker.id + 2);
+    finalMarker.dispose();
+    expect(
+      () => TerminalDecoration(marker: marker, x: -1),
+      throwsArgumentError,
+    );
+    expect(TerminalDecoration(marker: marker, width: 0).width, 0);
+    expect(
+      () => TerminalDecoration(marker: marker, width: -1),
+      throwsArgumentError,
+    );
+  });
+}
+
+Future<void> _write(Terminal terminal, int state, [String? value]) {
+  final suffix = value == null ? '' : ';$value';
+  return terminal.writeAndWait('\u001b]9;4;$state$suffix\u001b\\');
+}
+
+void _expectProgress(
+  TerminalProgress progress,
+  TerminalProgressState state,
+  int value,
+) {
+  expect(progress.state, state);
+  expect(progress.value, value);
+}
+
+int _stringCellWidth(Terminal terminal, String value) {
+  var state = 0;
+  var width = 0;
+  for (final codePoint in value.runes) {
+    final next = terminal.unicode.active.charProperties(codePoint, state);
+    final nextWidth = TerminalUnicodeHandling.extractWidth(next);
+    width += TerminalUnicodeHandling.extractShouldJoin(next)
+        ? nextWidth - TerminalUnicodeHandling.extractWidth(state)
+        : nextWidth;
+    state = next;
+  }
+  return width;
+}
+
+List<int> _fakePng(int width, int height, int length) {
+  final bytes = List<int>.filled(length, 0)
+    ..setAll(0, <int>[
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a,
+      0,
+      0,
+      0,
+      13,
+      0x49,
+      0x48,
+      0x44,
+      0x52,
+      width >> 24 & 0xff,
+      width >> 16 & 0xff,
+      width >> 8 & 0xff,
+      width & 0xff,
+      height >> 24 & 0xff,
+      height >> 16 & 0xff,
+      height >> 8 & 0xff,
+      height & 0xff,
+    ]);
+  return bytes;
+}
