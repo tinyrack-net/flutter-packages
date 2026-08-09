@@ -506,6 +506,29 @@ void main() {
     ]);
   });
 
+  test('xterm Buffer 42', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _tabReflowBuffer(attributes)..resize(5, 10, attributes);
+    expect(_trimmedLine(buffers.normal, 0), 'ab  c');
+    expect(buffers.normal.getLine(1)!.translateToString(), 'd    ');
+    buffers.resize(6, 10, attributes);
+    expect(_trimmedLine(buffers.normal, 0), 'ab  cd');
+    expect(buffers.normal.getLine(1)!.translateToString(), '      ');
+  });
+
+  test('xterm Buffer 43', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _tabReflowBuffer(attributes)..resize(3, 10, attributes);
+    expect(buffers.normal.cursorY, 2);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'ab ');
+    expect(buffers.normal.getLine(1)!.translateToString(), ' cd');
+    buffers.resize(2, 10, attributes);
+    expect(buffers.normal.cursorY, 3);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'ab');
+    expect(buffers.normal.getLine(1)!.translateToString(), '  ');
+    expect(buffers.normal.getLine(2)!.translateToString(), 'cd');
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -907,3 +930,17 @@ String _trimmedLine(TerminalBuffer buffer, int row) =>
 List<String> _trimmedLines(TerminalBuffer buffer, int count) => <String>[
   for (var row = 0; row < count; row++) _trimmedLine(buffer, row),
 ];
+
+TerminalBufferNamespace _tabReflowBuffer(
+  TerminalCellAttributes attributes,
+) {
+  final buffers = _bufferNamespace()..resize(4, 10, attributes);
+  buffers.normal
+    ..cursorY = 2
+    ..getLine(0)!.setCell(0, 'a', 1, attributes)
+    ..getLine(0)!.setCell(1, 'b', 1, attributes)
+    ..getLine(1)!.setCell(0, 'c', 1, attributes)
+    ..getLine(1)!.setCell(1, 'd', 1, attributes)
+    ..getLine(1)!.isWrapped = true;
+  return buffers;
+}
