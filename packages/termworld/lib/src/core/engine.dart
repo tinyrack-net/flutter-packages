@@ -68,6 +68,7 @@ final class _TerminalCoreEngine {
   bool appKeypadMode = false;
   bool reportFocusMode = false;
   bool bracketedPasteMode = false;
+  bool colorSchemeUpdates = false;
   bool reverseWraparoundMode = false;
   bool synchronizedOutputMode = false;
   bool win32InputMode = false;
@@ -80,6 +81,8 @@ final class _TerminalCoreEngine {
   bool urxvtMouseMode = false;
   bool alternateScrollMode = false;
   bool sendCursorPosition = false;
+  TerminalCursorStyle? cursorStyleOverride;
+  bool? cursorBlinkOverride;
   TerminalRenderDimensions? renderDimensions;
   int kittyKeyboardFlags = 0;
   int _kittyMainFlags = 0;
@@ -1349,6 +1352,7 @@ final class _TerminalCoreEngine {
       buffer.active.cursorX--;
     } else if (reverseWraparoundMode &&
         autoWrapMode &&
+        _inMargins &&
         buffer.active.cursorY > marginTop &&
         buffer.active.currentLine.isWrapped) {
       buffer.active.currentLine.isWrapped = false;
@@ -1534,15 +1538,29 @@ final class _TerminalCoreEngine {
           respectProtection: selective,
         );
       case 2:
-        for (var row = 0; row < _rows; row++) {
-          active
-              .getLine(active.baseY + row)!
-              .erase(
+        if (options.scrollOnEraseInDisplay && !selective) {
+          var lastContentRow = _rows - 1;
+          while (lastContentRow >= 0 &&
+              active
+                      .getLine(active.baseY + lastContentRow)!
+                      .getTrimmedLength() ==
+                  0) {
+            lastContentRow--;
+          }
+          for (var row = lastContentRow; row >= 0; row--) {
+            active.scroll(_eraseAttributes);
+          }
+        } else {
+          for (var row = 0; row < _rows; row++) {
+            active.getLine(active.baseY + row)!
+              ..erase(
                 0,
                 _columns,
                 _eraseAttributes,
                 respectProtection: selective,
-              );
+              )
+              ..isWrapped = false;
+          }
         }
       case 3:
         if (identical(active, buffer.normal)) {
@@ -1561,6 +1579,7 @@ final class _TerminalCoreEngine {
           _eraseAttributes,
           respectProtection: selective,
         );
+        if (buffer.active.cursorX == 0) line.isWrapped = false;
       case 1:
         line.erase(
           0,
@@ -1575,6 +1594,7 @@ final class _TerminalCoreEngine {
           _eraseAttributes,
           respectProtection: selective,
         );
+        line.isWrapped = false;
     }
   }
 
@@ -1791,6 +1811,12 @@ final class _TerminalCoreEngine {
             _charset = 'B';
             _activeCharset = 0;
           }
+        case 3:
+          if (options.windowOptions.setWinLines) {
+            resize(enabled ? 132 : 80, _rows);
+            buffer.active.clear();
+            _setPosition(0, 0);
+          }
         case 6:
           originMode = enabled;
           _setPosition(0, 0);
@@ -1863,6 +1889,10 @@ final class _TerminalCoreEngine {
           bracketedPasteMode = enabled;
         case 2026:
           synchronizedOutputMode = enabled;
+        case 2031:
+          if (options.vtExtensions.colorSchemeQuery) {
+            colorSchemeUpdates = enabled;
+          }
         case 9001:
           if (options.vtExtensions.win32InputMode) {
             win32InputMode = enabled;
@@ -1946,8 +1976,18 @@ final class _TerminalCoreEngine {
   }
 
   void _setCursorStyle(int value) {
-    // Cursor shape and blinking are surfaced by TerminalView state.
-    sendCursorPosition = value >= 0;
+    if (value == 0) {
+      cursorStyleOverride = null;
+      cursorBlinkOverride = null;
+      return;
+    }
+    cursorStyleOverride = switch (value) {
+      1 || 2 => TerminalCursorStyle.block,
+      3 || 4 => TerminalCursorStyle.underline,
+      5 || 6 => TerminalCursorStyle.bar,
+      _ => cursorStyleOverride,
+    };
+    if (value >= 1 && value <= 6) cursorBlinkOverride = value.isOdd;
   }
 
   void _saveCursor() {
@@ -2037,8 +2077,11 @@ final class _TerminalCoreEngine {
     appKeypadMode = false;
     reportFocusMode = false;
     bracketedPasteMode = false;
+    colorSchemeUpdates = false;
     reverseWraparoundMode = false;
     synchronizedOutputMode = false;
+    cursorStyleOverride = null;
+    cursorBlinkOverride = null;
     mouseMode = TerminalMouseTrackingMode.none;
     marginTop = 0;
     marginBottom = _rows - 1;

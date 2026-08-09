@@ -1034,12 +1034,12 @@ final class _TerminalViewState extends State<TerminalView> {
       fontWeight: _fontWeight(options.fontWeight, FontWeight.normal),
       fontWeightBold: _fontWeight(options.fontWeightBold, FontWeight.bold),
       letterSpacing: options.letterSpacing,
-      cursorType: switch (options.cursorStyle) {
+      cursorType: switch (widget.terminal.modes.cursorStyle) {
         TerminalCursorStyle.block => TerminalCursorType.block,
         TerminalCursorStyle.underline => TerminalCursorType.underline,
         TerminalCursorStyle.bar => TerminalCursorType.bar,
       },
-      cursorBlink: options.cursorBlink,
+      cursorBlink: widget.terminal.modes.cursorBlink,
       cursorWidth: options.cursorWidth.toDouble(),
     );
   }

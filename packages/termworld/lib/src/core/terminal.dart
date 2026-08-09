@@ -494,6 +494,17 @@ final class TerminalModes {
   /// xterm-compatible `bracketedPasteMode` API.
   bool get bracketedPasteMode => _terminal._engine.bracketedPasteMode;
 
+  /// Whether OSC color scheme update notifications are enabled.
+  bool get colorSchemeUpdates => _terminal._engine.colorSchemeUpdates;
+
+  /// Effective cursor style after a DECSCUSR override.
+  TerminalCursorStyle get cursorStyle =>
+      _terminal._engine.cursorStyleOverride ?? _terminal.options.cursorStyle;
+
+  /// Effective cursor blinking after a DECSCUSR override.
+  bool get cursorBlink =>
+      _terminal._engine.cursorBlinkOverride ?? _terminal.options.cursorBlink;
+
   /// xterm-compatible `insertMode` API.
   bool get insertMode => _terminal._engine.insertMode;
 
