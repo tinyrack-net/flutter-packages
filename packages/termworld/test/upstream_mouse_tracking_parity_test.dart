@@ -126,7 +126,7 @@ Future<void> _verifyTracking({
           action: TerminalMouseAction.down,
         ),
       ),
-      isFalse,
+      isTrue,
     );
     expect(reports, isEmpty);
   }
