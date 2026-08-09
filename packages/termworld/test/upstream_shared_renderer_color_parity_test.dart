@@ -495,7 +495,11 @@ Future<List<Color>> _contrastColors(
               )
               .foreground,
     ];
-    return colors;
+    return dim
+        ? <Color>[
+            for (final color in colors) TerminalThemes.blend(background, color),
+          ]
+        : colors;
   } finally {
     terminal.dispose();
   }

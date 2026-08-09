@@ -16,8 +16,7 @@ void main() {
         ),
       );
       fixture.terminal.selectAll();
-      fixture.focusNode.requestFocus();
-      await tester.pump();
+      await _focus(tester, fixture);
       final image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 0, _blue), isTrue);
     });
@@ -34,13 +33,13 @@ void main() {
         ),
       );
       fixture.terminal.scrollLines(-2);
-      fixture.focusNode.requestFocus();
-      await tester.pump();
+      await _focus(tester, fixture);
       var image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 4, _blue), isTrue);
       expect(_cellContains(image, 0, 2, _blue), isFalse);
 
       fixture.focusNode.unfocus();
+      await tester.pump();
       await tester.pump();
       image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 4, _blue), isTrue);
@@ -79,8 +78,7 @@ void main() {
         tester,
         theme: const TerminalColorTheme(cursor: '#FF000080'),
       );
-      fixture.focusNode.requestFocus();
-      await tester.pump();
+      await _focus(tester, fixture);
       final image = await _capture(tester, fixture);
       expect(_cellCenter(image, 0, 0), const Color(0xff800000));
     });
@@ -95,8 +93,7 @@ void main() {
         await tester.runAsync(
           () => fixture.terminal.writeAndWait('■\x1b[1D'),
         );
-        fixture.focusNode.requestFocus();
-        await tester.pump();
+        await _focus(tester, fixture);
         final image = await _capture(tester, fixture);
         expect(_cellContains(image, 0, 0, const Color(0xff800000)), isTrue);
       },
@@ -215,6 +212,13 @@ final class _Pixels {
 
 Future<_Pixels> _capture(WidgetTester tester, _Fixture fixture) async =>
     (await tester.runAsync(fixture.capture))!;
+
+Future<void> _focus(WidgetTester tester, _Fixture fixture) async {
+  fixture.focusNode.requestFocus();
+  await tester.pump();
+  await tester.pump();
+  expect(fixture.focusNode.hasFocus, isTrue);
+}
 
 Color _cellCenter(_Pixels image, int column, int row) => image.colorAt(
   column * _cellWidth + _cellWidth ~/ 2,

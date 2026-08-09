@@ -1832,7 +1832,7 @@ final class _TerminalCoreEngine {
     2 => 4,
     4 => insertMode ? 1 : 2,
     12 => 3,
-    20 => options.convertEol ? 1 : 2,
+    20 => lineFeedMode ? 1 : 2,
     _ => 0,
   };
 
