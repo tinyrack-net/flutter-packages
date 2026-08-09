@@ -755,6 +755,18 @@ final class _TerminalCoreEngine {
       _kittyKeyboard(prefix, params);
       return;
     }
+    if (intermediates.isNotEmpty &&
+        !(intermediates == ' ' && finalByte == 'q')) {
+      return;
+    }
+    if (prefix.isNotEmpty) {
+      final supported = switch (prefix) {
+        '?' => const <String>{'J', 'K', 'c', 'h', 'l', 'n'},
+        '>' => const <String>{'c', 'q'},
+        _ => const <String>{},
+      };
+      if (!supported.contains(finalByte)) return;
+    }
     switch (finalByte) {
       case '@':
         _restrictCursor();

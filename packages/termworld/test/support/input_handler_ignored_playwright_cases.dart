@@ -14,6 +14,13 @@ Future<void> verifyInputHandlerIgnoredPlaywrightCase(String name) async {
     expect(data, isEmpty);
     return;
   }
+  if (name.contains('DECSLRM')) {
+    await terminal.writeAndWait('\x1b[2;79s');
+    expect(terminal.buffer.active.savedCursorX, 3);
+    expect(terminal.buffer.active.savedCursorY, 0);
+    expect(data, isEmpty);
+    return;
+  }
   final before = _snapshot(terminal);
   await terminal.writeAndWait(_sequence(name));
   expect(_snapshot(terminal), before);
