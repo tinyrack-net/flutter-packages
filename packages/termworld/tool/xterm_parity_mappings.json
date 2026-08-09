@@ -1510,6 +1510,7 @@
     "playwright:c46a828217ec586856a0-0877151632a7f4961eee": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 1","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-08c71fb199dc6d197152": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 2","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-092408dff19a2bb674e8": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 3","dartTestKind":"test"},
+    "playwright:c46a828217ec586856a0-0e23bf29cc8d67b4b26e": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 4","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-1c93cd7ba5918a2bdb8f": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 5","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-2871b621ee3675c55648": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 6","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-2ec2acc05f9342ea0917": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 7","dartTestKind":"test"},

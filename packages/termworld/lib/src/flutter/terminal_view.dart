@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:termworld/addon_image.dart';
+import 'package:termworld/src/addons/qoi_decoder.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/keyboard.dart';
@@ -97,6 +100,11 @@ final class _TerminalViewState extends State<TerminalView> {
   Disposable? _cursorMoveListener;
   Disposable? _scrollListener;
   Disposable? _selectionListener;
+  Disposable? _imageListener;
+  ImageAddon? _imageAddon;
+  final Map<int, ({ui.Image raster, TerminalImage source})> _decodedImages =
+      <int, ({ui.Image raster, TerminalImage source})>{};
+  var _imageDecodeGeneration = 0;
   Disposable? _a11yCharListener;
   Disposable? _a11yTabListener;
   Disposable? _a11yLineFeedListener;
@@ -201,6 +209,7 @@ final class _TerminalViewState extends State<TerminalView> {
     _selectionListener = widget.terminal.onSelectionChange.listen((_) {
       if (mounted) setState(() {});
     });
+    _syncImageAddon();
     _a11yCharListener = widget.terminal.onA11yChar.listen(_handleA11yChar);
     _a11yTabListener = widget.terminal.onA11yTab.listen((spaceCount) {
       for (var index = 0; index < spaceCount; index++) {
@@ -220,6 +229,81 @@ final class _TerminalViewState extends State<TerminalView> {
       focus: _requestKeyboard,
       blur: _focusNode.unfocus,
     );
+  }
+
+  void _syncImageAddon() {
+    final addon = ImageAddon.activeFor(widget.terminal);
+    if (identical(addon, _imageAddon)) return;
+    _imageListener?.dispose();
+    _imageListener = null;
+    _imageAddon = addon;
+    _clearDecodedImages();
+    if (addon == null) return;
+    _imageListener = addon.onImagesChanged.listen((_) => _decodeImages());
+    _decodeImages();
+  }
+
+  void _decodeImages() {
+    final addon = _imageAddon;
+    if (addon == null) return;
+    final generation = ++_imageDecodeGeneration;
+    final live = addon.images.map((image) => image.storageId).toSet();
+    for (final id in _decodedImages.keys.toList(growable: false)) {
+      if (live.contains(id)) continue;
+      _decodedImages.remove(id)?.raster.dispose();
+    }
+    for (final source in addon.images) {
+      if (_decodedImages.containsKey(source.storageId)) continue;
+      unawaited(
+        _decodeTerminalImage(source)
+            .then((raster) {
+              if (!mounted ||
+                  generation != _imageDecodeGeneration ||
+                  !addon.images.any(
+                    (image) => image.storageId == source.storageId,
+                  )) {
+                raster.dispose();
+                return;
+              }
+              _decodedImages[source.storageId] = (
+                raster: raster,
+                source: source,
+              );
+              setState(() {});
+            })
+            .onError((_, _) {
+              // Browser decoders also ignore malformed protocol payloads.
+            }),
+      );
+    }
+  }
+
+  Future<ui.Image> _decodeTerminalImage(TerminalImage source) {
+    if (source.data.length >= 4 &&
+        source.data[0] == 0x71 &&
+        source.data[1] == 0x6f &&
+        source.data[2] == 0x69 &&
+        source.data[3] == 0x66) {
+      final decoded = decodeQoi(source.data);
+      final completer = Completer<ui.Image>();
+      ui.decodeImageFromPixels(
+        decoded.pixels,
+        decoded.width,
+        decoded.height,
+        ui.PixelFormat.rgba8888,
+        completer.complete,
+      );
+      return completer.future;
+    }
+    return decodeImageFromList(source.data);
+  }
+
+  void _clearDecodedImages() {
+    _imageDecodeGeneration++;
+    for (final decoded in _decodedImages.values) {
+      decoded.raster.dispose();
+    }
+    _decodedImages.clear();
   }
 
   void _requestKeyboard() {
@@ -371,6 +455,8 @@ final class _TerminalViewState extends State<TerminalView> {
     _cursorMoveListener?.dispose();
     _scrollListener?.dispose();
     _selectionListener?.dispose();
+    _imageListener?.dispose();
+    _clearDecodedImages();
     _disposeAccessibilityListeners();
     _testingChannel?.setMethodCallHandler(null);
     _testingChannel = null;
@@ -385,6 +471,7 @@ final class _TerminalViewState extends State<TerminalView> {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
+      _syncImageAddon();
       _reportDimensions(context, constraints.biggest);
       final theme =
           widget.theme ??
@@ -403,6 +490,7 @@ final class _TerminalViewState extends State<TerminalView> {
           focused: _focusNode.hasFocus,
           cursorVisible: _cursorVisible,
           hoveredLink: _hoveredLink,
+          decodedImages: _decodedImages,
         ),
         size: constraints.biggest,
       );
@@ -1364,6 +1452,7 @@ final class _TerminalPainter extends CustomPainter {
     required this.focused,
     required this.cursorVisible,
     required this.hoveredLink,
+    required this.decodedImages,
   });
 
   final Terminal terminal;
@@ -1374,6 +1463,7 @@ final class _TerminalPainter extends CustomPainter {
   final bool focused;
   final bool cursorVisible;
   final TerminalLink? hoveredLink;
+  final Map<int, ({ui.Image raster, TerminalImage source})> decodedImages;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1427,6 +1517,7 @@ final class _TerminalPainter extends CustomPainter {
             cell.isInverse) {
           canvas.drawRect(rect, Paint()..color = background);
         }
+        _paintImageCell(canvas, rect, cell);
         final selected = _selected(selection, column, bufferRow);
         if (selected) {
           final selectionColor = focused
@@ -1507,6 +1598,25 @@ final class _TerminalPainter extends CustomPainter {
     if (terminal.modes.showCursor && (!focused || cursorVisible)) {
       _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
     }
+  }
+
+  void _paintImageCell(Canvas canvas, Rect destination, TerminalCell cell) {
+    final decoded = decodedImages[cell.imageId];
+    if (decoded == null || cell.imageTileId < 0) return;
+    final columns = decoded.source.columns ?? 1;
+    final rows = decoded.source.rows ?? 1;
+    final tileColumn = cell.imageTileId % columns;
+    final tileRow = cell.imageTileId ~/ columns;
+    if (tileRow >= rows) return;
+    final tileWidth = decoded.raster.width / columns;
+    final tileHeight = decoded.raster.height / rows;
+    final source = Rect.fromLTRB(
+      tileColumn * tileWidth,
+      tileRow * tileHeight,
+      math.min((tileColumn + 1) * tileWidth, decoded.raster.width.toDouble()),
+      math.min((tileRow + 1) * tileHeight, decoded.raster.height.toDouble()),
+    );
+    canvas.drawImageRect(decoded.raster, source, destination, Paint());
   }
 
   void _paintHoveredLink(

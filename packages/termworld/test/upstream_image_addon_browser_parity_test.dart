@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_image.dart';
+import 'package:termworld/src/addons/qoi_decoder.dart';
 import 'package:termworld/termworld_headless.dart';
 
 void main() {
@@ -38,6 +41,21 @@ void main() {
       ),
       (200, 100),
     );
+  });
+
+  test('xterm ImageAddon playwright 4', () async {
+    final root = Directory.current.path.endsWith('packages/termworld')
+        ? 'test/fixtures/xterm_image/testimages'
+        : 'packages/termworld/test/fixtures/xterm_image/testimages';
+    final png = await decodeImageFromList(
+      File('$root/w3c_home.png').readAsBytesSync(),
+    );
+    addTearDown(png.dispose);
+    final data = await png.toByteData();
+    final pixels = data!.buffer.asUint8List();
+    final qoi = decodeQoi(_encodeQoi(png.width, png.height, pixels));
+    expect((qoi.width, qoi.height), (png.width, png.height));
+    expect(qoi.pixels, pixels);
   });
 
   test('xterm ImageAddon playwright 5', () {
@@ -409,6 +427,28 @@ void _write32(Uint8List bytes, int offset, int value) {
   bytes[offset + 1] = value >> 16;
   bytes[offset + 2] = value >> 8;
   bytes[offset + 3] = value;
+}
+
+Uint8List _encodeQoi(int width, int height, Uint8List pixels) {
+  final output = BytesBuilder(copy: false)
+    ..add(const <int>[0x71, 0x6f, 0x69, 0x66]);
+  final dimensions = Uint8List(8);
+  _write32(dimensions, 0, width);
+  _write32(dimensions, 4, height);
+  output
+    ..add(dimensions)
+    ..add(const <int>[4, 0]);
+  for (var offset = 0; offset < pixels.length; offset += 4) {
+    output.add(<int>[
+      0xff,
+      pixels[offset],
+      pixels[offset + 1],
+      pixels[offset + 2],
+      pixels[offset + 3],
+    ]);
+  }
+  output.add(const <int>[0, 0, 0, 0, 0, 0, 0, 1]);
+  return output.takeBytes();
 }
 
 ({Terminal terminal, ImageAddon addon}) _setup({

@@ -165,10 +165,20 @@ final class ImageAddon extends ManagedTerminalAddon {
     : _configuredStorageLimit = options.storageLimit,
       showPlaceholder = options.showPlaceholder;
 
+  static final Expando<ImageAddon> _terminalInstances = Expando<ImageAddon>(
+    'termworld.imageAddon',
+  );
+
+  /// Returns the image addon currently active on [terminal], when present.
+  static ImageAddon? activeFor(Terminal terminal) =>
+      _terminalInstances[terminal];
+
   /// xterm-compatible `options` API.
   final ImageAddonOptions options;
   final List<TerminalImage> _images = <TerminalImage>[];
   final TerminalEventEmitter<TerminalVoid> _onImageAdded =
+      TerminalEventEmitter<TerminalVoid>();
+  final TerminalEventEmitter<TerminalVoid> _onImagesChanged =
       TerminalEventEmitter<TerminalVoid>();
   int _storageBytes = 0;
   double _configuredStorageLimit;
@@ -176,6 +186,9 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   /// xterm-compatible `onImageAdded` API.
   TerminalEvent<TerminalVoid> get onImageAdded => _onImageAdded.event;
+
+  /// Fires after image storage or cell placement changes.
+  TerminalEvent<TerminalVoid> get onImagesChanged => _onImagesChanged.event;
 
   /// xterm-compatible `storageLimit` API.
   double get storageLimit => isActive ? _effectiveStorageLimit : -1;
@@ -208,6 +221,7 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   @override
   void onActivate(Terminal terminal) {
+    _terminalInstances[terminal] = this;
     _sixelScrolling = options.sixelScrolling;
     _sixelPaletteLimit = options.sixelPaletteLimit;
     if (_configuredStorageLimit >= 0.5 && _configuredStorageLimit <= 1000) {
@@ -597,14 +611,17 @@ final class ImageAddon extends ManagedTerminalAddon {
   }
 
   void _removeKittyPlacements([int? id]) {
+    var changed = false;
     for (var index = _images.length - 1; index >= 0; index--) {
       final image = _images[index];
       if (image.protocol == TerminalImageProtocol.kitty &&
           (id == null || image.kittyId == id)) {
         _storageBytes -= image.storageBytes;
         _images.removeAt(index);
+        changed = true;
       }
     }
+    if (changed) _onImagesChanged.fire(TerminalVoid.value);
   }
 
   void _kittyResponse(int id, String message, _KittyCommand command) {
@@ -912,6 +929,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     _evictToLimit();
     _evictUnreferencedImages();
     _onImageAdded.fire(TerminalVoid.value);
+    _onImagesChanged.fire(TerminalVoid.value);
   }
 
   void _markImageCells(TerminalImage image) {
@@ -950,9 +968,12 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   void _evictToLimit() {
     final maximumBytes = (_effectiveStorageLimit * 1000000).truncate();
+    var changed = false;
     while (_storageBytes > maximumBytes && _images.isNotEmpty) {
       _storageBytes -= _images.removeAt(0).storageBytes;
+      changed = true;
     }
+    if (changed) _onImagesChanged.fire(TerminalVoid.value);
   }
 
   void _evictUnreferencedImages() {
@@ -969,13 +990,17 @@ final class ImageAddon extends ManagedTerminalAddon {
         }
       }
     }
+    var changed = false;
     for (var index = _images.length - 1; index >= 0; index--) {
       if (referenced.contains(_images[index].storageId)) continue;
       _storageBytes -= _images.removeAt(index).storageBytes;
+      changed = true;
     }
+    if (changed) _onImagesChanged.fire(TerminalVoid.value);
   }
 
   void _trimNormalImages(int amount) {
+    var changed = false;
     for (var index = _images.length - 1; index >= 0; index--) {
       final image = _images[index];
       if (image.bufferType != TerminalBufferType.normal) continue;
@@ -983,17 +1008,23 @@ final class ImageAddon extends ManagedTerminalAddon {
       if (shiftedRow < 0) {
         _storageBytes -= image.storageBytes;
         _images.removeAt(index);
+        changed = true;
       } else {
         _images[index] = _copyAtRow(image, shiftedRow);
+        changed = true;
       }
     }
+    if (changed) _onImagesChanged.fire(TerminalVoid.value);
   }
 
   void _removeImagesFrom(TerminalBufferType type) {
+    var changed = false;
     for (var index = _images.length - 1; index >= 0; index--) {
       if (_images[index].bufferType != type) continue;
       _storageBytes -= _images.removeAt(index).storageBytes;
+      changed = true;
     }
+    if (changed) _onImagesChanged.fire(TerminalVoid.value);
   }
 
   TerminalImage _copyAtRow(TerminalImage image, int row) => TerminalImage(
@@ -1035,6 +1066,7 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   /// Removes all retained image payloads.
   bool reset() {
+    final hadImages = _images.isNotEmpty;
     _sixelScrolling = options.sixelScrolling;
     _sixelPaletteLimit = options.sixelPaletteLimit;
     _multipartHeader = null;
@@ -1046,14 +1078,17 @@ final class ImageAddon extends ManagedTerminalAddon {
     _nextStorageId = 1;
     _images.clear();
     _storageBytes = 0;
+    if (hadImages) _onImagesChanged.fire(TerminalVoid.value);
     return false;
   }
 
   @override
   void dispose() {
     if (isDisposed) return;
+    _terminalInstances[terminal] = null;
     reset();
     _onImageAdded.dispose();
+    _onImagesChanged.dispose();
     super.dispose();
   }
 }
