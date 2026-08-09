@@ -611,6 +611,48 @@ void main() {
     }
   });
 
+  test('xterm Buffer 62', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace(scrollback: 1)..resize(10, 11, attributes);
+    _writeAsciiLine(buffers.normal, 0, 'abcdefghij', attributes);
+    _writeAsciiLine(buffers.normal, 1, '0123456789', attributes);
+    _writeAsciiLine(buffers.normal, 2, 'klmnopqrst', attributes);
+    buffers.normal.cursorY = 3;
+    final first = buffers.normal.addMarker(0);
+    final second = buffers.normal.addMarker(1);
+    final third = buffers.normal.addMarker(2);
+
+    buffers.resize(2, 11, attributes);
+    expect(_trimmedLines(buffers.normal, 11), <String>[
+      'ij',
+      '01',
+      '23',
+      '45',
+      '67',
+      '89',
+      'kl',
+      'mn',
+      'op',
+      'qr',
+      'st',
+    ]);
+    expect((second.line, third.line), (1, 6));
+    expect(
+      (first.isDisposed, second.isDisposed, third.isDisposed),
+      (
+        true,
+        false,
+        false,
+      ),
+    );
+
+    buffers.resize(10, 11, attributes);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'ij        ');
+    expect(buffers.normal.getLine(1)!.translateToString(), '0123456789');
+    expect(buffers.normal.getLine(2)!.translateToString(), 'klmnopqrst');
+    expect((second.line, third.line), (1, 2));
+  });
+
   test('xterm Buffer 46', () {
     final attributes = TerminalCellAttributes();
     TerminalBufferNamespace prepare(int buildNumber) {
