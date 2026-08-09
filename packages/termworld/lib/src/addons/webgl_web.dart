@@ -262,8 +262,6 @@ final class WebglAddon extends ManagedTerminalAddon {
       )
       ..clear(WebGL2RenderingContext.COLOR_BUFFER_BIT)
       ..drawArrays(WebGL2RenderingContext.TRIANGLE_STRIP, 0, 4);
-    final atlas = _textureAtlas;
-    if (atlas != null) _onChangeTextureAtlas.fire(atlas);
   }
 
   void _rasterizeFrame(
