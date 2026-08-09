@@ -561,6 +561,11 @@ final class Terminal extends DisposableStore {
         }
       },
     );
+    _synchronizedOutput = _SynchronizedOutputHandler(
+      () => _engine.synchronizedOutputMode,
+      () => _engine.synchronizedOutputMode = false,
+      _onRender.fire,
+    );
     buffer = _engine.buffer;
     _selectionModel = SelectionModel(
       columns: () => cols,
@@ -729,6 +734,7 @@ final class Terminal extends DisposableStore {
   Object? get textarea => _textarea;
 
   late final WriteBuffer _writeBuffer;
+  late final _SynchronizedOutputHandler _synchronizedOutput;
   final Utf8ToUtf32 _decoder = Utf8ToUtf32();
   final StringToUtf32 _stringDecoder = StringToUtf32();
   bool _writeContinuationPending = false;
@@ -764,7 +770,7 @@ final class Terminal extends DisposableStore {
       _onScroll.fire(_viewportY);
     }
     buffer.active.displayY = _viewportY;
-    _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
+    _requestRender(0, rows - 1);
   }
 
   /// Queues text or UTF-8 bytes for ordered parsing.
@@ -851,15 +857,11 @@ final class Terminal extends DisposableStore {
     if (buffer.active.cursorX != cursorX || buffer.active.cursorY != cursorY) {
       _onCursorMove.fire(TerminalVoid.value);
     }
-    if (!_engine.synchronizedOutputMode) {
-      final nextCursorY = buffer.active.cursorY;
-      _onRender.fire(
-        TerminalRenderEvent(
-          start: cursorY < nextCursorY ? cursorY : nextCursorY,
-          end: cursorY > nextCursorY ? cursorY : nextCursorY,
-        ),
-      );
-    }
+    final nextCursorY = buffer.active.cursorY;
+    _requestRender(
+      cursorY < nextCursorY ? cursorY : nextCursorY,
+      cursorY > nextCursorY ? cursorY : nextCursorY,
+    );
   }
 
   /// Sends application-side input exactly as typed input would.
@@ -1347,7 +1349,11 @@ final class Terminal extends DisposableStore {
     if (start < 0 || end < start || end >= rows) {
       throw RangeError('Refresh range must be within the viewport');
     }
-    _onRender.fire(TerminalRenderEvent(start: start, end: end));
+    _requestRender(start, end);
+  }
+
+  void _requestRender(int start, int end) {
+    _synchronizedOutput.refreshRows(start, end);
   }
 
   /// xterm-compatible `clearTextureAtlas` API.
@@ -1388,6 +1394,7 @@ final class Terminal extends DisposableStore {
   void dispose() {
     if (isDisposed) return;
     _isDisposing = true;
+    _synchronizedOutput.dispose();
     _addonManager.dispose();
     _mouseStateService.dispose();
     _unicode.dispose();
@@ -1413,6 +1420,71 @@ final class Terminal extends DisposableStore {
       emitter.dispose();
     }
     super.dispose();
+  }
+}
+
+/// Buffers renderer refreshes while DEC private mode 2026 is active.
+///
+/// This mirrors xterm's browser `SynchronizedOutputHandler`: the first dirty
+/// range starts a one-second safety timer, subsequent ranges are merged, and
+/// either ESU or the timer flushes the complete range exactly once.
+final class _SynchronizedOutputHandler {
+  _SynchronizedOutputHandler(this._isEnabled, this._disable, this._render);
+
+  static const Duration _timeoutDuration = Duration(milliseconds: 1000);
+
+  final bool Function() _isEnabled;
+  final void Function() _disable;
+  final void Function(TerminalRenderEvent event) _render;
+  Timer? _timeout;
+  int _start = 0;
+  int _end = 0;
+  bool _isBuffering = false;
+  bool _isDisposed = false;
+
+  void refreshRows(int start, int end) {
+    if (_isDisposed) return;
+    if (_isEnabled()) {
+      _bufferRows(start, end);
+      return;
+    }
+
+    final nextStart = _isBuffering ? math.min(start, _start) : start;
+    final nextEnd = _isBuffering ? math.max(end, _end) : end;
+    if (_isBuffering) _flush();
+    _render(TerminalRenderEvent(start: nextStart, end: nextEnd));
+  }
+
+  void _bufferRows(int start, int end) {
+    if (_isBuffering) {
+      _start = math.min(_start, start);
+      _end = math.max(_end, end);
+    } else {
+      _start = start;
+      _end = end;
+      _isBuffering = true;
+    }
+    _timeout ??= Timer(_timeoutDuration, _handleTimeout);
+  }
+
+  void _handleTimeout() {
+    _timeout = null;
+    if (_isDisposed || !_isBuffering) return;
+    _disable();
+    final event = TerminalRenderEvent(start: _start, end: _end);
+    _isBuffering = false;
+    _render(event);
+  }
+
+  void _flush() {
+    _timeout?.cancel();
+    _timeout = null;
+    _isBuffering = false;
+  }
+
+  void dispose() {
+    _isDisposed = true;
+    _flush();
   }
 }
 
