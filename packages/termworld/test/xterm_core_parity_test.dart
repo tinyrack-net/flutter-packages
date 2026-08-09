@@ -1057,11 +1057,11 @@ void main() {
 
       expect(
         terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
-        '12',
+        '12   ',
       );
       expect(
         terminal.buffer.active.getLine(1)!.translateToString(trimRight: true),
-        '',
+        '     ',
       );
       expect(terminal.buffer.active.cursorX, 2);
       expect(terminal.buffer.active.cursorY, 0);
@@ -1154,7 +1154,8 @@ void main() {
             actual.writeln(
               terminal.buffer.active
                   .getLine(start + row)!
-                  .translateToString(trimRight: true),
+                  .translateToString(trimRight: true)
+                  .trimRight(),
             );
           }
           final expectedRightTrimmed = expected

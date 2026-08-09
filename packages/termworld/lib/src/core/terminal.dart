@@ -1328,7 +1328,9 @@ final class Terminal extends DisposableStore {
 
   /// Clears scrollback while preserving the current prompt line.
   void clear() {
-    buffer.active.clearKeepingCursorLine();
+    buffer.active
+      ..clearAllMarkers()
+      ..clearKeepingCursorLine();
     _viewportY = 0;
     buffer.active.displayY = 0;
     _onScroll.fire(0);

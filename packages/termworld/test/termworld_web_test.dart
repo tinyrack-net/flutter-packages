@@ -87,7 +87,9 @@ void main() {
 @font-face { font-family: 'BPdots'; src: local("DejaVu Sans"); }
 ''';
     web.document.head!.append(style);
-    addTearDown(style.remove);
+    // External extension-type interop members cannot be torn off by dart2js.
+    // ignore: unnecessary_lambdas
+    addTearDown(() => style.remove());
     await web.document.fonts.ready.toDart;
     final loaded = await loadFonts(<String>['Kongtext', 'BPdots']);
     expect(loaded, hasLength(2));

@@ -1749,7 +1749,7 @@ final class _TerminalCoreEngine {
         case 47 || 1047:
           if (enabled) {
             _switchKittyKeyboardBuffer(alternate: true);
-            buffer.useAlternate(clear: mode == 1047);
+            buffer.useAlternate();
           } else {
             _switchKittyKeyboardBuffer(alternate: false);
             buffer.useNormal();

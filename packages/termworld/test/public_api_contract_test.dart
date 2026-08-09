@@ -334,7 +334,9 @@ void main() {
 
       await terminal.writeAndWait('\rhello\r\nworld\r\nagain');
       final marker = terminal.registerMarker()!;
-      expect(terminal.registerMarker(cursorYOffset: 99), isNull);
+      final futureMarker = terminal.registerMarker(cursorYOffset: 99)!;
+      expect(futureMarker.line, marker.line + 99);
+      futureMarker.dispose();
       final decoration = terminal.registerDecoration(
         marker: marker,
         anchor: TerminalDecorationAnchor.right,

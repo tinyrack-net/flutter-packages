@@ -236,11 +236,10 @@ final class _ImeHarness {
     await _releaseModifiers();
     for (final key in filtered) {
       await _run('xdotool', <String>[
-        'keydown',
-        key,
-        'sleep',
-        '0.04',
-        'keyup',
+        'key',
+        '--clearmodifiers',
+        '--delay',
+        '40',
         key,
       ]);
     }
