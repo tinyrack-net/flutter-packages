@@ -44,6 +44,7 @@ Future<void> main(List<String> arguments) async {
     <String>[
       'test',
       ...selected,
+      '--reporter=expanded',
       '--test-randomize-ordering-seed=random',
     ],
     mode: ProcessStartMode.inheritStdio,
