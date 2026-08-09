@@ -43,6 +43,7 @@ final class TerminalImage {
     required this.scrolls,
     required this.storageBytes,
     required this.bufferType,
+    required this.storageId,
     this.pixelWidth,
     this.pixelHeight,
     this.name = 'Unnamed file',
@@ -82,6 +83,9 @@ final class TerminalImage {
 
   /// Buffer that owns the image anchor.
   final TerminalBufferType bufferType;
+
+  /// Internal image-storage identity written into occupied buffer cells.
+  final int storageId;
 
   /// Kitty image identifier, when this is a Kitty placement.
   final int? kittyId;
@@ -195,6 +199,7 @@ final class ImageAddon extends ManagedTerminalAddon {
   final Map<int, _KittyImageData> _kittyImages = <int, _KittyImageData>{};
   final Map<int, _KittyPending> _kittyPending = <int, _KittyPending>{};
   int _nextKittyId = 1;
+  int _nextStorageId = 1;
   int? _lastKittyPendingKey;
   TerminalBuffer? _trimBuffer;
 
@@ -337,6 +342,7 @@ final class ImageAddon extends ManagedTerminalAddon {
         }
       }),
     );
+    add(terminal.onWriteParsed.listen((_) => _evictUnreferencedImages()));
   }
 
   void _watchNormalBuffer(TerminalBuffer buffer) {
@@ -715,6 +721,8 @@ final class ImageAddon extends ManagedTerminalAddon {
     }
     final cellWidth = _cellWidth;
     final cellHeight = _cellHeight;
+    final columns = math.max(1, (dimensions.$1 / cellWidth).ceil());
+    final rows = math.max(1, (dimensions.$2 / cellHeight).ceil());
     _add(
       TerminalImageProtocol.iTerm2,
       bytes,
@@ -723,9 +731,13 @@ final class ImageAddon extends ManagedTerminalAddon {
       pixelHeight: dimensions.$2,
       name: header.name,
       storageBytes: dimensions.$1 * dimensions.$2 * 4,
-      columns: math.max(1, (dimensions.$1 / cellWidth).ceil()),
-      rows: math.max(1, (dimensions.$2 / cellHeight).ceil()),
+      columns: columns,
+      rows: rows,
     );
+    final buffer = terminal.buffer.active;
+    buffer
+      ..cursorY = math.min(terminal.rows - 1, buffer.cursorY + rows - 1)
+      ..cursorX = math.min(terminal.cols, buffer.cursorX + columns);
   }
 
   (int, int)? _iipDimensions(
@@ -865,6 +877,16 @@ final class ImageAddon extends ManagedTerminalAddon {
     int zIndex = 0,
   }) {
     if (bytes.length > limit) return;
+    final resolvedColumns =
+        columns ??
+        (pixelWidth == null
+            ? 1
+            : math.max(1, (pixelWidth / _cellWidth).ceil()));
+    final resolvedRows =
+        rows ??
+        (pixelHeight == null
+            ? 1
+            : math.max(1, (pixelHeight / _cellHeight).ceil()));
     final image = TerminalImage(
       protocol: protocol,
       data: Uint8List.fromList(bytes),
@@ -876,16 +898,41 @@ final class ImageAddon extends ManagedTerminalAddon {
       name: name,
       storageBytes: storageBytes ?? bytes.length,
       bufferType: terminal.buffer.active.type,
+      storageId: _nextStorageId++,
       kittyId: kittyId,
       placementId: placementId,
-      columns: columns,
-      rows: rows,
+      columns: resolvedColumns,
+      rows: resolvedRows,
       zIndex: zIndex,
     );
     _images.add(image);
     _storageBytes += image.storageBytes;
+    _markImageCells(image);
     _evictToLimit();
+    _evictUnreferencedImages();
     _onImageAdded.fire(TerminalVoid.value);
+  }
+
+  void _markImageCells(TerminalImage image) {
+    final buffer = image.bufferType == TerminalBufferType.normal
+        ? terminal.buffer.normal
+        : terminal.buffer.alternate;
+    final columns = image.columns ?? 1;
+    final rows = image.rows ?? 1;
+    var tile = 0;
+    for (var rowOffset = 0; rowOffset < rows; rowOffset++) {
+      final line = buffer.getLine(image.row + rowOffset);
+      if (line == null) break;
+      for (var columnOffset = 0; columnOffset < columns; columnOffset++) {
+        final column = image.column + columnOffset;
+        if (column >= line.length) break;
+        final cell = line.getCell(column)!;
+        final attributes = cell.copyAttributes()
+          ..imageId = image.storageId
+          ..imageTileId = tile++;
+        line.setCell(column, cell.chars, cell.width, attributes);
+      }
+    }
   }
 
   void _setStorageLimit(double value) {
@@ -904,6 +951,26 @@ final class ImageAddon extends ManagedTerminalAddon {
     final maximumBytes = (_effectiveStorageLimit * 1000000).truncate();
     while (_storageBytes > maximumBytes && _images.isNotEmpty) {
       _storageBytes -= _images.removeAt(0).storageBytes;
+    }
+  }
+
+  void _evictUnreferencedImages() {
+    final referenced = <int>{};
+    for (final buffer in <TerminalBuffer>[
+      terminal.buffer.normal,
+      terminal.buffer.alternate,
+    ]) {
+      for (var row = 0; row < buffer.length; row++) {
+        final line = buffer.getLine(row)!;
+        for (var column = 0; column < line.length; column++) {
+          final imageId = line.getCell(column)!.imageId;
+          if (imageId >= 0) referenced.add(imageId);
+        }
+      }
+    }
+    for (var index = _images.length - 1; index >= 0; index--) {
+      if (referenced.contains(_images[index].storageId)) continue;
+      _storageBytes -= _images.removeAt(index).storageBytes;
     }
   }
 
@@ -936,6 +1003,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     scrolls: image.scrolls,
     storageBytes: image.storageBytes,
     bufferType: image.bufferType,
+    storageId: image.storageId,
     pixelWidth: image.pixelWidth,
     pixelHeight: image.pixelHeight,
     name: image.name,
@@ -971,6 +1039,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     _kittyPending.clear();
     _lastKittyPendingKey = null;
     _nextKittyId = 1;
+    _nextStorageId = 1;
     _images.clear();
     _storageBytes = 0;
     return false;

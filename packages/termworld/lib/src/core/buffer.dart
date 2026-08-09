@@ -167,6 +167,8 @@ final class TerminalCellAttributes {
     this.protected = false,
     this.hyperlinkId = 0,
     this.underlineVariantOffset = 0,
+    this.imageId = -1,
+    this.imageTileId = -1,
   });
 
   /// Foreground color.
@@ -214,6 +216,12 @@ final class TerminalCellAttributes {
   /// Vertical underline variant offset encoded by xterm in extended attrs.
   int underlineVariantOffset;
 
+  /// Internal image-storage identity carried by this cell.
+  int imageId;
+
+  /// Tile index within the image identified by [imageId].
+  int imageTileId;
+
   /// Returns an independent copy of these attributes.
   TerminalCellAttributes copy() => TerminalCellAttributes(
     foreground: foreground,
@@ -231,6 +239,8 @@ final class TerminalCellAttributes {
     protected: protected,
     hyperlinkId: hyperlinkId,
     underlineVariantOffset: underlineVariantOffset,
+    imageId: imageId,
+    imageTileId: imageTileId,
   );
 
   /// Whether every observable attribute equals [other].
@@ -395,6 +405,15 @@ final class TerminalCell {
 
   /// Vertical underline variant offset in the range accepted by xterm.
   int get underlineVariantOffset => _cell.attributes.underlineVariantOffset;
+
+  /// Internal image-storage identity, or -1 outside an image tile.
+  int get imageId => _cell.attributes.imageId;
+
+  /// Tile index within [imageId], or -1 outside an image tile.
+  int get imageTileId => _cell.attributes.imageTileId;
+
+  /// Returns an independent copy of all mutable cell attributes.
+  TerminalCellAttributes copyAttributes() => _cell.attributes.copy();
 
   /// Whether this cell carries any xterm extended attribute data.
   bool get hasExtendedAttributes =>
