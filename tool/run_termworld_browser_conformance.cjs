@@ -21,9 +21,23 @@ const playwright = require(path.join(root, 'node_modules', 'playwright'));
   try {
     await page.goto(target, {waitUntil: 'networkidle'});
     const selector = 'canvas[data-termworld-webgl-renderer="active"]';
-    await page.waitForSelector(selector, {state: 'attached', timeout: 60000});
+    await page.waitForFunction(selector => {
+      const find = root => {
+        const direct = root.querySelector?.(selector);
+        if (direct) return direct;
+        for (const element of root.querySelectorAll?.('*') || []) {
+          const nested = element.shadowRoot && find(element.shadowRoot);
+          if (nested) return nested;
+          const framed = element.contentDocument && find(element.contentDocument);
+          if (framed) return framed;
+        }
+        return null;
+      };
+      globalThis.__termworldCanvas = find(document);
+      return Boolean(globalThis.__termworldCanvas);
+    }, selector, {timeout: 60000});
     const renderer = await page.evaluate(selector => {
-      const canvas = document.querySelector(selector);
+      const canvas = globalThis.__termworldCanvas;
       const gl = canvas?.getContext('webgl2');
       if (!canvas || !gl) return null;
       globalThis.__termworldCanvas = canvas;
@@ -50,9 +64,26 @@ const playwright = require(path.join(root, 'node_modules', 'playwright'));
         () => globalThis.__termworldCanvas?.dataset.termworldWebglRenderer === 'lost',
       );
       await page.evaluate(() => globalThis.__termworldLoseContext.restoreContext());
-      await page.waitForSelector(selector, {state: 'attached', timeout: 30000});
+      await page.waitForFunction(
+        () => globalThis.__termworldCanvas?.dataset.termworldWebglRenderer === 'active',
+        {timeout: 30000},
+      );
     }
     if (failures.length) throw new Error(failures.join('\n'));
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      title: document.title,
+      body: document.body?.innerText?.slice(0, 2000),
+      canvases: Array.from(document.querySelectorAll('canvas')).map(canvas => ({
+        width: canvas.width,
+        height: canvas.height,
+        marker: canvas.dataset.termworldWebglRenderer,
+      })),
+    }));
+    throw new Error(
+      `${error.stack || error}\nBrowser failures:\n${failures.join('\n')}\n` +
+      `DOM diagnostic: ${JSON.stringify(diagnostic)}`,
+    );
   } finally {
     await browser.close();
   }
