@@ -107,7 +107,6 @@ final class TerminalCellColorResolver {
     var hasBackground =
         backgroundMode != TerminalColorMode.defaultColor || cell.isInverse;
     var foregroundOverridden = false;
-    var backgroundOverridden = false;
 
     void apply(Iterable<TerminalCellDecorationColors> decorations) {
       for (final decoration in decorations) {
@@ -115,7 +114,6 @@ final class TerminalCellColorResolver {
         if (decorationBackground != null) {
           background = decorationBackground;
           hasBackground = true;
-          backgroundOverridden = true;
         }
         final decorationForeground = decoration.foreground;
         if (decorationForeground != null) {
@@ -126,13 +124,6 @@ final class TerminalCellColorResolver {
     }
 
     apply(bottomDecorations);
-    if (cell.isDim && !backgroundOverridden) {
-      background = TerminalThemes.blend(
-        theme.background,
-        background.withValues(alpha: background.a * 0.5),
-      );
-      hasBackground = true;
-    }
     if (cell.isDim && !foregroundOverridden) {
       foreground = foreground.withValues(alpha: foreground.a * 0.5);
     }

@@ -198,6 +198,38 @@ void main() {
         invisible: true,
       );
     });
+
+    test('DOM foreground 16-255', () async {
+      await _verifyPalette256(foreground: true);
+    });
+
+    test('DOM background 16-255', () async {
+      await _verifyPalette256(foreground: false);
+    });
+
+    test('DOM foreground 16-255 inverse', () async {
+      await _verifyPalette256(foreground: true, inverse: true);
+    });
+
+    test('DOM background 16-255 inverse', () async {
+      await _verifyPalette256(foreground: false, inverse: true);
+    });
+
+    test('DOM foreground 16-255 invisible', () async {
+      await _verifyPalette256(foreground: true, invisible: true);
+    });
+
+    test('DOM background 16-255 invisible', () async {
+      await _verifyPalette256(foreground: false, invisible: true);
+    });
+
+    test('DOM foreground 16-255 dim', () async {
+      await _verifyPalette256(foreground: true, dim: true);
+    });
+
+    test('DOM background 16-255 dim', () async {
+      await _verifyPalette256(foreground: false, dim: true);
+    });
   });
 }
 
@@ -221,6 +253,69 @@ final class _CellFrame {
 }
 
 enum _TrueColorChannel { red, green, blue, grey }
+
+Future<void> _verifyPalette256({
+  required bool foreground,
+  bool inverse = false,
+  bool invisible = false,
+  bool dim = false,
+}) async {
+  final terminal = Terminal(
+    options: TerminalOptions(cols: 16, scrollback: 0),
+  );
+  try {
+    final output = StringBuffer();
+    for (var index = 16; index < 256; index++) {
+      final attributes = <String>[
+        if (inverse) '7',
+        if (invisible) '8',
+        if (dim) '2',
+        if (foreground) '38' else '48',
+        '5',
+        '$index',
+      ].join(';');
+      final glyph = foreground != inverse ? '■' : ' ';
+      output.write('\x1b[${attributes}m$glyph\x1b[0m');
+      if (index % 16 == 15) output.write('\r\n');
+    }
+    await terminal.writeAndWait(output.toString());
+
+    final resolver = TerminalCellColorResolver(
+      theme: TerminalThemes.defaultTheme,
+      focused: true,
+      drawBoldTextInBrightColors: true,
+      minimumContrastRatio: 1,
+    );
+    for (var offset = 0; offset < 240; offset++) {
+      final cell = terminal.buffer.active
+          .getLine(offset ~/ 16)!
+          .getCell(offset % 16)!;
+      final colors = resolver.resolve(cell, selected: false);
+      final paletteColor = TerminalThemes.defaultTheme.palette[offset + 16];
+      if (invisible && foreground) {
+        expect(colors.background, _black, reason: 'palette cell $offset');
+      } else if (foreground != inverse) {
+        if (dim) {
+          expect(colors.foreground.a, closeTo(0.5, 0.001));
+          expect(colors.foreground, isNot(paletteColor));
+        } else {
+          expect(
+            colors.foreground,
+            paletteColor,
+            reason: 'palette cell $offset',
+          );
+        }
+      } else {
+        expect(colors.background, paletteColor, reason: 'palette cell $offset');
+      }
+      if (dim && !foreground) {
+        expect(colors.background, paletteColor, reason: 'palette cell $offset');
+      }
+    }
+  } finally {
+    terminal.dispose();
+  }
+}
 
 Future<void> _verifyTrueColor(
   _TrueColorChannel channel, {
