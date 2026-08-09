@@ -1571,6 +1571,8 @@
     "playwright:cd5cfe2237418e4d4f26-90cab9907de2c904e7f8": {"dartTestFile":"test/upstream_shared_renderer_color_parity_test.dart","dartTestName":"DOM background 16-255 invisible","dartTestKind":"test"},
     "playwright:cd5cfe2237418e4d4f26-362f1dc59224d3bb0ac6": {"dartTestFile":"test/upstream_shared_renderer_color_parity_test.dart","dartTestName":"DOM foreground 16-255 dim","dartTestKind":"test"},
     "playwright:cd5cfe2237418e4d4f26-df20bf99951238ac6fd3": {"dartTestFile":"test/upstream_shared_renderer_color_parity_test.dart","dartTestName":"DOM background 16-255 dim","dartTestKind":"test"},
+    "playwright:cd5cfe2237418e4d4f26-0612f11c078423a58bef": {"dartTestFile":"test/upstream_shared_renderer_color_parity_test.dart","dartTestName":"DOM minimum contrast adjusts 0-15 on black background","dartTestKind":"test"},
+    "playwright:cd5cfe2237418e4d4f26-9e2429bb9bf74c203ede": {"dartTestFile":"test/upstream_shared_renderer_color_parity_test.dart","dartTestName":"DOM minimum contrast adjusts 0-15 on white background","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-00fb205852147913d4c5": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 0","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-0877151632a7f4961eee": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 1","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-08c71fb199dc6d197152": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 2","dartTestKind":"test"},

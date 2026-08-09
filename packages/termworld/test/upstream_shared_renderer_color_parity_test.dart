@@ -230,6 +230,54 @@ void main() {
     test('DOM background 16-255 dim', () async {
       await _verifyPalette256(foreground: false, dim: true);
     });
+
+    test('DOM minimum contrast adjusts 0-15 on black background', () async {
+      expect(
+        await _contrastColors(_black),
+        const <Color>[
+          Color(0xffb0b4b4),
+          Color(0xffee9e9e),
+          Color(0xff98c66e),
+          Color(0xffd0b331),
+          Color(0xffa1b7d7),
+          Color(0xffbfaec2),
+          Color(0xff6ec5c6),
+          Color(0xffd3d7cf),
+          Color(0xffb7b9b7),
+          Color(0xfff99c9c),
+          Color(0xff8ae234),
+          Color(0xfffce94f),
+          Color(0xff9abadd),
+          Color(0xffcbadc7),
+          Color(0xff34e2e2),
+          Color(0xffeeeeec),
+        ],
+      );
+    });
+
+    test('DOM minimum contrast adjusts 0-15 on white background', () async {
+      expect(
+        await _contrastColors(const Color(0xffffffff)),
+        const <Color>[
+          Color(0xff2e3436),
+          Color(0xff840000),
+          Color(0xff244800),
+          Color(0xff483b00),
+          Color(0xff20406a),
+          Color(0xff4b3350),
+          Color(0xff004748),
+          Color(0xff40403f),
+          Color(0xff3d3f3b),
+          Color(0xff7d1313),
+          Color(0xff28430d),
+          Color(0xff433f13),
+          Color(0xff2d4157),
+          Color(0xff51394e),
+          Color(0xff0d4343),
+          Color(0xff404040),
+        ],
+      );
+    });
   });
 }
 
@@ -253,6 +301,43 @@ final class _CellFrame {
 }
 
 enum _TrueColorChannel { red, green, blue, grey }
+
+Future<List<Color>> _contrastColors(Color background) async {
+  final terminal = Terminal(options: TerminalOptions(cols: 8, rows: 2));
+  try {
+    await terminal.writeAndWait(
+      '\x1b[30m■\x1b[31m■\x1b[32m■\x1b[33m■'
+      '\x1b[34m■\x1b[35m■\x1b[36m■\x1b[37m■\r\n'
+      '\x1b[90m■\x1b[91m■\x1b[92m■\x1b[93m■'
+      '\x1b[94m■\x1b[95m■\x1b[96m■\x1b[97m■',
+    );
+    final base = TerminalThemes.defaultTheme;
+    final resolver = TerminalCellColorResolver(
+      theme: TerminalTheme(
+        foreground: base.foreground,
+        background: background,
+        cursor: base.cursor,
+        selection: base.selection,
+        palette: base.palette,
+      ),
+      focused: true,
+      drawBoldTextInBrightColors: true,
+      minimumContrastRatio: 10,
+    );
+    return <Color>[
+      for (var row = 0; row < 2; row++)
+        for (var column = 0; column < 8; column++)
+          resolver
+              .resolve(
+                terminal.buffer.active.getLine(row)!.getCell(column)!,
+                selected: false,
+              )
+              .foreground,
+    ];
+  } finally {
+    terminal.dispose();
+  }
+}
 
 Future<void> _verifyPalette256({
   required bool foreground,
