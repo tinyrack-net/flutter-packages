@@ -1094,6 +1094,10 @@ final class _TerminalViewState extends State<TerminalView> {
 
   KeyEventResult _onKeyEvent(FocusNode node, KeyEvent event) {
     final keyboard = HardwareKeyboard.instance;
+    final character = event.character;
+    final eventKey = character != null && character.isNotEmpty
+        ? character
+        : event.logicalKey.keyLabel;
     if ((event.logicalKey == LogicalKeyboardKey.altLeft ||
             event.logicalKey == LogicalKeyboardKey.altRight) &&
         mounted) {
@@ -1108,7 +1112,7 @@ final class _TerminalViewState extends State<TerminalView> {
     }
     final allowed = widget.terminal.handleKeyEvent(
       TerminalKeyEvent(
-        key: event.logicalKey.keyLabel,
+        key: eventKey,
         shift: keyboard.isShiftPressed,
         alt: keyboard.isAltPressed,
         control: keyboard.isControlPressed,
@@ -1117,7 +1121,9 @@ final class _TerminalViewState extends State<TerminalView> {
     );
     if (!allowed) return KeyEventResult.handled;
     final protocolEvent = KittyKeyboardEvent(
-      key: _kittyKey(event.logicalKey),
+      key: character != null && character.isNotEmpty
+          ? character
+          : _kittyKey(event.logicalKey),
       code: _kittyCode(event.physicalKey),
       keyCode: _legacyKeyCode(event.logicalKey, event.physicalKey),
       type: event is KeyUpEvent ? 'keyup' : 'keydown',
