@@ -95,70 +95,32 @@ final class SerializeAddon extends ManagedTerminalAddon {
   }) {
     final normal = terminal.buffer.normal;
     final range = _lineRange(normal, options.range, options.scrollback);
-    final normalEnd = _contentEnd(normal, range.$1, range.$2);
-    final result = StringBuffer();
-    var cursorStyle = normal.getNullCell();
-    for (var row = range.$1; row <= normalEnd; row++) {
-      cursorStyle = _serializeLine(normal.getLine(row)!, result, cursorStyle);
-      if (row != normalEnd) result.write('\r\n');
-    }
-    _restoreCursorAndStyle(
-      result,
-      normal,
-      normalEnd,
-      _serializedLength(normal.getLine(normalEnd)!),
-      cursorStyle,
-      restorePosition: options.range == null,
-    );
+    final result = StringBuffer()
+      ..write(
+        _StringSerializeHandler(
+          normal,
+          terminal,
+          this,
+        ).serialize(
+          range.$1,
+          range.$2,
+          excludeFinalCursorPosition: options.range != null,
+        ),
+      );
     if (!options.excludeAltBuffer &&
         identical(terminal.buffer.active, terminal.buffer.alternate)) {
       result.write('\u001b[?1049h\u001b[H');
       final alternate = terminal.buffer.alternate;
-      final alternateEnd = _contentEnd(alternate, 0, alternate.length - 1);
-      cursorStyle = alternate.getNullCell();
-      for (var row = 0; row <= alternateEnd; row++) {
-        cursorStyle = _serializeLine(
-          alternate.getLine(row)!,
-          result,
-          cursorStyle,
-        );
-        if (row != alternateEnd) result.write('\r\n');
-      }
-      _restoreCursorAndStyle(
-        result,
-        alternate,
-        alternateEnd,
-        _serializedLength(alternate.getLine(alternateEnd)!),
-        cursorStyle,
-        restorePosition: true,
+      result.write(
+        _StringSerializeHandler(
+          alternate,
+          terminal,
+          this,
+        ).serialize(0, alternate.length - 1),
       );
     }
     if (!options.excludeModes) _serializeModes(result);
     return result.toString();
-  }
-
-  void _restoreCursorAndStyle(
-    StringBuffer result,
-    TerminalBuffer buffer,
-    int lastRow,
-    int lastColumn,
-    TerminalCell cursorStyle, {
-    required bool restorePosition,
-  }) {
-    if (restorePosition) {
-      final rowOffset = buffer.absoluteCursorY - lastRow;
-      final columnOffset = buffer.cursorX - lastColumn;
-      if (rowOffset > 0) result.write('\u001b[${rowOffset}B');
-      if (rowOffset < 0) result.write('\u001b[${-rowOffset}A');
-      if (columnOffset > 0) result.write('\u001b[${columnOffset}C');
-      if (columnOffset < 0) result.write('\u001b[${-columnOffset}D');
-    }
-    final current = TerminalBufferLine(
-      1,
-      attributes: terminal.currentAttributes,
-    ).getCell(0)!;
-    final style = _sgrDiff(current, cursorStyle);
-    if (style.isNotEmpty) result.write('\u001b[${style.join(';')}m');
   }
 
   /// Serializes the active buffer or current selection as safe HTML.
@@ -395,44 +357,6 @@ final class SerializeAddon extends ManagedTerminalAddon {
     _ => throw ArgumentError.value(value, 'range', 'must use marker or int'),
   };
 
-  int _contentEnd(TerminalBuffer buffer, int start, int requestedEnd) {
-    for (var row = requestedEnd; row > start; row--) {
-      final line = buffer.getLine(row)!;
-      if (_serializedLength(line) != 0 || row == buffer.absoluteCursorY) {
-        return row;
-      }
-    }
-    return start;
-  }
-
-  TerminalCell _serializeLine(
-    TerminalBufferLine line,
-    StringBuffer result,
-    TerminalCell cursorStyle,
-  ) {
-    var currentStyle = cursorStyle;
-    final end = _serializedLength(line);
-    for (var column = 0; column < end; column++) {
-      final cell = line.getCell(column)!;
-      if (cell.width == 0) continue;
-      final sequence = _sgrDiff(cell, currentStyle);
-      if (sequence.isNotEmpty) {
-        result.write('\u001b[${sequence.join(';')}m');
-      }
-      result.write(cell.chars.isEmpty ? ' ' : cell.chars);
-      currentStyle = cell;
-    }
-    return currentStyle;
-  }
-
-  int _serializedLength(TerminalBufferLine line) {
-    for (var column = line.length - 1; column >= 0; column--) {
-      final cell = line.getCell(column)!;
-      if (cell.chars.isNotEmpty || !cell.isAttributeDefault) return column + 1;
-    }
-    return 0;
-  }
-
   List<String> _sgrDiff(TerminalCell cell, TerminalCell previous) {
     if (cell.attributesEqual(previous)) return const <String>[];
     if (cell.isAttributeDefault && !previous.isAttributeDefault) {
@@ -567,4 +491,199 @@ final class SerializeAddon extends ManagedTerminalAddon {
       result.write('\u001b[${modes.scrollTop + 1};${modes.scrollBottom + 1}r');
     }
   }
+}
+
+final class _StringSerializeHandler {
+  _StringSerializeHandler(this.buffer, this.terminal, this.addon)
+    : _cursorStyle = buffer.getNullCell(),
+      _backgroundCell = buffer.getNullCell(),
+      _thisRowLastChar = buffer.getNullCell(),
+      _thisRowLastSecondChar = buffer.getNullCell(),
+      _nextRowFirstChar = buffer.getNullCell();
+
+  final TerminalBuffer buffer;
+  final Terminal terminal;
+  final SerializeAddon addon;
+  final TerminalCell _cursorStyle;
+  final TerminalCell _backgroundCell;
+  final TerminalCell _thisRowLastChar;
+  final TerminalCell _thisRowLastSecondChar;
+  final TerminalCell _nextRowFirstChar;
+  final List<String> _rows = <String>[];
+  final List<String> _separators = <String>[];
+  var _currentRow = StringBuffer();
+  var _nullCellCount = 0;
+  var _cursorStyleRow = 0;
+  var _cursorStyleColumn = 0;
+  var _firstRow = 0;
+  var _lastCursorRow = 0;
+  var _lastCursorColumn = 0;
+  var _lastContentCursorRow = 0;
+  var _lastContentCursorColumn = 0;
+
+  String serialize(
+    int startRow,
+    int endRow, {
+    bool excludeFinalCursorPosition = false,
+  }) {
+    _firstRow = startRow;
+    _lastCursorRow = startRow;
+    _lastContentCursorRow = startRow;
+    for (var row = startRow; row <= endRow; row++) {
+      final line = buffer.getLine(row)!;
+      for (var column = 0; column < line.length; column++) {
+        _nextCell(line.getCell(column)!, row, column);
+      }
+      _rowEnd(row, row == endRow);
+    }
+    return _serializeString(excludeFinalCursorPosition);
+  }
+
+  void _nextCell(TerminalCell cell, int row, int column) {
+    if (cell.width == 0) return;
+    final isEmpty = cell.chars.isEmpty;
+    final sgr = addon._sgrDiff(cell, _cursorStyle);
+    final styleChanged = isEmpty
+        ? !_backgroundEqual(_cursorStyle, cell)
+        : sgr.isNotEmpty;
+    if (styleChanged) {
+      _flushNullCells();
+      _lastContentCursorRow = _lastCursorRow = row;
+      _lastContentCursorColumn = _lastCursorColumn = column;
+      _currentRow.write('\u001b[${sgr.join(';')}m');
+      buffer.getLine(row)!.getCell(column, _cursorStyle);
+      _cursorStyleRow = row;
+      _cursorStyleColumn = column;
+    }
+    if (isEmpty) {
+      _nullCellCount += cell.width;
+      return;
+    }
+    if (_nullCellCount > 0) {
+      if (_backgroundEqual(_cursorStyle, _backgroundCell)) {
+        _currentRow.write('\u001b[${_nullCellCount}C');
+      } else {
+        _currentRow
+          ..write('\u001b[${_nullCellCount}X')
+          ..write('\u001b[${_nullCellCount}C');
+      }
+      _nullCellCount = 0;
+    }
+    _currentRow.write(cell.chars);
+    _lastContentCursorRow = _lastCursorRow = row;
+    _lastContentCursorColumn = _lastCursorColumn = column + cell.width;
+  }
+
+  void _flushNullCells() {
+    if (_nullCellCount == 0) return;
+    if (!_backgroundEqual(_cursorStyle, _backgroundCell)) {
+      _currentRow.write('\u001b[${_nullCellCount}X');
+    }
+    _currentRow.write('\u001b[${_nullCellCount}C');
+    _nullCellCount = 0;
+  }
+
+  void _rowEnd(int row, bool isLastRow) {
+    if (_nullCellCount > 0 &&
+        !_backgroundEqual(_cursorStyle, _backgroundCell)) {
+      _currentRow.write('\u001b[${_nullCellCount}X');
+    }
+    var separator = '';
+    if (!isLastRow) {
+      if (row - _firstRow >= terminal.rows) {
+        buffer
+            .getLine(_cursorStyleRow)
+            ?.getCell(_cursorStyleColumn, _backgroundCell);
+      }
+      final currentLine = buffer.getLine(row)!;
+      final nextLine = buffer.getLine(row + 1)!;
+      if (!nextLine.isWrapped) {
+        separator = '\r\n';
+        _lastCursorRow = row + 1;
+        _lastCursorColumn = 0;
+      } else if (!_validWrap(currentLine, nextLine)) {
+        separator = '${'-' * (_nullCellCount + 1)}\u001b[1D\u001b[1X';
+        if (_nullCellCount > 0) {
+          final contentColumns = currentLine.length - _nullCellCount;
+          separator +=
+              '\u001b[A\u001b[${contentColumns}C'
+              '\u001b[${_nullCellCount}X'
+              '\u001b[${contentColumns}D\u001b[B';
+        }
+        _lastContentCursorRow = _lastCursorRow = row + 1;
+        _lastContentCursorColumn = _lastCursorColumn = 0;
+      }
+    }
+    _rows.add(_currentRow.toString());
+    _separators.add(separator);
+    _currentRow = StringBuffer();
+    _nullCellCount = 0;
+  }
+
+  bool _validWrap(
+    TerminalBufferLine currentLine,
+    TerminalBufferLine nextLine,
+  ) {
+    final last = currentLine.getCell(
+      currentLine.length - 1,
+      _thisRowLastChar,
+    )!;
+    final secondLast = currentLine.getCell(
+      currentLine.length - 2,
+      _thisRowLastSecondChar,
+    )!;
+    final next = nextLine.getCell(0, _nextRowFirstChar)!;
+    final doubleWidth = next.width > 1;
+    if (next.chars.isEmpty ||
+        (doubleWidth ? _nullCellCount > 1 : _nullCellCount > 0)) {
+      return false;
+    }
+    if ((last.chars.isNotEmpty || last.width == 0) &&
+        _backgroundEqual(last, next)) {
+      return true;
+    }
+    return doubleWidth &&
+        (secondLast.chars.isNotEmpty || secondLast.width == 0) &&
+        _backgroundEqual(last, next) &&
+        _backgroundEqual(secondLast, next);
+  }
+
+  String _serializeString(bool excludeFinalCursorPosition) {
+    var rowEnd = _rows.length;
+    if (buffer.length - _firstRow <= terminal.rows) {
+      rowEnd = _lastContentCursorRow + 1 - _firstRow;
+      _lastCursorColumn = _lastContentCursorColumn;
+      _lastCursorRow = _lastContentCursorRow;
+    }
+    final output = StringBuffer();
+    for (var index = 0; index < rowEnd; index++) {
+      output.write(_rows[index]);
+      if (index + 1 < rowEnd) output.write(_separators[index]);
+    }
+    if (!excludeFinalCursorPosition) {
+      _moveVertical(output, buffer.absoluteCursorY - _lastCursorRow);
+      _moveHorizontal(output, buffer.cursorX - _lastCursorColumn);
+    }
+    final current = TerminalBufferLine(
+      1,
+      attributes: terminal.currentAttributes,
+    ).getCell(0)!;
+    final sgr = addon._sgrDiff(current, _cursorStyle);
+    if (sgr.isNotEmpty) output.write('\u001b[${sgr.join(';')}m');
+    return output.toString();
+  }
+
+  void _moveHorizontal(StringBuffer output, int offset) {
+    if (offset > 0) output.write('\u001b[${offset}C');
+    if (offset < 0) output.write('\u001b[${-offset}D');
+  }
+
+  void _moveVertical(StringBuffer output, int offset) {
+    if (offset > 0) output.write('\u001b[${offset}B');
+    if (offset < 0) output.write('\u001b[${-offset}A');
+  }
+
+  bool _backgroundEqual(TerminalCell left, TerminalCell right) =>
+      left.backgroundMode == right.backgroundMode &&
+      left.background == right.background;
 }
