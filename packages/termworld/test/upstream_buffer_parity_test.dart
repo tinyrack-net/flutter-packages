@@ -373,6 +373,38 @@ void main() {
     }
   });
 
+  test('xterm Buffer 36', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace()..resize(4, 3, attributes);
+    buffers.normal
+      ..cursorY = 2
+      ..getLine(0)!.setCell(0, 'a', 1, attributes)
+      ..getLine(0)!.setCell(1, 'b', 1, attributes)
+      ..getLine(0)!.setCell(2, 'c', 1, attributes)
+      ..getLine(0)!.setCell(3, '😁', 1, attributes);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'abc😁');
+    buffers.resize(2, 3, attributes);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'ab');
+    expect(buffers.normal.getLine(1)!.translateToString(), 'c😁');
+  });
+
+  test('xterm Buffer 37', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _cursorReflowBuffer(attributes)..resize(1, 10, attributes);
+    buffers.normal.cursorY = 2;
+    buffers.resize(5, 10, attributes);
+    expect(buffers.normal.getLine(0)!.translateToString(), isNot('abcde'));
+  });
+
+  test('xterm Buffer 38', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _cursorReflowBuffer(attributes)
+      ..resize(1, 10, attributes, reflowCursorLine: true);
+    buffers.normal.cursorY = 2;
+    buffers.resize(5, 10, attributes, reflowCursorLine: true);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'abcde');
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -717,5 +749,22 @@ TerminalBufferNamespace _scrolledBuffer() {
     buffers.normal.scroll(attributes);
   }
   expect((buffers.normal.length, buffers.normal.baseY), (34, 10));
+  return buffers;
+}
+
+TerminalBufferNamespace _cursorReflowBuffer(
+  TerminalCellAttributes attributes,
+) {
+  final buffers = _bufferNamespace()..resize(5, 10, attributes);
+  for (var column = 0; column < 5; column++) {
+    buffers.normal
+        .getLine(0)!
+        .setCell(
+          column,
+          String.fromCharCode('a'.codeUnitAt(0) + column),
+          1,
+          attributes,
+        );
+  }
   return buffers;
 }
