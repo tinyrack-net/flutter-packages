@@ -374,7 +374,7 @@ jobs:
             --directory packages/termworld/example/build/web &
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
-          node tool/run_termworld_browser_conformance.cjs \
+          xvfb-run -a node tool/run_termworld_browser_conformance.cjs \
             "${{ matrix.browser }}"
 
   android:

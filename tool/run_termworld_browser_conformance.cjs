@@ -11,8 +11,27 @@ if (!root || !['chromium', 'firefox', 'webkit'].includes(browserName)) {
 const playwright = require(path.join(root, 'node_modules', 'playwright'));
 
 (async () => {
-  const browser = await playwright[browserName].launch({headless: true});
-  const page = await browser.newPage({viewport: {width: 1000, height: 700}});
+  const launchOptions = browserName === 'firefox' ? {
+    headless: false,
+    env: {
+      ...process.env,
+      LIBGL_ALWAYS_SOFTWARE: '1',
+      MOZ_WEBRENDER: '1',
+    },
+    firefoxUserPrefs: {
+      'gfx.webrender.all': true,
+      'layers.acceleration.force-enabled': true,
+      'webgl.disabled': false,
+      'webgl.enable-webgl2': true,
+      'webgl.force-enabled': true,
+    },
+  } : {headless: true};
+  const browser = await playwright[browserName].launch(launchOptions);
+  const context = await browser.newContext({
+    locale: 'en-US',
+    viewport: {width: 1000, height: 700},
+  });
+  const page = await context.newPage();
   const failures = [];
   page.on('pageerror', error => failures.push(`pageerror: ${error.stack}`));
   page.on('console', message => {
@@ -85,6 +104,7 @@ const playwright = require(path.join(root, 'node_modules', 'playwright'));
       `DOM diagnostic: ${JSON.stringify(diagnostic)}`,
     );
   } finally {
+    await context.close();
     await browser.close();
   }
 })().catch(error => {
