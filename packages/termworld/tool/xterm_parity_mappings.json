@@ -1506,6 +1506,17 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "playwright:f33b4b99ef50da8e7c5a-037eaf12210f265abada": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"should save the absolute cursor position so resizing restores to the correct position","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-06dd8c0115b0a41e765c": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI ? Ps $ p - Request DEC private mode (DECRQM).","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-4c14c06c2b11fd35cd13": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Ps $ p - DECRQM: Request ANSI mode","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-557451a18218eb890c2b": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Ps h - SM: Set Mode","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-6798fc74458fb00af1ef": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI u - Restore cursor (SCORC, also ANSI.SYS).","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-6fe33b7de81290dc1357": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Ps ; Ps r - Set Scrolling Region [top;bottom] (default = full size of window) (DECSTBM), VT100.","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-91c042f3e4a91d598a6a": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI ! p - DECSTR: Soft terminal reset, VT220 and up.","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-da455d676ca3b1921247": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Ps SP q - Set cursor style (DECSCUSR), VT520.","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-dc4cda88720281278bfc": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Ps \" q - Select character protection attribute (DECSCA), VT220.","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-dd540ee7cbac98f403ae": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Pm l - RM: Reset Mode","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-ef72dd344967b06b482c": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI s - Save cursor, available only when DECLRMM is disabled (SCOSC, also ANSI.SYS).","dartTestKind":"test"},
     "playwright:f33b4b99ef50da8e7c5a-059aa1eb6993257c24ef": {"dartTestFile":"test/upstream_input_handler_report_playwright_parity_test.dart","dartTestName":"should be disabled by default","dartTestKind":"test"},
     "playwright:f33b4b99ef50da8e7c5a-19835ef5c9b02d6a3c09": {"dartTestFile":"test/upstream_input_handler_report_playwright_parity_test.dart","dartTestName":"CSI > Ps c - ","dartTestKind":"test"},
     "playwright:f33b4b99ef50da8e7c5a-68b915ed2bd2cc7b7e11": {"dartTestFile":"test/upstream_input_handler_report_playwright_parity_test.dart","dartTestName":"CSI > Ps q - Report xterm name and version (XTVERSION).","dartTestKind":"test"},
