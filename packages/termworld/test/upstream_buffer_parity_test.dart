@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:termworld/src/core/buffer_line_string_cache.dart';
 import 'package:termworld/termworld_headless.dart';
 
 void main() {
@@ -405,6 +406,51 @@ void main() {
     expect(buffers.normal.getLine(0)!.translateToString(), 'abcde');
   });
 
+  test('xterm Buffer 39', () {
+    var now = 0;
+    final scheduled = <_ManualCacheTimer>[];
+    final cache = BufferLineStringCache(
+      now: () => now,
+      createTimer: (delay, callback) {
+        late _ManualCacheTimer timer;
+        timer = _ManualCacheTimer(delay, () {
+          scheduled.remove(timer);
+          callback();
+        });
+        scheduled.add(timer);
+        return timer.cancel;
+      },
+    );
+    addTearDown(cache.dispose);
+    final attributes = TerminalCellAttributes();
+    final first = TerminalBufferLine(80, stringCache: cache)
+      ..setCell(0, 'a', 1, attributes);
+    final second = TerminalBufferLine(80, stringCache: cache)
+      ..setCell(0, 'b', 1, attributes);
+    final padding = List<String>.filled(79, ' ').join();
+
+    expect(first.translateToString(), 'a$padding');
+    expect(second.translateToString(), 'b$padding');
+    expect(cache.entries.length, 2);
+    expect(scheduled.length, 1);
+    expect(scheduled.single.delay, const Duration(seconds: 15));
+
+    now = 5000;
+    expect(first.translateToString(), 'a$padding');
+    expect(scheduled.length, 1);
+
+    now = 15000;
+    scheduled.single.fire();
+    expect(cache.entries.length, 2);
+    expect(scheduled.length, 1);
+    expect(scheduled.single.delay, const Duration(seconds: 5));
+
+    now = 20000;
+    scheduled.single.fire();
+    expect(cache.entries, isEmpty);
+    expect(cache.hasPendingClear, isFalse);
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -767,4 +813,18 @@ TerminalBufferNamespace _cursorReflowBuffer(
         );
   }
   return buffers;
+}
+
+final class _ManualCacheTimer {
+  _ManualCacheTimer(this.delay, this._callback);
+
+  final Duration delay;
+  final void Function() _callback;
+  var _isCanceled = false;
+
+  void fire() {
+    if (!_isCanceled) _callback();
+  }
+
+  void cancel() => _isCanceled = true;
 }

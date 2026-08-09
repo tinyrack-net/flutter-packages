@@ -2,6 +2,24 @@ import 'dart:async';
 
 import 'package:termworld/src/core/disposable.dart';
 
+/// Cancels a pending cache timer.
+typedef BufferLineStringCacheTimerCancel = void Function();
+
+/// Creates a cache timer for [delay].
+typedef BufferLineStringCacheTimerFactory =
+    BufferLineStringCacheTimerCancel Function(
+      Duration delay,
+      void Function() callback,
+    );
+
+BufferLineStringCacheTimerCancel _createDartCacheTimer(
+  Duration delay,
+  void Function() callback,
+) {
+  final timer = Timer(delay, callback);
+  return timer.cancel;
+}
+
 /// Cached canonical string translation for one buffer line.
 final class BufferLineStringCacheEntry {
   /// Creates an empty entry for [generation].
@@ -25,6 +43,13 @@ final class BufferLineStringCacheEntry {
 
 /// Shared short-lived cache used by all lines in one terminal buffer.
 final class BufferLineStringCache implements Disposable {
+  /// Creates a cache using the platform clock and timer by default.
+  BufferLineStringCache({
+    int Function()? now,
+    BufferLineStringCacheTimerFactory? createTimer,
+  }) : _now = now ?? (() => DateTime.now().millisecondsSinceEpoch),
+       _createTimer = createTimer ?? _createDartCacheTimer;
+
   /// Time after the last access before cached translations are discarded.
   static const int cacheTtlMilliseconds = 15000;
 
@@ -35,7 +60,9 @@ final class BufferLineStringCache implements Disposable {
   final Set<BufferLineStringCacheEntry> entries =
       <BufferLineStringCacheEntry>{};
 
-  Timer? _clearTimer;
+  final int Function() _now;
+  final BufferLineStringCacheTimerFactory _createTimer;
+  BufferLineStringCacheTimerCancel? _clearTimer;
   int _lastAccessTimestamp = 0;
   bool _isDisposed = false;
 
@@ -59,7 +86,7 @@ final class BufferLineStringCache implements Disposable {
 
   /// Invalidates all entries and cancels pending expiry work.
   void clear() {
-    _clearTimer?.cancel();
+    _clearTimer?.call();
     _clearTimer = null;
     _lastAccessTimestamp = 0;
     generation++;
@@ -72,16 +99,15 @@ final class BufferLineStringCache implements Disposable {
   }
 
   void _scheduleClear() {
-    _lastAccessTimestamp = DateTime.now().millisecondsSinceEpoch;
+    _lastAccessTimestamp = _now();
     if (_clearTimer != null) return;
     _scheduleClearTimeout(cacheTtlMilliseconds);
   }
 
   void _scheduleClearTimeout(int milliseconds) {
-    _clearTimer = Timer(Duration(milliseconds: milliseconds), () {
+    _clearTimer = _createTimer(Duration(milliseconds: milliseconds), () {
       _clearTimer = null;
-      final elapsed =
-          DateTime.now().millisecondsSinceEpoch - _lastAccessTimestamp;
+      final elapsed = _now() - _lastAccessTimestamp;
       if (elapsed >= cacheTtlMilliseconds) {
         clear();
         return;
