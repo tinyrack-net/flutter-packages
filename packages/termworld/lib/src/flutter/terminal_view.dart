@@ -120,6 +120,7 @@ final class _TerminalViewState extends State<TerminalView> {
   Timer? _cursorBlinkIdleTimer;
   bool _cursorVisible = true;
   bool _cursorBlinkIdle = false;
+  bool _hasBeenFocused = false;
   TerminalMouseButton _pressedMouseButton = TerminalMouseButton.none;
   TerminalCellOffset? _selectionAnchor;
   TerminalCellOffset? _selectionAnchorEnd;
@@ -140,6 +141,7 @@ final class _TerminalViewState extends State<TerminalView> {
   @override
   void initState() {
     super.initState();
+    _hasBeenFocused = _focusNode.hasFocus;
     _focusNode.addListener(_handleFocusChange);
     _attach();
     if (kDebugMode) {
@@ -157,6 +159,7 @@ final class _TerminalViewState extends State<TerminalView> {
       if (oldWidget.focusNode == null) _focusNode.dispose();
       _focusNode =
           widget.focusNode ?? FocusNode(debugLabel: 'termworld-terminal-input');
+      _hasBeenFocused = _focusNode.hasFocus;
       _focusNode.addListener(_handleFocusChange);
       _syncCursorBlink();
     }
@@ -314,6 +317,7 @@ final class _TerminalViewState extends State<TerminalView> {
 
   void _handleFocusChange() {
     if (_focusNode.hasFocus) {
+      _hasBeenFocused = true;
       _restartCursorBlinkAnimation();
     } else {
       _syncCursorBlink();
@@ -489,6 +493,7 @@ final class _TerminalViewState extends State<TerminalView> {
           padding: widget.padding ?? EdgeInsets.zero,
           backgroundOpacity: widget.backgroundOpacity,
           focused: _focusNode.hasFocus,
+          cursorInitialized: _hasBeenFocused,
           cursorVisible: _cursorVisible,
           hoveredLink: _hoveredLink,
           decodedImages: _decodedImages,
@@ -1464,6 +1469,7 @@ final class _TerminalPainter extends CustomPainter {
     required this.padding,
     required this.backgroundOpacity,
     required this.focused,
+    required this.cursorInitialized,
     required this.cursorVisible,
     required this.hoveredLink,
     required this.decodedImages,
@@ -1475,6 +1481,7 @@ final class _TerminalPainter extends CustomPainter {
   final EdgeInsets padding;
   final double backgroundOpacity;
   final bool focused;
+  final bool cursorInitialized;
   final bool cursorVisible;
   final TerminalLink? hoveredLink;
   final Map<int, ({ui.Image raster, TerminalImage source})> decodedImages;
@@ -1585,8 +1592,13 @@ final class _TerminalPainter extends CustomPainter {
     }
     _paintDecorations(canvas, dimensions, TerminalDecorationLayer.top);
     _paintHoveredLink(canvas, dimensions);
-    if (terminal.modes.showCursor && (!focused || cursorVisible)) {
-      _paintCursor(canvas, dimensions, buffer.cursorX, buffer.cursorY);
+    final cursorRow = buffer.baseY + buffer.cursorY - terminal.viewportY;
+    if (terminal.modes.showCursor &&
+        cursorInitialized &&
+        cursorRow >= 0 &&
+        cursorRow < terminal.rows &&
+        (!focused || cursorVisible)) {
+      _paintCursor(canvas, dimensions, buffer.cursorX, cursorRow);
     }
   }
 
@@ -1776,7 +1788,7 @@ final class _TerminalPainter extends CustomPainter {
     if (cursorType == TerminalCursorType.block &&
         paint.style == PaintingStyle.fill) {
       final line = terminal.buffer.active.getLine(
-        terminal.buffer.active.baseY + row,
+        terminal.viewportY + row,
       );
       final cell = line?.getCell(column);
       if (cell != null &&
