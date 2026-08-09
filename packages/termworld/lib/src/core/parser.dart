@@ -248,6 +248,7 @@ final class TerminalParser implements Disposable {
       0x5d => _parseOsc(source, start),
       0x50 => _parseDcs(source, start),
       0x5f => _parseApc(source, start),
+      0x58 || 0x5e => _parseIgnoredString(source, start),
       _ => _parseEsc(source, start, emit),
     };
     final searchEnd = parsed?.end ?? source.length;
@@ -293,6 +294,14 @@ final class TerminalParser implements Disposable {
       if (code >= 0x40 && code <= 0x7e) {
         finalIndex = index;
         break;
+      }
+      if (code >= 0xa0) {
+        if (executed.isNotEmpty) await emit(executed.toString());
+        return _ParsedSequence(
+          source.substring(start, index + 1),
+          index + 1,
+          handled: true,
+        );
       }
       if (_isExecutable(code)) {
         executed.writeCharCode(code);
@@ -401,6 +410,19 @@ final class TerminalParser implements Disposable {
     );
   }
 
+  Future<_ParsedSequence?> _parseIgnoredString(
+    String source,
+    int start,
+  ) async {
+    final terminator = _stringTerminator(source, start + 2);
+    if (terminator == null) return null;
+    return _ParsedSequence(
+      source.substring(start, terminator.end),
+      terminator.end,
+      handled: true,
+    );
+  }
+
   Future<_ParsedSequence?> _parseEsc(
     String source,
     int start,
@@ -445,10 +467,12 @@ final class TerminalParser implements Disposable {
       intermediates: bodyValue,
       finalByte: source[finalIndex],
     );
-    final handled = await _callNewest(
-      _esc[identifier.key],
-      (handler) => handler(),
-    );
+    final handled =
+        await _callNewest(
+          _esc[identifier.key],
+          (handler) => handler(),
+        ) ||
+        (bodyValue.isEmpty && source.codeUnitAt(finalIndex) == 0x5c);
     return _ParsedSequence(
       '\u001b$bodyValue${source[finalIndex]}',
       finalIndex + 1,
