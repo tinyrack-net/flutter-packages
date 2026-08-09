@@ -58,6 +58,34 @@ void main() {
       await terminal.writeAndWait("\x1b[3;3H\x1b[2'~");
       expect(_lines(terminal), <String>['12345', ...List.filled(5, '125')]);
     });
+
+    test(
+      "CSI Ps ' } - Insert Ps Column(s) (default = 1) (DECIC), VT420 and up.",
+      () async {
+        final terminal = _terminal();
+        addTearDown(terminal.dispose);
+        await _fill(terminal);
+        await terminal.writeAndWait("\x1b[3;3H\x1b['}");
+        expect(_lines(terminal), <String>[
+          '12345',
+          ...List.filled(5, '12 34'),
+        ]);
+      },
+    );
+
+    test(
+      "CSI Ps ' ~ - Delete Ps Column(s) (default = 1) (DECDC), VT420 and up.",
+      () async {
+        final terminal = _terminal();
+        addTearDown(terminal.dispose);
+        await _fill(terminal);
+        await terminal.writeAndWait("\x1b[3;3H\x1b['~");
+        expect(_lines(terminal), <String>[
+          '12345',
+          ...List.filled(5, '1245'),
+        ]);
+      },
+    );
   });
 }
 

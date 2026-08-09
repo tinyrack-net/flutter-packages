@@ -1506,6 +1506,8 @@
     "addons/addon-ligatures/src/font.ts": {"implementation":["lib/src/addons/ligature_font_loader.dart","lib/src/addons/ligature_font_loader_stub.dart","lib/src/addons/ligature_font_loader_web.dart"],"tests":["test/addons_test.dart","test/termworld_web_test.dart"]}
   },
   "tests": {
+    "playwright:f33b4b99ef50da8e7c5a-782f605694f2ef01dff7": {"dartTestFile":"test/upstream_input_handler_column_edit_parity_test.dart","dartTestName":"CSI Ps ' } - Insert Ps Column(s) (default = 1) (DECIC), VT420 and up.","dartTestKind":"test"},
+    "playwright:f33b4b99ef50da8e7c5a-e5f4920a9ad253c83edc": {"dartTestFile":"test/upstream_input_handler_column_edit_parity_test.dart","dartTestName":"CSI Ps ' ~ - Delete Ps Column(s) (default = 1) (DECDC), VT420 and up.","dartTestKind":"test"},
     "playwright:f33b4b99ef50da8e7c5a-037eaf12210f265abada": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"should save the absolute cursor position so resizing restores to the correct position","dartTestKind":"test"},
     "playwright:f33b4b99ef50da8e7c5a-06dd8c0115b0a41e765c": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI ? Ps $ p - Request DEC private mode (DECRQM).","dartTestKind":"test"},
     "playwright:f33b4b99ef50da8e7c5a-4c14c06c2b11fd35cd13": {"dartTestFile":"test/upstream_input_handler_state_playwright_parity_test.dart","dartTestName":"CSI Ps $ p - DECRQM: Request ANSI mode","dartTestKind":"test"},
