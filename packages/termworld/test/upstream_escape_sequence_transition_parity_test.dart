@@ -324,7 +324,36 @@ void main() {
     );
   });
   test('xterm EscapeSequenceParser 129', () {
-    _expectAll(<int>[0x1b], ParserAction.clear, ParserState.escape);
+    _expectAll(
+      <int>[0x1b],
+      ParserAction.clear,
+      ParserState.escape,
+      except: const <ParserState>{
+        ParserState.oscString,
+        ParserState.dcsPassthrough,
+        ParserState.apcPassthrough,
+      },
+    );
+    // The three streaming states finalize first. EscapeSequenceParser then
+    // promotes their GROUND transition to ESCAPE for the same input byte.
+    _expect(
+      ParserState.oscString,
+      const <int>[0x1b],
+      ParserAction.oscEnd,
+      ParserState.ground,
+    );
+    _expect(
+      ParserState.dcsPassthrough,
+      const <int>[0x1b],
+      ParserAction.dcsUnhook,
+      ParserState.ground,
+    );
+    _expect(
+      ParserState.apcPassthrough,
+      const <int>[0x1b],
+      ParserAction.apcEnd,
+      ParserState.ground,
+    );
   });
   test('xterm EscapeSequenceParser 130', () {
     _expectAll(

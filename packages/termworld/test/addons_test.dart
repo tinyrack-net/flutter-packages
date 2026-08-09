@@ -88,10 +88,10 @@ void main() {
     addTearDown(terminal.dispose);
     terminal.loadAddon(addon);
 
-    await terminal.writeAndWait('\u001bPqABC\u001b\\');
+    await terminal.writeAndWait('\u001bPqABC\u001b\\\u001b[2C');
     await terminal.writeAndWait(
       '\u001b]1337;File=inline=1:'
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u0007',
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ\u0007\u001b[2C',
     );
     await terminal.writeAndWait(
       '\u001b_Ga=T,f=100;'
@@ -173,7 +173,7 @@ void main() {
 
     final serialized = addon.serialize();
     expect(serialized, startsWith('\u001b[32m> '));
-    expect(serialized, contains('\u001b[2C\u001b[0m'));
+    expect(serialized, contains('\u001b[3B\u001b[0m'));
     expect(serialized, endsWith('\u001b[2;4r'));
   });
 
