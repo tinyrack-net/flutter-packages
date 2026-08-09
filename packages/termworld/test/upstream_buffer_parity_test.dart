@@ -1059,7 +1059,8 @@ void main() {
     expect(buffers.normal.length, 5);
     expect(buffers.normal.baseY, 0);
     expect(buffers.normal.cursorY, 0);
-    expect(buffers.alternate.length, 5);
+    // xterm leaves the inactive alternate buffer storage-free on resize.
+    expect(buffers.alternate.length, 0);
     buffers.dispose();
   });
 

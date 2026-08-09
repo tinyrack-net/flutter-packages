@@ -1266,6 +1266,7 @@ final class TerminalBuffer implements Disposable {
         !hasWindowsPtyConfiguration ||
         windowsPty.backend == 'conpty' &&
             (windowsPty.buildNumber ?? 0) >= 21376;
+    final wasViewportAtBottom = displayY == baseY;
     if (type == TerminalBufferType.normal &&
         columns != _columns &&
         reflowEnabled) {
@@ -1273,7 +1274,6 @@ final class TerminalBuffer implements Disposable {
     }
     final oldRows = _rows;
     final oldBase = baseY;
-    final wasViewportAtBottom = displayY == oldBase;
     final absoluteCursor = oldBase + cursorY;
     for (final line in _lines) {
       line.resize(columns, eraseAttributes);

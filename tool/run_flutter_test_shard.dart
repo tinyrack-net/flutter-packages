@@ -46,6 +46,7 @@ Future<void> main(List<String> arguments) async {
       ...selected,
       '--reporter=expanded',
       '--test-randomize-ordering-seed=random',
+      '--timeout=30s',
     ],
     mode: ProcessStartMode.inheritStdio,
   );

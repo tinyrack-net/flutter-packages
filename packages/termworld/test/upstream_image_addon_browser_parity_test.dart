@@ -9,6 +9,8 @@ import 'package:termworld/src/addons/qoi_decoder.dart';
 import 'package:termworld/termworld_headless.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('xterm ImageAddon playwright 0', () async {
     expect(await _writeIip(_png(640, 80)), (640, 80));
   });
