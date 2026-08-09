@@ -493,6 +493,37 @@ final class TerminalBufferLine {
     stringCache: stringCache,
   );
 
+  /// Replaces this line with an independent copy of [source].
+  void copyFrom(TerminalBufferLine source) {
+    _invalidateStringCache();
+    _cells
+      ..clear()
+      ..addAll(source._cells.map((cell) => cell.copy()));
+    isWrapped = source.isWrapped;
+  }
+
+  /// Fills every unprotected cell, or every cell when protection is ignored.
+  void fill(
+    TerminalCellAttributes attributes, {
+    bool respectProtection = false,
+  }) {
+    _invalidateStringCache();
+    for (final cell in _cells) {
+      if (!respectProtection || !cell.attributes.protected) {
+        cell.reset(attributes);
+      }
+    }
+  }
+
+  /// Returns the buffer column immediately after the last content cell.
+  int getTrimmedLength() {
+    for (var index = length - 1; index >= 0; index--) {
+      final cell = _cells[index];
+      if (cell.chars.isNotEmpty) return index + cell.width;
+    }
+    return 0;
+  }
+
   /// Resizes this line to [columns] cells.
   void resize(int columns, TerminalCellAttributes eraseAttributes) {
     _invalidateStringCache();
@@ -540,6 +571,16 @@ final class TerminalBufferLine {
     _cells[target].chars += value;
   }
 
+  /// Adds [codePoint] to [index], matching xterm's combined-cell behavior.
+  void addCodepointToCell(int index, int codePoint, {int width = 0}) {
+    if (index < 0 || index >= length) return;
+    _invalidateStringCache();
+    final wasEmpty = _cells[index].chars.isEmpty;
+    final cell = _cells[index]..chars += String.fromCharCode(codePoint);
+    if (wasEmpty && cell.width == 0) cell.width = 1;
+    if (width != 0) cell.width = width;
+  }
+
   /// Joins [value] into the cell at [index] and updates its display [width].
   void joinCell(int index, String value, int width) {
     if (index < 0 || index >= length) return;
@@ -561,19 +602,25 @@ final class TerminalBufferLine {
     int count,
     TerminalCellAttributes eraseAttributes,
   ) {
-    if (count <= 0 || index < 0 || index >= length) return;
+    if (count <= 0 || length == 0) return;
     _invalidateStringCache();
+    final position = index % length;
+    if (position < 0) return;
+    if (position > 0 && _cells[position - 1].width == 2) {
+      _cells[position - 1].reset(eraseAttributes);
+    }
     final oldLength = length;
-    final amount = count.clamp(0, oldLength - index);
+    final amount = count.clamp(0, oldLength - position);
     _cells
       ..insertAll(
-        index,
+        position,
         List<_CellData>.generate(
           amount,
           (_) => _CellData(attributes: eraseAttributes),
         ),
       )
       ..removeRange(oldLength, oldLength + amount);
+    if (_cells.last.width == 2) _cells.last.reset(eraseAttributes);
   }
 
   /// Deletes cells at [index], appending blank cells at the right edge.
@@ -582,17 +629,25 @@ final class TerminalBufferLine {
     int count,
     TerminalCellAttributes eraseAttributes,
   ) {
-    if (count <= 0 || index < 0 || index >= length) return;
+    if (count <= 0 || length == 0) return;
     _invalidateStringCache();
-    final amount = count.clamp(0, length - index);
+    final position = index % length;
+    if (position < 0) return;
+    final amount = count.clamp(0, length - position);
     _cells
-      ..removeRange(index, index + amount)
+      ..removeRange(position, position + amount)
       ..addAll(
         List<_CellData>.generate(
           amount,
           (_) => _CellData(attributes: eraseAttributes),
         ),
       );
+    if (position > 0 && _cells[position - 1].width == 2) {
+      _cells[position - 1].reset(eraseAttributes);
+    }
+    if (_cells[position].width == 0 && _cells[position].chars.isEmpty) {
+      _cells[position].reset(eraseAttributes);
+    }
   }
 
   /// Erases cells in the half-open range from [start] to [end].
@@ -605,11 +660,35 @@ final class TerminalBufferLine {
     _invalidateStringCache();
     final first = start.clamp(0, length);
     final last = end.clamp(first, length);
+    if (first > 0 &&
+        _cells[first - 1].width == 2 &&
+        (!respectProtection || !_cells[first - 1].attributes.protected)) {
+      _cells[first - 1].reset(eraseAttributes);
+    }
+    if (last < length &&
+        last > 0 &&
+        _cells[last - 1].width == 2 &&
+        (!respectProtection || !_cells[last].attributes.protected)) {
+      _cells[last].reset(eraseAttributes);
+    }
     for (var index = first; index < last; index++) {
       if (respectProtection && _cells[index].attributes.protected) continue;
       _cells[index].reset(eraseAttributes);
     }
   }
+
+  /// xterm-compatible name for replacing a half-open cell range.
+  void replaceCells(
+    int start,
+    int end,
+    TerminalCellAttributes eraseAttributes, {
+    bool respectProtection = false,
+  }) => erase(
+    start,
+    end,
+    eraseAttributes,
+    respectProtection: respectProtection,
+  );
 
   BufferLineStringCacheEntry? _getStringCacheEntry(bool createIfNeeded) {
     final cache = stringCache;
