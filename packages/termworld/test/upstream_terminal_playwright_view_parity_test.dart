@@ -23,7 +23,10 @@ void main() {
       ..resize(40, 12);
     await parsed.future;
     expect((terminal.cols, terminal.rows), (40, 12));
-    expect(terminal.buffer.active.getLine(0)!.translateToString(), 'queued');
+    expect(
+      terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
+      'queued',
+    );
   });
 
   test('object.keys return the correct number of options', () {
@@ -107,7 +110,7 @@ void main() {
 
   testWidgets('render when visible after hidden', (tester) async {
     final terminal = _terminal();
-    await terminal.writeAndWait('visible');
+    await _writeAndPump(tester, terminal, 'visible');
     await tester.pumpWidget(
       MaterialApp(
         home: Offstage(
@@ -354,7 +357,7 @@ Future<void> _selectionPointerCase(
   _SelectionPointerCase selected,
 ) async {
   final terminal = _terminal(cols: 10, rows: 2);
-  await terminal.writeAndWait('abcdefghij');
+  await _writeAndPump(tester, terminal, 'abcdefghij');
   if (selected != _SelectionPointerCase.noPrior) terminal.select(0, 0, 2);
   var changes = 0;
   terminal.onSelectionChange.listen((_) => changes++);
@@ -395,4 +398,15 @@ Future<void> _selectionPointerCase(
     },
   );
   await mouse.removePointer();
+}
+
+Future<void> _writeAndPump(
+  WidgetTester tester,
+  Terminal terminal,
+  String data,
+) async {
+  final parsed = Completer<void>();
+  terminal.write(data, onParsed: parsed.complete);
+  await tester.pump();
+  await parsed.future;
 }
