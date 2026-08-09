@@ -86,6 +86,118 @@ void main() {
       );
       expect(_backgroundColors(frame), _fixtureColors);
     });
+
+    test('DOM foreground true color red', () async {
+      await _verifyTrueColor(_TrueColorChannel.red, foreground: true);
+    });
+
+    test('DOM background true color red', () async {
+      await _verifyTrueColor(_TrueColorChannel.red, foreground: false);
+    });
+
+    test('DOM foreground true color green', () async {
+      await _verifyTrueColor(_TrueColorChannel.green, foreground: true);
+    });
+
+    test('DOM background true color green', () async {
+      await _verifyTrueColor(_TrueColorChannel.green, foreground: false);
+    });
+
+    test('DOM foreground true color blue', () async {
+      await _verifyTrueColor(_TrueColorChannel.blue, foreground: true);
+    });
+
+    test('DOM background true color blue', () async {
+      await _verifyTrueColor(_TrueColorChannel.blue, foreground: false);
+    });
+
+    test('DOM foreground true color grey', () async {
+      await _verifyTrueColor(_TrueColorChannel.grey, foreground: true);
+    });
+
+    test('DOM background true color grey', () async {
+      await _verifyTrueColor(_TrueColorChannel.grey, foreground: false);
+    });
+
+    test('DOM foreground true color red inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.red,
+        foreground: true,
+        inverse: true,
+      );
+    });
+
+    test('DOM background true color red inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.red,
+        foreground: false,
+        inverse: true,
+      );
+    });
+
+    test('DOM foreground true color green inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.green,
+        foreground: true,
+        inverse: true,
+      );
+    });
+
+    test('DOM background true color green inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.green,
+        foreground: false,
+        inverse: true,
+      );
+    });
+
+    test('DOM foreground true color blue inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.blue,
+        foreground: true,
+        inverse: true,
+      );
+    });
+
+    test('DOM background true color blue inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.blue,
+        foreground: false,
+        inverse: true,
+      );
+    });
+
+    test('DOM foreground true color grey inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.grey,
+        foreground: true,
+        inverse: true,
+      );
+    });
+
+    test('DOM background true color grey inverse', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.grey,
+        foreground: false,
+        inverse: true,
+      );
+    });
+
+    test('DOM foreground true color grey invisible', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.grey,
+        foreground: true,
+        invisible: true,
+      );
+    });
+
+    test('DOM background true color grey invisible', () async {
+      await _verifyTrueColor(
+        _TrueColorChannel.grey,
+        foreground: false,
+        invisible: true,
+      );
+    });
   });
 }
 
@@ -107,6 +219,71 @@ final class _CellFrame {
   final List<TerminalCell> cells;
   final List<TerminalResolvedCellColors> colors;
 }
+
+enum _TrueColorChannel { red, green, blue, grey }
+
+Future<void> _verifyTrueColor(
+  _TrueColorChannel channel, {
+  required bool foreground,
+  bool inverse = false,
+  bool invisible = false,
+}) async {
+  final terminal = Terminal(
+    options: TerminalOptions(cols: 16, scrollback: 0),
+  );
+  try {
+    final output = StringBuffer();
+    for (var index = 0; index < 256; index++) {
+      final (red, green, blue) = _trueColor(channel, index);
+      final attributes = <String>[
+        if (inverse) '7',
+        if (invisible) '8',
+        if (foreground) '38' else '48',
+        '2',
+        '$red',
+        '$green',
+        '$blue',
+      ].join(';');
+      final glyph = foreground != inverse ? '■' : ' ';
+      output.write('\x1b[${attributes}m$glyph\x1b[0m');
+      if (index % 16 == 15) output.write('\r\n');
+    }
+    await terminal.writeAndWait(output.toString());
+
+    final resolver = TerminalCellColorResolver(
+      theme: TerminalThemes.defaultTheme,
+      focused: true,
+      drawBoldTextInBrightColors: true,
+      minimumContrastRatio: 1,
+    );
+    for (var index = 0; index < 256; index++) {
+      final cell = terminal.buffer.active
+          .getLine(index ~/ 16)!
+          .getCell(index % 16)!;
+      final colors = resolver.resolve(cell, selected: false);
+      final actual = invisible
+          ? colors.background
+          : foreground != inverse
+          ? colors.foreground
+          : colors.background;
+      final (red, green, blue) = _trueColor(channel, index);
+      final expected = invisible && foreground
+          ? _black
+          : Color.fromARGB(0xff, red, green, blue);
+      expect(actual, expected, reason: 'true-color cell $index');
+    }
+  } finally {
+    terminal.dispose();
+  }
+}
+
+(int, int, int) _trueColor(_TrueColorChannel channel, int value) =>
+    switch (channel) {
+      _TrueColorChannel.red => (value, 0, 0),
+      _TrueColorChannel.green => (0, value, 0),
+      _TrueColorChannel.blue => (0, 0, value),
+      _TrueColorChannel.grey => (value, value, value),
+    };
 
 Future<_CellFrame> _frame(String data, TerminalTheme theme) async {
   final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
