@@ -16,6 +16,7 @@ import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/selection_service.dart';
 import 'package:termworld/src/core/terminal.dart';
+import 'package:termworld/src/flutter/cell_color_resolver.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
 
@@ -1488,6 +1489,12 @@ final class _TerminalPainter extends CustomPainter {
     );
     final buffer = terminal.buffer.active;
     final selection = terminal.getSelectionPosition();
+    final colorResolver = TerminalCellColorResolver(
+      theme: theme,
+      focused: focused,
+      drawBoldTextInBrightColors: terminal.options.drawBoldTextInBrightColors,
+      minimumContrastRatio: terminal.options.minimumContrastRatio,
+    );
     _paintDecorations(canvas, dimensions, TerminalDecorationLayer.bottom);
     for (var row = 0; row < terminal.rows; row++) {
       final bufferRow = terminal.viewportY + row;
@@ -1502,56 +1509,28 @@ final class _TerminalPainter extends CustomPainter {
           dimensions.cellWidth * cell.width,
           dimensions.cellHeight,
         );
-        final foregroundValue =
-            cell.isBold &&
-                terminal.options.drawBoldTextInBrightColors &&
-                cell.foregroundMode == TerminalColorMode.palette &&
-                cell.foreground < 8
-            ? cell.foreground + 8
-            : cell.foreground;
-        var foreground = _color(
-          cell.foregroundMode,
-          foregroundValue,
-          theme.foreground,
+        final selected = _selected(selection, column, bufferRow);
+        final colors = colorResolver.resolve(
+          cell,
+          selected: selected,
+          bottomDecorations: _cellDecorations(
+            column,
+            bufferRow,
+            TerminalDecorationLayer.bottom,
+          ),
+          topDecorations: _cellDecorations(
+            column,
+            bufferRow,
+            TerminalDecorationLayer.top,
+          ),
         );
-        var background = _color(
-          cell.backgroundMode,
-          cell.background,
-          theme.background,
-        );
-        final decorationForeground = _decorationForeground(column, bufferRow);
-        if (decorationForeground != null) foreground = decorationForeground;
-        if (cell.isInverse) {
-          final swapped = foreground;
-          foreground = background;
-          background = swapped;
-        }
-        if (cell.backgroundMode != TerminalColorMode.defaultColor ||
-            cell.isInverse) {
-          canvas.drawRect(rect, Paint()..color = background);
+        final foreground = colors.foreground;
+        if (colors.paintBackground) {
+          canvas.drawRect(rect, Paint()..color = colors.cellBackground);
         }
         _paintImageCell(canvas, rect, cell);
-        final selected = _selected(selection, column, bufferRow);
-        if (selected) {
-          final selectionColor = focused
-              ? theme.selection
-              : theme.selectionInactive;
-          canvas.drawRect(
-            rect,
-            Paint()..color = selectionColor,
-          );
-          foreground = theme.selectionForeground ?? foreground;
-          background = TerminalThemes.blend(background, selectionColor);
-        }
-        final codePoint = cell.chars.isEmpty ? null : cell.chars.runes.first;
-        if (codePoint != null &&
-            !_treatGlyphAsBackgroundColor(codePoint) &&
-            terminal.options.minimumContrastRatio != 1) {
-          foreground = TerminalThemes.ensureContrast(
-            background,
-            foreground,
-            terminal.options.minimumContrastRatio / (cell.isDim ? 2 : 1),
-          );
+        for (final overlay in colors.backgroundOverlays) {
+          canvas.drawRect(rect, Paint()..color = overlay);
         }
         if (!cell.isInvisible &&
             (!cell.isBlink || cursorVisible) &&
@@ -1566,9 +1545,7 @@ final class _TerminalPainter extends CustomPainter {
                 text: cell.chars,
                 style: style
                     .toTextStyle(
-                      color: cell.isDim
-                          ? foreground.withValues(alpha: 0.5)
-                          : foreground,
+                      color: foreground,
                     )
                     .copyWith(
                       fontWeight: cell.isBold
@@ -1665,18 +1642,25 @@ final class _TerminalPainter extends CustomPainter {
     }
   }
 
-  Color? _decorationForeground(int column, int row) {
-    Color? result;
+  Iterable<TerminalCellDecorationColors> _cellDecorations(
+    int column,
+    int row,
+    TerminalDecorationLayer layer,
+  ) sync* {
     for (final decoration in terminal.decorations) {
       final x = _decorationColumn(decoration);
-      if (decoration.marker.line <= row &&
+      if (decoration.layer == layer &&
+          !decoration.isDisposed &&
+          decoration.marker.line <= row &&
           decoration.marker.line + decoration.height > row &&
           column >= x &&
           column < x + decoration.width) {
-        result = _cssColor(decoration.foregroundColor) ?? result;
+        yield TerminalCellDecorationColors(
+          foreground: TerminalThemes.parseColor(decoration.foregroundColor),
+          background: TerminalThemes.parseColor(decoration.backgroundColor),
+        );
       }
     }
-    return result;
   }
 
   void _paintDecorations(
@@ -1697,10 +1681,6 @@ final class _TerminalPainter extends CustomPainter {
         decoration.width * dimensions.cellWidth,
         decoration.height * dimensions.cellHeight,
       );
-      final background = _cssColor(decoration.backgroundColor);
-      if (background != null) {
-        canvas.drawRect(rect, Paint()..color = background);
-      }
       final border = _cssColor(decoration.borderColor);
       if (border != null) {
         canvas.drawRect(
@@ -1720,27 +1700,7 @@ final class _TerminalPainter extends CustomPainter {
       ? decoration.x
       : terminal.cols - decoration.x - decoration.width;
 
-  Color? _cssColor(String? source) {
-    if (source == null) return null;
-    final value = source.trim();
-    if (!value.startsWith('#')) return null;
-    final hex = value.substring(1);
-    if (hex.length == 3 || hex.length == 4) {
-      final expanded = hex.split('').map((part) => '$part$part').join();
-      final parsed = int.tryParse(expanded, radix: 16);
-      if (parsed == null) return null;
-      return hex.length == 3
-          ? Color(0xff000000 | parsed)
-          : Color((parsed & 0xff) << 24 | parsed >> 8);
-    }
-    final parsed = int.tryParse(hex, radix: 16);
-    if (parsed == null) return null;
-    if (hex.length == 6) return Color(0xff000000 | parsed);
-    if (hex.length == 8) {
-      return Color((parsed & 0xff) << 24 | parsed >> 8);
-    }
-    return null;
-  }
+  Color? _cssColor(String? source) => TerminalThemes.parseColor(source);
 
   Color _color(TerminalColorMode mode, int value, Color fallback) =>
       switch (mode) {
@@ -1766,10 +1726,6 @@ final class _TerminalPainter extends CustomPainter {
     if (row == range.end.y) return column < range.end.x;
     return true;
   }
-
-  bool _treatGlyphAsBackgroundColor(int codePoint) =>
-      codePoint >= 0xe0a4 && codePoint <= 0xe0d6 ||
-      codePoint >= 0x2500 && codePoint <= 0x259f;
 
   void _paintCursor(
     Canvas canvas,
