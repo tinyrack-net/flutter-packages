@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_search.dart';
 import 'package:termworld/termworld_headless.dart';
@@ -259,7 +261,134 @@ void main() {
       expect(search.findPrevious('missing'), isFalse);
       expect(terminal.hasSelection(), isFalse);
     });
+
+    test('xterm SearchAddon wide highlight scan', () async {
+      terminal.resize(3, 5);
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('𝄞𝄞𝄞');
+      expect(
+        search.findNext(
+          '𝄞',
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      expect((events.single.resultCount, events.single.resultIndex), (3, 0));
+    });
+
+    test('xterm SearchAddon issue 2444 forward', () async {
+      await terminal.writeAndWait(await _issue2444Fixture());
+      const expected = <TerminalBufferPosition>[
+        TerminalBufferPosition(24, 53),
+        TerminalBufferPosition(24, 76),
+        TerminalBufferPosition(24, 96),
+        TerminalBufferPosition(1, 114),
+        TerminalBufferPosition(11, 115),
+        TerminalBufferPosition(1, 126),
+        TerminalBufferPosition(11, 127),
+        TerminalBufferPosition(1, 135),
+        TerminalBufferPosition(11, 136),
+        TerminalBufferPosition(24, 53),
+      ];
+      for (final position in expected) {
+        expect(search.findNext('opencv'), isTrue);
+        expect(terminal.getSelectionPosition()!.start, position);
+      }
+    });
+
+    test('xterm SearchAddon issue 2444 reverse', () async {
+      await terminal.writeAndWait(await _issue2444Fixture());
+      const expected = <TerminalBufferPosition>[
+        TerminalBufferPosition(11, 136),
+        TerminalBufferPosition(1, 135),
+        TerminalBufferPosition(11, 127),
+        TerminalBufferPosition(1, 126),
+        TerminalBufferPosition(11, 115),
+        TerminalBufferPosition(1, 114),
+        TerminalBufferPosition(24, 96),
+        TerminalBufferPosition(24, 76),
+        TerminalBufferPosition(24, 53),
+        TerminalBufferPosition(11, 136),
+      ];
+      for (final position in expected) {
+        expect(search.findPrevious('opencv'), isTrue);
+        expect(terminal.getSelectionPosition()!.start, position);
+      }
+    });
+
+    test('xterm SearchAddon null cells before matches', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      await terminal.writeAndWait('\u001b[CHi Hi');
+      expect(
+        search.findPrevious(
+          'h',
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      expect((events.single.resultCount, events.single.resultIndex), (2, 1));
+    });
+
+    test('xterm SearchAddon wrapped match count', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      final content = 'a' * 300;
+      await terminal.writeAndWait(content);
+      expect(
+        search.findNext(
+          content,
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      expect((events.single.resultCount, events.single.resultIndex), (1, 0));
+    });
+
+    test('xterm SearchAddon wrapped reverse search', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      final content = 'x' * 300;
+      await terminal.writeAndWait(content);
+      expect(
+        search.findPrevious(
+          content,
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      expect((events.single.resultCount, events.single.resultIndex), (1, 0));
+    });
+
+    test('xterm SearchAddon wrapped count refresh', () async {
+      final events = <TerminalSearchResult>[];
+      search.onDidChangeResults.listen(events.add);
+      final content = 'z' * 300;
+      await terminal.writeAndWait(content);
+      expect(
+        search.findNext(
+          content,
+          options: const TerminalSearchOptions(decorations: _decorations),
+        ),
+        isTrue,
+      );
+      await terminal.writeAndWait('\r\n$content');
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+      expect(
+        events.map((event) => event.resultCount),
+        <int>[1, 2],
+      );
+    });
   });
+}
+
+Future<String> _issue2444Fixture() async {
+  var fixture = await File(
+    'packages/termworld/test/fixtures/xterm/issue-2444',
+  ).readAsString();
+  if (!Platform.isWindows) fixture = fixture.replaceAll('\n', '\n\r');
+  return fixture;
 }
 
 String _selectedSuffix(Terminal terminal, int trailingLength) {
