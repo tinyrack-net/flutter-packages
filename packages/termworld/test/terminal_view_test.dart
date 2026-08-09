@@ -162,7 +162,7 @@ void main() {
       promptLabel: 'Localized terminal input',
       tooMuchOutput: 'Localized output warning',
     );
-    await terminal.writeAndWait('first\r\nsecond');
+    await _writeAndPump(tester, terminal, 'first\r\nsecond');
     final semantics = tester.ensureSemantics();
     await tester.pumpWidget(
       MaterialApp(
@@ -180,8 +180,7 @@ void main() {
     expect(node.label, 'Localized terminal input');
     expect(node.value, 'first\nsecond');
 
-    await terminal.writeAndWait(' third');
-    await tester.pump();
+    await _writeAndPump(tester, terminal, ' third');
     expect(find.bySemanticsLabel(' third'), findsOneWidget);
     semantics.dispose();
     // Canonical line translation owns xterm's 15-second string-cache timer.
@@ -194,7 +193,7 @@ void main() {
   ) async {
     final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 2));
     addTearDown(terminal.dispose);
-    await terminal.writeAndWait('한글 terminal');
+    await _writeAndPump(tester, terminal, '한글 terminal');
 
     await tester.pumpWidget(
       MaterialApp(
@@ -502,7 +501,7 @@ void main() {
     final controller = TerminalViewController();
     addTearDown(terminal.dispose);
     addTearDown(controller.dispose);
-    await terminal.writeAndWait('select this');
+    await _writeAndPump(tester, terminal, 'select this');
     await tester.pumpWidget(
       MaterialApp(
         home: TerminalView(
@@ -531,7 +530,7 @@ void main() {
   testWidgets('renders marker decorations by layer and anchor', (tester) async {
     final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 2));
     addTearDown(terminal.dispose);
-    await terminal.writeAndWait('decorated');
+    await _writeAndPump(tester, terminal, 'decorated');
     await tester.pumpWidget(
       MaterialApp(
         home: SizedBox(
@@ -672,7 +671,7 @@ void main() {
     final output = <String>[];
     addTearDown(terminal.dispose);
     terminal.onData.listen(output.add);
-    await terminal.writeAndWait('\u001b[?1h');
+    await _writeAndPump(tester, terminal, '\u001b[?1h');
     await tester.pumpWidget(
       MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
     );
@@ -731,7 +730,9 @@ void main() {
     final output = <String>[];
     addTearDown(terminal.dispose);
     terminal.onData.listen(output.add);
-    await terminal.writeAndWait(
+    await _writeAndPump(
+      tester,
+      terminal,
       List<String>.generate(12, (index) => '$index\r\n').join(),
     );
     await tester.pumpWidget(
@@ -827,7 +828,7 @@ void main() {
   ) async {
     final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
     addTearDown(terminal.dispose);
-    await terminal.writeAndWait('abcdefghij');
+    await _writeAndPump(tester, terminal, 'abcdefghij');
     await tester.pumpWidget(
       MaterialApp(
         home: Align(
@@ -860,7 +861,7 @@ void main() {
 
     final reports = <String>[];
     terminal.onData.listen(reports.add);
-    await terminal.writeAndWait('\u001b[?1000h\u001b[?1006h');
+    await _writeAndPump(tester, terminal, '\u001b[?1000h\u001b[?1006h');
     await mouse.down(start);
     await mouse.up();
     await tester.pump();
@@ -875,7 +876,9 @@ void main() {
     await tester.pump();
     expect(reports.last, '\u001b[<65;1;1M');
 
-    await terminal.writeAndWait(
+    await _writeAndPump(
+      tester,
+      terminal,
       '\u001b[?1000lone\r\ntwo\r\nthree\r\nfour',
     );
     final bottom = terminal.viewportY;
@@ -889,7 +892,7 @@ void main() {
     expect(terminal.viewportY, lessThan(bottom));
 
     reports.clear();
-    await terminal.writeAndWait('\u001b[?1049h');
+    await _writeAndPump(tester, terminal, '\u001b[?1049h');
     await tester.sendEventToBinding(
       PointerScrollEvent(
         position: start,
@@ -906,7 +909,7 @@ void main() {
   ) async {
     final terminal = Terminal(options: TerminalOptions(cols: 8, rows: 3));
     addTearDown(terminal.dispose);
-    await terminal.writeAndWait('one two');
+    await _writeAndPump(tester, terminal, 'one two');
     await tester.pumpWidget(
       MaterialApp(
         home: Align(
@@ -944,8 +947,7 @@ void main() {
     terminal
       ..clearSelection()
       ..reset();
-    await terminal.writeAndWait('abcdefghijk');
-    await tester.pump();
+    await _writeAndPump(tester, terminal, 'abcdefghijk');
     final wrapped =
         origin +
         Offset(dimensions.cellWidth * 1.5, dimensions.cellHeight * 1.5);
@@ -975,7 +977,7 @@ void main() {
   ) async {
     final terminal = Terminal(options: TerminalOptions(cols: 20, rows: 2));
     addTearDown(terminal.dispose);
-    await terminal.writeAndWait('(cd)[ef] one two three');
+    await _writeAndPump(tester, terminal, '(cd)[ef] one two three');
     await tester.pumpWidget(
       MaterialApp(
         home: Align(
@@ -1035,7 +1037,9 @@ void main() {
   ) async {
     final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 3));
     addTearDown(terminal.dispose);
-    await terminal.writeAndWait(
+    await _writeAndPump(
+      tester,
+      terminal,
       'abcdefghij\r\nklmnopqrst\r\nuvwxyzABCD\r\n0123456789\r\nABCDEFGHIJ',
     );
     terminal.scrollToTop();
@@ -1125,6 +1129,16 @@ void main() {
       expect(second.dimensions, isNotNull);
     },
   );
+}
+
+Future<void> _writeAndPump(
+  WidgetTester tester,
+  Terminal terminal,
+  String data,
+) async {
+  final completed = terminal.writeAndWait(data);
+  await tester.pump();
+  await completed;
 }
 
 final class _TrackingLinkProvider implements TerminalLinkProvider {

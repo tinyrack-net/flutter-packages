@@ -35,7 +35,9 @@ void main() {
     addTearDown(terminal.dispose);
     final reports = <String>[];
     terminal.onBinary.listen(reports.add);
-    await terminal.writeAndWait('\u001b[?1003h');
+    final write = terminal.writeAndWait('\u001b[?1003h');
+    await tester.pump();
+    await write;
     final key = GlobalKey();
     await _pumpView(tester, terminal, key, left: false);
 
@@ -61,7 +63,9 @@ Future<Terminal> _pumpMouseTerminal(
     options: TerminalOptions(mouseEventsRequireAlt: mouseEventsRequireAlt),
   );
   addTearDown(terminal.dispose);
-  await terminal.writeAndWait('\u001b[?1003h');
+  final write = terminal.writeAndWait('\u001b[?1003h');
+  await tester.pump();
+  await write;
   await _pumpView(
     tester,
     terminal,
