@@ -156,7 +156,7 @@ void _expectLines(Terminal terminal, List<String> expected) {
     List<String>.generate(
       expected.length,
       (row) => terminal.buffer.active
-          .getLine(row)!
+          .getLine(terminal.buffer.active.baseY + row)!
           .translateToString(trimRight: true),
     ),
     expected,
