@@ -168,7 +168,10 @@ Future<void> _verifyFullWidthWithinUrl() async {
     expect(links, hasLength(2));
     expect(links[0].text, uri);
     expect(links[0].range, _range(8, 1, 11, 2));
-    expect(links[1].range, _range(17, 2, 19, 3));
+    final wrappedLinks = await fixture.provider.provideLinks(2);
+    expect(wrappedLinks, hasLength(2));
+    expect(wrappedLinks[1].text, uri);
+    expect(wrappedLinks[1].range, _range(17, 2, 19, 3));
   } finally {
     fixture.dispose();
   }

@@ -518,10 +518,14 @@ final class _TerminalCoreEngine {
     final parameters = data.substring(0, separator).trim();
     final uri = data.substring(separator + 1);
     if (uri.isEmpty) {
-      if (parameters.isEmpty) _attributes.hyperlinkId = 0;
+      if (parameters.isEmpty) {
+        _attributes.hyperlinkId = 0;
+        _attributes.updateExtendedAttributes();
+      }
       return;
     }
     _attributes.hyperlinkId = 0;
+    _attributes.updateExtendedAttributes();
     String? explicitId;
     for (final parameter in parameters.split(':')) {
       if (parameter.startsWith('id=')) {
@@ -535,17 +539,20 @@ final class _TerminalCoreEngine {
       final existing = _hyperlinksByExplicitId[key];
       if (existing != null) {
         _attributes.hyperlinkId = existing;
+        _attributes.updateExtendedAttributes();
         return;
       }
       final linkId = _nextHyperlinkId++;
       _hyperlinks[linkId] = (id: explicitId, uri: uri);
       _hyperlinksByExplicitId[key] = linkId;
       _attributes.hyperlinkId = linkId;
+      _attributes.updateExtendedAttributes();
       return;
     }
     final linkId = _nextHyperlinkId++;
     _hyperlinks[linkId] = (id: null, uri: uri);
     _attributes.hyperlinkId = linkId;
+    _attributes.updateExtendedAttributes();
   }
 
   ({String? id, String uri})? hyperlinkData(int linkId) => _hyperlinks[linkId];
@@ -1696,6 +1703,7 @@ final class _TerminalCoreEngine {
           _attributes.background = TerminalCellColor.palette(code - 100 + 8);
       }
     }
+    _attributes.updateExtendedAttributes();
     _eraseAttributes = TerminalCellAttributes(
       background: _attributes.background,
     );

@@ -387,20 +387,22 @@ final class SerializeAddon extends ManagedTerminalAddon {
     if (cell.isBold != previous.isBold) {
       codes.add(cell.isBold ? '1' : '22');
     }
+    final storedUnderline = cell.copyAttributes().underlineColor;
+    final previousStoredUnderline = previous.copyAttributes().underlineColor;
     final underlineChanged =
         cell.underlineStyle != previous.underlineStyle ||
         cell.isUnderline &&
             previous.isUnderline &&
-            cell.underlineColor != previous.underlineColor;
+            storedUnderline != previousStoredUnderline;
     if (underlineChanged) {
       if (!cell.isUnderline) {
         codes.add('24');
       } else if (cell.underlineStyle == TerminalUnderlineStyle.single &&
-          cell.underlineColor.mode == TerminalColorMode.defaultColor) {
+          storedUnderline.mode == TerminalColorMode.defaultColor) {
         codes.add('4');
       } else {
         codes.add('4:${cell.underlineStyle.index}');
-        final underline = cell.underlineColor;
+        final underline = storedUnderline;
         if (underline.mode == TerminalColorMode.rgb) {
           codes.add(
             '58:2::${underline.red}:${underline.green}:${underline.blue}',

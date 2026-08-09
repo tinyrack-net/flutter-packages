@@ -561,6 +561,7 @@ void main() {
       contains(
         "<span style='color: #00ff00; background-color: #010203; "
         'font-weight: bold; text-decoration: underline wavy line-through; '
+        'text-decoration-color: #00ff00; '
         "font-style: italic;'>styled</span>",
       ),
     );

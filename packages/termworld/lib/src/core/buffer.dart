@@ -175,7 +175,12 @@ final class TerminalCellAttributes {
     this.underlineVariantOffset = 0,
     this.imageId = -1,
     this.imageTileId = -1,
-  });
+    bool? hasExtendedAttributes,
+  }) : hasExtendedAttributes =
+           hasExtendedAttributes ??
+           (underline != TerminalUnderlineStyle.none ||
+               underlineColor.mode != TerminalColorMode.defaultColor ||
+               hyperlinkId != 0);
 
   /// Foreground color.
   TerminalCellColor foreground;
@@ -228,6 +233,19 @@ final class TerminalCellAttributes {
   /// Tile index within the image identified by [imageId].
   int imageTileId;
 
+  /// Whether xterm's `HAS_EXTENDED` storage flag is active.
+  ///
+  /// The raw underline color can outlive this flag when underline styling is
+  /// disabled. Public color access falls back to the foreground while the
+  /// flag is inactive.
+  bool hasExtendedAttributes;
+
+  /// Recomputes xterm's extended-attribute storage flag after parser changes.
+  void updateExtendedAttributes() {
+    hasExtendedAttributes =
+        underline != TerminalUnderlineStyle.none || hyperlinkId != 0;
+  }
+
   /// Returns an independent copy of these attributes.
   TerminalCellAttributes copy() => TerminalCellAttributes(
     foreground: foreground,
@@ -247,6 +265,7 @@ final class TerminalCellAttributes {
     underlineVariantOffset: underlineVariantOffset,
     imageId: imageId,
     imageTileId: imageTileId,
+    hasExtendedAttributes: hasExtendedAttributes,
   );
 
   /// Whether every observable attribute equals [other].
@@ -265,7 +284,8 @@ final class TerminalCellAttributes {
       overline == other.overline &&
       protected == other.protected &&
       hyperlinkId == other.hyperlinkId &&
-      underlineVariantOffset == other.underlineVariantOffset;
+      underlineVariantOffset == other.underlineVariantOffset &&
+      hasExtendedAttributes == other.hasExtendedAttributes;
 }
 
 final class _CellData {
@@ -359,10 +379,7 @@ final class TerminalCell {
   /// public cell API therefore falls back to the foreground in that state.
   TerminalCellColor get underlineColor {
     final attributes = _cell.attributes;
-    final hasExtended =
-        attributes.underline != TerminalUnderlineStyle.none ||
-        attributes.hyperlinkId != 0;
-    if (!hasExtended ||
+    if (!attributes.hasExtendedAttributes ||
         attributes.underlineColor.mode == TerminalColorMode.defaultColor) {
       return attributes.foreground;
     }
@@ -436,8 +453,7 @@ final class TerminalCell {
   TerminalCellAttributes copyAttributes() => _cell.attributes.copy();
 
   /// Whether this cell carries any xterm extended attribute data.
-  bool get hasExtendedAttributes =>
-      underlineStyle != TerminalUnderlineStyle.none || hyperlinkId != 0;
+  bool get hasExtendedAttributes => _cell.attributes.hasExtendedAttributes;
 
   /// Whether all attributes have their default values.
   bool get isAttributeDefault {
@@ -454,7 +470,7 @@ final class TerminalCell {
         !attributes.strikethrough &&
         !attributes.overline &&
         !attributes.protected &&
-        attributes.hyperlinkId == 0;
+        !attributes.hasExtendedAttributes;
   }
 
   /// Whether this cell's attributes equal those of [other].
