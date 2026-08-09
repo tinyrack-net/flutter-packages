@@ -454,10 +454,10 @@ final class ImageAddon extends ManagedTerminalAddon {
           'EINVAL:invalid base64 data',
           command,
         );
-      } else if (!_validKittyPixels(command, bytes)) {
+      } else if (_kittyPixelError(command, bytes) case final error?) {
         _kittyResponse(
           command.id ?? 0,
-          'EINVAL:width and height required for raw pixel data',
+          'EINVAL:$error',
           command,
         );
       } else {
@@ -489,6 +489,9 @@ final class ImageAddon extends ManagedTerminalAddon {
       return true;
     }
     final id = command.id ?? _nextKittyId++;
+    // KittyImageStorage.storeImage removes the shared-storage entry belonging
+    // to an earlier transmission with the same protocol image id.
+    _removeKittyPlacements(id);
     _kittyImages[id] = _KittyImageData(
       id: id,
       bytes: bytes,
@@ -514,13 +517,18 @@ final class ImageAddon extends ManagedTerminalAddon {
     return true;
   }
 
-  bool _validKittyPixels(_KittyCommand command, Uint8List bytes) {
+  String? _kittyPixelError(_KittyCommand command, Uint8List bytes) {
     final format = command.format ?? 32;
-    if (bytes.isEmpty || format == 100) return true;
+    if (bytes.isEmpty || format == 100) return null;
     final width = command.width ?? 0;
     final height = command.height ?? 0;
-    if (width == 0 || height == 0) return false;
-    return bytes.length >= width * height * (format == 24 ? 3 : 4);
+    if (width == 0 || height == 0) {
+      return 'width and height required for raw pixel data';
+    }
+    if (bytes.length < width * height * (format == 24 ? 3 : 4)) {
+      return 'insufficient pixel data';
+    }
+    return null;
   }
 
   bool _placeKitty(_KittyCommand command) {
@@ -528,6 +536,17 @@ final class ImageAddon extends ManagedTerminalAddon {
     if (id == null) return true;
     final image = _kittyImages[id];
     if (image == null) return false;
+    if (_kittyPixelError(
+          command.copyWithDimensions(
+            format: image.format,
+            width: image.width,
+            height: image.height,
+          ),
+          image.bytes,
+        ) !=
+        null) {
+      return false;
+    }
     IipImageMetrics? metrics;
     if (image.format == 100) {
       final detected = iipImageType(image.bytes);
@@ -970,7 +989,9 @@ final class ImageAddon extends ManagedTerminalAddon {
     final maximumBytes = (_effectiveStorageLimit * 1000000).truncate();
     var changed = false;
     while (_storageBytes > maximumBytes && _images.isNotEmpty) {
-      _storageBytes -= _images.removeAt(0).storageBytes;
+      final removed = _images.removeAt(0);
+      _storageBytes -= removed.storageBytes;
+      _forgetEvictedKittyImage(removed);
       changed = true;
     }
     if (changed) _onImagesChanged.fire(TerminalVoid.value);
@@ -993,7 +1014,9 @@ final class ImageAddon extends ManagedTerminalAddon {
     var changed = false;
     for (var index = _images.length - 1; index >= 0; index--) {
       if (referenced.contains(_images[index].storageId)) continue;
-      _storageBytes -= _images.removeAt(index).storageBytes;
+      final removed = _images.removeAt(index);
+      _storageBytes -= removed.storageBytes;
+      _forgetEvictedKittyImage(removed);
       changed = true;
     }
     if (changed) _onImagesChanged.fire(TerminalVoid.value);
@@ -1008,6 +1031,7 @@ final class ImageAddon extends ManagedTerminalAddon {
       if (shiftedRow < 0) {
         _storageBytes -= image.storageBytes;
         _images.removeAt(index);
+        _forgetEvictedKittyImage(image);
         changed = true;
       } else {
         _images[index] = _copyAtRow(image, shiftedRow);
@@ -1021,7 +1045,9 @@ final class ImageAddon extends ManagedTerminalAddon {
     var changed = false;
     for (var index = _images.length - 1; index >= 0; index--) {
       if (_images[index].bufferType != type) continue;
-      _storageBytes -= _images.removeAt(index).storageBytes;
+      final removed = _images.removeAt(index);
+      _storageBytes -= removed.storageBytes;
+      _forgetEvictedKittyImage(removed);
       changed = true;
     }
     if (changed) _onImagesChanged.fire(TerminalVoid.value);
@@ -1045,6 +1071,13 @@ final class ImageAddon extends ManagedTerminalAddon {
     rows: image.rows,
     zIndex: image.zIndex,
   );
+
+  void _forgetEvictedKittyImage(TerminalImage removed) {
+    final kittyId = removed.kittyId;
+    if (kittyId == null) return;
+    if (_images.any((image) => image.kittyId == kittyId)) return;
+    _kittyImages.remove(kittyId);
+  }
 
   /// xterm-compatible `getImageAtBufferCell` API.
   TerminalImage? getImageAtBufferCell(int column, int row) {
@@ -1168,6 +1201,28 @@ final class _KittyCommand {
     action: action,
     format: format,
     id: id ?? this.id,
+    imageNumber: imageNumber,
+    width: width,
+    height: height,
+    columns: columns,
+    rows: rows,
+    more: more,
+    quiet: quiet,
+    cursorMovement: cursorMovement,
+    zIndex: zIndex,
+    transmission: transmission,
+    deleteSelector: deleteSelector,
+    placementId: placementId,
+  );
+
+  _KittyCommand copyWithDimensions({
+    required int format,
+    required int width,
+    required int height,
+  }) => _KittyCommand(
+    action: action,
+    format: format,
+    id: id,
     imageNumber: imageNumber,
     width: width,
     height: height,
