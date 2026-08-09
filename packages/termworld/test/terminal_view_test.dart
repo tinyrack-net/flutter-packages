@@ -245,7 +245,10 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(terminal.dimensions?.cellWidth, 14);
+    // The FlutterTest font advances exactly one em per glyph, so a cell is
+    // the measured 20px advance plus the configured 2px letter spacing —
+    // not the old fontSize * 0.6 estimate that disagreed with the painter.
+    expect(terminal.dimensions?.cellWidth, 22);
     expect(terminal.dimensions?.cellHeight, 30);
   });
 
