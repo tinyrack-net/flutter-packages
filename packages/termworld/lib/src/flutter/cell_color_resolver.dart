@@ -99,6 +99,13 @@ final class TerminalCellColorResolver {
       foregroundValue,
       cell.isInverse ? theme.background : theme.foreground,
     );
+    // xterm's inverted default foreground uses `color.opaque(background)`.
+    // A transparent terminal surface must not make inverse glyphs transparent.
+    if (cell.isInverse &&
+        foregroundMode == TerminalColorMode.defaultColor &&
+        foreground.a != 1) {
+      foreground = foreground.withValues(alpha: 1);
+    }
     var background = _color(
       backgroundMode,
       backgroundValue,

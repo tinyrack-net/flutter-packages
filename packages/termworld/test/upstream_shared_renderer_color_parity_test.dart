@@ -340,6 +340,102 @@ void main() {
         terminal.dispose();
       }
     });
+
+    test('DOM transparent background inverse is opaque', () async {
+      final terminal = Terminal();
+      try {
+        await terminal.writeAndWait('\x1b[7m■\x1b[0m');
+        final cell = terminal.buffer.active.getLine(0)!.getCell(0)!;
+        final base = TerminalThemes.defaultTheme;
+        final colors = TerminalCellColorResolver(
+          theme: TerminalTheme(
+            foreground: base.foreground,
+            background: const Color(0x80ff0000),
+            cursor: base.cursor,
+            selection: base.selection,
+            palette: base.palette,
+          ),
+          focused: true,
+          drawBoldTextInBrightColors: true,
+          minimumContrastRatio: 1,
+        ).resolve(cell, selected: false);
+        expect(colors.foreground, const Color(0xffff0000));
+      } finally {
+        terminal.dispose();
+      }
+    });
+
+    test('DOM regression 4759 inverse text respects contrast', () async {
+      final terminal = Terminal();
+      try {
+        await terminal.writeAndWait('\x1b[7m■■');
+        final line = terminal.buffer.active.getLine(0)!;
+        final theme = _contrastTheme(
+          foreground: const Color(0xffaaaaaa),
+          background: const Color(0xff333333),
+        );
+        for (var column = 0; column < 2; column++) {
+          final cell = line.getCell(column)!;
+          expect(
+            TerminalCellColorResolver(
+              theme: theme,
+              focused: true,
+              drawBoldTextInBrightColors: true,
+              minimumContrastRatio: 1,
+            ).resolve(cell, selected: false).foreground,
+            const Color(0xff333333),
+          );
+          expect(
+            TerminalCellColorResolver(
+              theme: theme,
+              focused: true,
+              drawBoldTextInBrightColors: true,
+              minimumContrastRatio: 10,
+            ).resolve(cell, selected: false).foreground,
+            const Color(0xff000000),
+          );
+        }
+      } finally {
+        terminal.dispose();
+      }
+    });
+
+    test('DOM regression 4759 selected inverse respects contrast', () async {
+      final terminal = Terminal();
+      try {
+        await terminal.writeAndWait('\x1b[7m■■');
+        final line = terminal.buffer.active.getLine(0)!;
+        final theme = _contrastTheme(
+          foreground: const Color(0xff777777),
+          background: const Color(0xff555555),
+          selection: const Color(0xff666666),
+        );
+        for (var column = 0; column < 2; column++) {
+          final cell = line.getCell(column)!;
+          expect(
+            TerminalCellColorResolver(
+              theme: theme,
+              focused: true,
+              drawBoldTextInBrightColors: true,
+              minimumContrastRatio: 1,
+            ).resolve(cell, selected: true).foreground,
+            const Color(0xff555555),
+          );
+          expect(
+            TerminalCellColorResolver(
+              theme: theme,
+              focused: true,
+              drawBoldTextInBrightColors: true,
+              minimumContrastRatio: 10,
+            ).resolve(cell, selected: true).foreground,
+            const Color(0xffffffff),
+          );
+        }
+      } finally {
+        terminal.dispose();
+      }
+    });
+
   });
 }
 
@@ -593,5 +689,21 @@ TerminalTheme _themeWithFixtureColors(int offset) {
     cursor: const Color(0xffffffff),
     selection: const Color(0x4dffffff),
     palette: List<Color>.unmodifiable(palette),
+  );
+}
+
+TerminalTheme _contrastTheme({
+  required Color foreground,
+  required Color background,
+  Color selection = const Color(0x4dffffff),
+}) {
+  final base = TerminalThemes.defaultTheme;
+  return TerminalTheme(
+    foreground: foreground,
+    background: background,
+    cursor: base.cursor,
+    selection: selection,
+    selectionOpaque: selection,
+    palette: base.palette,
   );
 }
