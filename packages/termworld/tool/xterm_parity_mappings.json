@@ -1724,6 +1724,7 @@
     "unit:src/common/buffer/Buffer.test.ts:Buffer resize reflow should wrap wide characters correctly when reflowing smaller": {"dartTestFile":"test/upstream_buffer_parity_test.dart","dartTestName":"xterm Buffer 41","dartTestKind":"test"},
     "unit:src/common/buffer/Buffer.test.ts:Buffer resize reflow should correctly reflow wrapped lines that end in 0 space (via tab char)": {"dartTestFile":"test/upstream_buffer_parity_test.dart","dartTestName":"xterm Buffer 42","dartTestKind":"test"},
     "unit:src/common/buffer/Buffer.test.ts:Buffer resize reflow should correctly reflow wrapped lines that end in 0 space (via tab char)#2": {"dartTestFile":"test/upstream_buffer_parity_test.dart","dartTestName":"xterm Buffer 43","dartTestKind":"test"},
+    "unit:src/common/buffer/Buffer.test.ts:Buffer resize reflow should adjust markers when reflowing": {"dartTestFile":"test/upstream_buffer_parity_test.dart","dartTestName":"xterm Buffer 44","dartTestKind":"test"},
     "unit:src/common/buffer/BufferLine.test.ts:BufferLine ctor": {"dartTestFile":"test/upstream_buffer_line_parity_test.dart","dartTestName":"xterm BufferLine 00","dartTestKind":"test"},
     "unit:src/common/buffer/BufferLine.test.ts:BufferLine clone": {"dartTestFile":"test/upstream_buffer_line_parity_test.dart","dartTestName":"xterm BufferLine 01","dartTestKind":"test"},
     "unit:src/common/buffer/BufferLine.test.ts:BufferLine copyFrom": {"dartTestFile":"test/upstream_buffer_line_parity_test.dart","dartTestName":"xterm BufferLine 02","dartTestKind":"test"},

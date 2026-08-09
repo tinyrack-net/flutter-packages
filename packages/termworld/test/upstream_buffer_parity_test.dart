@@ -529,6 +529,50 @@ void main() {
     expect(buffers.normal.getLine(2)!.translateToString(), 'cd');
   });
 
+  test('xterm Buffer 44', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace()..resize(10, 16, attributes);
+    _writeAsciiLine(buffers.normal, 0, 'abcdefghij', attributes);
+    _writeAsciiLine(buffers.normal, 1, '0123456789', attributes);
+    _writeAsciiLine(buffers.normal, 2, 'klmnopqrst', attributes);
+    buffers.normal.cursorY = 3;
+    final first = buffers.normal.addMarker(0);
+    final second = buffers.normal.addMarker(1);
+    final third = buffers.normal.addMarker(2);
+
+    buffers.resize(2, 16, attributes);
+    expect(_trimmedLines(buffers.normal, 15), <String>[
+      'ab',
+      'cd',
+      'ef',
+      'gh',
+      'ij',
+      '01',
+      '23',
+      '45',
+      '67',
+      '89',
+      'kl',
+      'mn',
+      'op',
+      'qr',
+      'st',
+    ]);
+    expect((first.line, second.line, third.line), (0, 5, 10));
+
+    buffers.resize(10, 16, attributes);
+    expect(_trimmedLines(buffers.normal, 3), <String>[
+      'abcdefghij',
+      '0123456789',
+      'klmnopqrst',
+    ]);
+    expect((first.line, second.line, third.line), (0, 1, 2));
+    expect(
+      (first.isDisposed, second.isDisposed, third.isDisposed),
+      (false, false, false),
+    );
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -943,4 +987,15 @@ TerminalBufferNamespace _tabReflowBuffer(
     ..getLine(1)!.setCell(1, 'd', 1, attributes)
     ..getLine(1)!.isWrapped = true;
   return buffers;
+}
+
+void _writeAsciiLine(
+  TerminalBuffer buffer,
+  int row,
+  String value,
+  TerminalCellAttributes attributes,
+) {
+  for (var column = 0; column < value.length; column++) {
+    buffer.getLine(row)!.setCell(column, value[column], 1, attributes);
+  }
 }
