@@ -182,14 +182,15 @@ final class TerminalThemeService extends DisposableStore {
     final resolved = TerminalThemes.resolve(theme);
     Color parsed(String? source, Color fallback) =>
         TerminalThemes.parseColor(source) ?? fallback;
-    final selectionOpaque = TerminalThemes.blend(
-      resolved.background,
-      resolved.selection,
-    );
-    final inactiveOpaque = TerminalThemes.blend(
-      resolved.background,
-      resolved.selectionInactive,
-    );
+    final selectionOpaque =
+        resolved.selectionOpaque ??
+        TerminalThemes.blend(resolved.background, resolved.selection);
+    final inactiveOpaque =
+        resolved.selectionInactiveOpaque ??
+        TerminalThemes.blend(
+          resolved.background,
+          resolved.selectionInactive,
+        );
     return TerminalColorSet(
       foreground: resolved.foreground,
       background: resolved.background,

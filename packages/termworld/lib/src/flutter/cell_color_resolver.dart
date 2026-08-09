@@ -94,8 +94,16 @@ final class TerminalCellColorResolver {
       foregroundValue += 8;
     }
 
-    var foreground = _color(foregroundMode, foregroundValue, theme.foreground);
-    var background = _color(backgroundMode, backgroundValue, theme.background);
+    var foreground = _color(
+      foregroundMode,
+      foregroundValue,
+      cell.isInverse ? theme.background : theme.foreground,
+    );
+    var background = _color(
+      backgroundMode,
+      backgroundValue,
+      cell.isInverse ? theme.foreground : theme.background,
+    );
     var hasBackground =
         backgroundMode != TerminalColorMode.defaultColor || cell.isInverse;
     var foregroundOverridden = false;
@@ -132,18 +140,23 @@ final class TerminalCellColorResolver {
     final paintCellBackground = hasBackground;
     final backgroundOverlays = <Color>[];
     if (selected) {
-      final selection = focused ? theme.selection : theme.selectionInactive;
-      backgroundOverlays.add(selection);
-      background = TerminalThemes.blend(
-        background,
-        selection,
-      );
+      final selection = focused
+          ? theme.selectionOpaque ??
+                TerminalThemes.blend(theme.background, theme.selection)
+          : theme.selectionInactiveOpaque ??
+                TerminalThemes.blend(
+                  theme.background,
+                  theme.selectionInactive,
+                );
+      final hasOriginalBackground =
+          cell.isInverse ||
+          cell.backgroundMode != TerminalColorMode.defaultColor;
+      final selectionLayer = hasOriginalBackground
+          ? selection.withValues(alpha: 0x80 / 0xff)
+          : selection;
+      backgroundOverlays.add(selectionLayer);
+      background = TerminalThemes.blend(background, selectionLayer);
       foreground = theme.selectionForeground ?? foreground;
-      hasBackground = true;
-      // Selection is between the decoration layers. A top decoration is still
-      // allowed to override either color below.
-      foregroundOverridden = theme.selectionForeground != null;
-      backgroundOverridden = true;
     }
     for (final decoration in topDecorations) {
       final decorationBackground = decoration.background;

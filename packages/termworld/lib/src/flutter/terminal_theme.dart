@@ -106,6 +106,8 @@ final class TerminalTheme {
     this.cursorAccent = const Color(0xff000000),
     this.selectionForeground,
     this.selectionInactive = const Color(0x4dffffff),
+    this.selectionOpaque,
+    this.selectionInactiveOpaque,
   });
 
   /// Default text color.
@@ -128,6 +130,13 @@ final class TerminalTheme {
 
   /// Selection overlay color while the terminal is unfocused.
   final Color selectionInactive;
+
+  /// Selection color composited over the default background before xterm's
+  /// transparent-selection adjustment.
+  final Color? selectionOpaque;
+
+  /// Inactive selection color composited over the default background.
+  final Color? selectionInactiveOpaque;
 
   /// ANSI 256-color palette.
   final List<Color> palette;
@@ -230,9 +239,11 @@ abstract final class TerminalThemes {
     final background = overrides?.background == null
         ? _parse(theme.background) ?? defaultTheme.background
         : Color(0xff000000 | overrides!.background!);
-    final selection = _selectionColor(
-      _parse(theme.selectionBackground) ?? defaultTheme.selection,
-    );
+    final rawSelection =
+        _parse(theme.selectionBackground) ?? defaultTheme.selection;
+    final selection = _selectionColor(rawSelection);
+    final rawInactiveSelection =
+        _parse(theme.selectionInactiveBackground) ?? rawSelection;
     return TerminalTheme(
       foreground: overrides?.foreground == null
           ? _parse(theme.foreground) ?? defaultTheme.foreground
@@ -249,10 +260,10 @@ abstract final class TerminalThemes {
         _parse(theme.cursorAccent) ?? defaultTheme.cursorAccent,
       ),
       selection: selection,
+      selectionOpaque: _blend(background, rawSelection),
       selectionForeground: _parse(theme.selectionForeground),
-      selectionInactive: _selectionColor(
-        _parse(theme.selectionInactiveBackground) ?? selection,
-      ),
+      selectionInactive: _selectionColor(rawInactiveSelection),
+      selectionInactiveOpaque: _blend(background, rawInactiveSelection),
       palette: List<Color>.unmodifiable(palette),
     );
   }
