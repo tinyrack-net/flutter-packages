@@ -424,16 +424,31 @@ void _checkMappings(
     _checkPath(package, file, failures);
     final source = File('${package.path}/$file');
     if (source.existsSync()) {
+      final quotedCandidates = <String>[
+        _quotedDartString(name, "'"),
+        _quotedDartString(name, '"'),
+        if (!name.contains("'")) "r'$name'",
+        if (!name.contains('"')) 'r"$name"',
+      ];
+      final quotedName = quotedCandidates.map(RegExp.escape).join('|');
       final literal = RegExp(
         '\\b${RegExp.escape(kind! as String)}\\s*\\('
         r'(?:\s|//[^\n]*(?:\n|$)|/\*[\s\S]*?\*/)*'
-        "r?['\"]${RegExp.escape(name)}['\"]",
+        '(?:$quotedName)',
       );
       if (!literal.hasMatch(source.readAsStringSync())) {
         failures.add('mapped Dart test is not executable: ${entry.key}');
       }
     }
   }
+}
+
+String _quotedDartString(String value, String quote) {
+  final escaped = value
+      .replaceAll(r'\', r'\\')
+      .replaceAll(r'$', r'\$')
+      .replaceAll(quote, '\\$quote');
+  return '$quote$escaped$quote';
 }
 
 Map<String, Object?>? _mappingMap(

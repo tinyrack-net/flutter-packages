@@ -543,6 +543,22 @@ final class TerminalModes {
     TerminalMouseTrackingMode.drag => 'drag',
     TerminalMouseTrackingMode.any => 'any',
   };
+
+  /// Active core mouse protocol used by xterm integration diagnostics.
+  String get mouseProtocol => switch (_terminal._engine.mouseMode) {
+    TerminalMouseTrackingMode.none => 'NONE',
+    TerminalMouseTrackingMode.x10 => 'X10',
+    TerminalMouseTrackingMode.vt200 => 'VT200',
+    TerminalMouseTrackingMode.drag => 'DRAG',
+    TerminalMouseTrackingMode.any => 'ANY',
+  };
+
+  /// Active core mouse encoding used by xterm integration diagnostics.
+  String get mouseEncoding => _terminal._engine.sgrPixelsMouseMode
+      ? 'SGR_PIXELS'
+      : _terminal._engine.sgrMouseMode
+      ? 'SGR'
+      : 'DEFAULT';
 }
 
 /// Standalone terminal core ported from the pinned xterm.js behavior.
