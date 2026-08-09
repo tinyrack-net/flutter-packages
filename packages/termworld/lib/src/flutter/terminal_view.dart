@@ -1255,6 +1255,21 @@ final class _TerminalViewState extends State<TerminalView> {
       if (result.cancel || sequence != null) return KeyEventResult.handled;
       if (event is KeyUpEvent) return KeyEventResult.ignored;
     }
+    final legacyKeyCode = _legacyKeyCode(event.logicalKey, event.physicalKey);
+    if (event is! KeyUpEvent &&
+        isTerminalThirdLevelShift(
+          isMac: defaultTargetPlatform == TargetPlatform.macOS,
+          isWindows: defaultTargetPlatform == TargetPlatform.windows,
+          macOptionIsMeta: widget.terminal.options.macOptionIsMeta,
+          altKey: keyboard.isAltPressed,
+          ctrlKey: keyboard.isControlPressed,
+          metaKey: keyboard.isMetaPressed,
+          altGraph: false,
+          isKeyPress: false,
+          keyCode: legacyKeyCode,
+        )) {
+      return KeyEventResult.ignored;
+    }
     final legacy = evaluateKeyboardEvent(
       protocolEvent,
       applicationCursorMode: widget.terminal.modes.applicationCursorKeysMode,

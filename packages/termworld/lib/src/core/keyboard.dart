@@ -1,5 +1,30 @@
 import 'package:termworld/src/core/kitty_keyboard.dart';
 
+/// Whether a native key event represents a platform third-level shift.
+///
+/// xterm lets printable macOS Option and Windows AltGr input continue to the
+/// text-input boundary, while still handling arrows and other control keys in
+/// the terminal. [keyCode] uses the legacy DOM-compatible code range used by
+/// the keyboard encoder.
+bool isTerminalThirdLevelShift({
+  required bool isMac,
+  required bool isWindows,
+  required bool macOptionIsMeta,
+  required bool altKey,
+  required bool ctrlKey,
+  required bool metaKey,
+  required bool altGraph,
+  required bool isKeyPress,
+  required int keyCode,
+}) {
+  final thirdLevelKey =
+      isMac && !macOptionIsMeta && altKey && !ctrlKey && !metaKey ||
+      isWindows && altKey && ctrlKey && !metaKey ||
+      isWindows && altGraph;
+  if (isKeyPress) return thirdLevelKey;
+  return thirdLevelKey && (keyCode == 0 || keyCode > 47);
+}
+
 const Map<int, (String, String)> _keyCodeMappings = <int, (String, String)>{
   48: ('0', ')'),
   49: ('1', '!'),
