@@ -1781,10 +1781,14 @@ final class _TerminalPainter extends CustomPainter {
     };
     final paint = Paint()
       ..color = theme.cursor
+      ..isAntiAlias = false
       ..style = !focused && inactiveStyle == TerminalInactiveCursorStyle.outline
           ? PaintingStyle.stroke
           : PaintingStyle.fill;
-    canvas.drawRect(rect, paint);
+    canvas.drawRect(
+      paint.style == PaintingStyle.stroke ? rect.deflate(0.5) : rect,
+      paint,
+    );
     if (cursorType == TerminalCursorType.block &&
         paint.style == PaintingStyle.fill) {
       final line = terminal.buffer.active.getLine(

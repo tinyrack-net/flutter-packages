@@ -1669,30 +1669,33 @@ final class _TerminalCoreEngine {
     int index,
   ) {
     final group = params[index];
-    if (group.length >= 3 && group[1] == 5) {
+    int component(int value) => value < 0 ? 0 : value.clamp(0, 255);
+    if (group.length >= 2 && group[1] == 5) {
       return (
-        color: TerminalCellColor.palette(group[2].clamp(0, 255)),
+        color: TerminalCellColor.palette(
+          component(group.length > 2 ? group[2] : 0),
+        ),
         lastIndex: index,
       );
     }
-    if (group.length >= 5 && group[1] == 2) {
+    if (group.length >= 2 && group[1] == 2) {
       return (
         color: TerminalCellColor.rgb(
-          group[group.length - 3].clamp(0, 255),
-          group[group.length - 2].clamp(0, 255),
-          group.last.clamp(0, 255),
+          component(group.length > 3 ? group[3] : 0),
+          component(group.length > 4 ? group[4] : 0),
+          component(group.length > 5 ? group[5] : 0),
         ),
         lastIndex: index,
       );
     }
     if (index + 1 < params.length) {
       final next = params[index + 1];
-      if (next.length >= 5 && next[0] == 2) {
+      if (next.length > 1 && next[0] == 2) {
         return (
           color: TerminalCellColor.rgb(
-            next[next.length - 3].clamp(0, 255),
-            next[next.length - 2].clamp(0, 255),
-            next.last.clamp(0, 255),
+            component(next.length > 2 ? next[2] : 0),
+            component(next.length > 3 ? next[3] : 0),
+            component(next.length > 4 ? next[4] : 0),
           ),
           lastIndex: index + 1,
         );
@@ -1701,6 +1704,29 @@ final class _TerminalCoreEngine {
         return (
           color: TerminalCellColor.palette(next[1].clamp(0, 255)),
           lastIndex: index + 1,
+        );
+      }
+      if (next[0] == 2) {
+        final components = <int>[];
+        var lastIndex = index + 1;
+        for (
+          var parameterIndex = index + 2;
+          parameterIndex < params.length && components.length < 3;
+          parameterIndex++
+        ) {
+          components.addAll(params[parameterIndex].map(component));
+          lastIndex = parameterIndex;
+        }
+        while (components.length < 3) {
+          components.add(0);
+        }
+        return (
+          color: TerminalCellColor.rgb(
+            components[0],
+            components[1],
+            components[2],
+          ),
+          lastIndex: lastIndex,
         );
       }
     }

@@ -348,7 +348,8 @@ final class TerminalCell {
 
   /// Color used to draw an underline.
   TerminalCellColor get underlineColor =>
-      _cell.attributes.underlineColor.mode == TerminalColorMode.defaultColor
+      _cell.attributes.underline == TerminalUnderlineStyle.none ||
+          _cell.attributes.underlineColor.mode == TerminalColorMode.defaultColor
       ? _cell.attributes.foreground
       : _cell.attributes.underlineColor;
 
@@ -623,6 +624,15 @@ final class TerminalBufferLine {
   ) {
     if (index < 0 || index >= length) return;
     _invalidateStringCache();
+    if (_cells[index].width == 0 && index > 0) {
+      var base = index - 1;
+      while (base > 0 && _cells[base].width == 0) {
+        base--;
+      }
+      _cells[base].reset(attributes);
+    } else if (_cells[index].width == 2 && width != 2 && index + 1 < length) {
+      _cells[index + 1].reset(attributes);
+    }
     _cells[index]
       ..chars = chars
       ..width = width

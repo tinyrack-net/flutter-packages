@@ -389,7 +389,9 @@ final class SerializeAddon extends ManagedTerminalAddon {
     }
     final underlineChanged =
         cell.underlineStyle != previous.underlineStyle ||
-        cell.underlineColor != previous.underlineColor;
+        cell.isUnderline &&
+            previous.isUnderline &&
+            cell.underlineColor != previous.underlineColor;
     if (underlineChanged) {
       if (!cell.isUnderline) {
         codes.add('24');
