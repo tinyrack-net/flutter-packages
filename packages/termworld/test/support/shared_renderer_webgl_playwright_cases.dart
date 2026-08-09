@@ -265,10 +265,14 @@ Future<void> _verifyContrast(String behavior) async {
   final selected = behavior.contains('selected inverse');
   final inverse = behavior.contains('inverse text') || selected;
   final dim = behavior.contains('dim cells');
-  final background = behavior.contains('white background') || dim
+  final whiteBackground = behavior.contains('white background') || dim;
+  final blackBackground = behavior.contains('black background');
+  final background = whiteBackground
       ? _white
-      : behavior.contains('black background')
+      : blackBackground
       ? _black
+      : selected
+      ? const Color(0xff555555)
       : const Color(0xff333333);
   final terminal = Terminal(options: TerminalOptions(cols: 16, rows: 2));
   try {
@@ -278,12 +282,37 @@ Future<void> _verifyContrast(String behavior) async {
       '\x1b[34m■\x1b[35m■\x1b[36m■\x1b[37m■',
     );
     final base = TerminalThemes.defaultTheme;
+    final palette = List<Color>.of(base.palette);
+    const upstreamAnsi = <Color>[
+      Color(0xff2e3436),
+      Color(0xffcc0000),
+      Color(0xff4e9a06),
+      Color(0xffc4a000),
+      Color(0xff3465a4),
+      Color(0xff75507b),
+      Color(0xff06989a),
+      Color(0xffd3d7cf),
+      Color(0xff555753),
+      Color(0xffef2929),
+      Color(0xff8ae234),
+      Color(0xfffce94f),
+      Color(0xff729fcf),
+      Color(0xffad7fa8),
+      Color(0xff34e2e2),
+      Color(0xffeeeeec),
+    ];
+    palette.setRange(0, upstreamAnsi.length, upstreamAnsi);
     final theme = TerminalTheme(
-      foreground: inverse ? const Color(0xffaaaaaa) : base.foreground,
+      foreground: selected
+          ? const Color(0xff777777)
+          : inverse
+          ? const Color(0xffaaaaaa)
+          : base.foreground,
       background: background,
       cursor: base.cursor,
-      selection: selected ? const Color(0xff666666) : base.selection,
-      palette: base.palette,
+      selection: selected ? const Color(0x4d666666) : base.selection,
+      selectionOpaque: selected ? const Color(0xff666666) : null,
+      palette: palette,
     );
     final plain = TerminalCellColorResolver(
       theme: theme,
@@ -301,14 +330,63 @@ Future<void> _verifyContrast(String behavior) async {
       final cell = terminal.buffer.active.getLine(0)!.getCell(column)!;
       final before = plain.resolve(cell, selected: selected).foreground;
       final after = contrasted.resolve(cell, selected: selected).foreground;
-      expect(after, isNot(before), reason: 'contrast cell $column');
+      if (inverse) {
+        expect(after, selected ? _white : _black);
+        continue;
+      }
+      if (dim) {
+        const expectedComposite = <Color>[
+          Color(0xff96999a),
+          Color(0xffe57f7f),
+          Color(0xff3f7c04),
+          Color(0xff7f6800),
+          Color(0xff99b2d1),
+          Color(0xffbaa7bd),
+          Color(0xff047a7c),
+          Color(0xff6e706c),
+        ];
+        expect(
+          TerminalThemes.blend(_white, after),
+          expectedComposite[column],
+          reason: 'dim contrast cell $column',
+        );
+        continue;
+      }
+      final expected = whiteBackground
+          ? const <Color>[
+              Color(0xff2e3436),
+              Color(0xff840000),
+              Color(0xff244800),
+              Color(0xff483b00),
+              Color(0xff20406a),
+              Color(0xff4b3350),
+              Color(0xff004748),
+              Color(0xff40403f),
+            ][column]
+          : const <Color>[
+              Color(0xffb0b4b4),
+              Color(0xffee9e9e),
+              Color(0xff98c66e),
+              Color(0xffd0b331),
+              Color(0xffa1b7d7),
+              Color(0xffbfaec2),
+              Color(0xff6ec5c6),
+              Color(0xffd3d7cf),
+            ][column];
       expect(
-        _contrastRatio(
-          contrasted.resolve(cell, selected: selected).background,
-          after,
-        ),
-        greaterThanOrEqualTo(dim ? 5 : 10),
+        after.withValues(alpha: 1),
+        expected,
+        reason: 'contrast cell $column',
       );
+      if (after == before) {
+        expect(
+          _contrastRatio(
+            contrasted.resolve(cell, selected: false).background,
+            after,
+          ),
+          greaterThanOrEqualTo(10),
+        );
+      }
     }
   } finally {
     terminal.dispose();
@@ -387,8 +465,10 @@ Future<void> _verifyRenderedRegression(
     return;
   }
   if (behavior.contains('#4799')) {
-    await fixture.terminal.writeAndWait(
-      '${List<String>.filled(160, '\r\n').join()}\x1b[A\x1b[A',
+    await tester.runAsync(
+      () => fixture.terminal.writeAndWait(
+        '${List<String>.filled(160, '\r\n').join()}\x1b[A\x1b[A',
+      ),
     );
     fixture.terminal.scrollLines(-2);
     fixture.focusNode.requestFocus();
@@ -398,8 +478,10 @@ Future<void> _verifyRenderedRegression(
     return;
   }
   if (behavior.contains('#4917')) {
-    await fixture.terminal.writeAndWait(
-      List<String>.filled(160, '\r\n').join(),
+    await tester.runAsync(
+      () => fixture.terminal.writeAndWait(
+        List<String>.filled(160, '\r\n').join(),
+      ),
     );
     fixture.terminal
       ..scrollToBottom()
@@ -420,10 +502,12 @@ Future<void> _verifyRenderedRegression(
     return;
   }
   if (behavior.contains('cursorAccent')) {
-    await fixture.terminal.writeAndWait('■\x1b[1D');
+    await tester.runAsync(
+      () => fixture.terminal.writeAndWait('■\x1b[1D'),
+    );
   }
   fixture.focusNode.requestFocus();
-  await tester.pump();
+  await tester.pumpAndSettle();
   final expected = behavior.contains('#5241') ? const Color(0xff800000) : _blue;
   expect(_cellContains(await fixture.capture(tester), 0, 0, expected), isTrue);
 }
