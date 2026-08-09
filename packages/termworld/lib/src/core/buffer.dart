@@ -1244,6 +1244,7 @@ final class TerminalBuffer implements Disposable {
     }
     final oldRows = _rows;
     final oldBase = baseY;
+    final wasViewportAtBottom = displayY == oldBase;
     final absoluteCursor = oldBase + cursorY;
     for (final line in _lines) {
       line.resize(columns, eraseAttributes);
@@ -1280,7 +1281,7 @@ final class TerminalBuffer implements Disposable {
     cursorX = cursorX.clamp(0, columns - 1);
     cursorY = (absoluteCursor - baseY).clamp(0, rows - 1);
     savedCursorY = savedCursorY.clamp(0, rows - 1);
-    displayY = displayY.clamp(0, baseY);
+    displayY = wasViewportAtBottom ? baseY : displayY.clamp(0, baseY);
   }
 
   /// Replaces all content with an empty viewport.

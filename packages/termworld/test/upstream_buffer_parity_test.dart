@@ -233,6 +233,57 @@ void main() {
     );
   });
 
+  test('xterm Buffer 24', () {
+    final buffers = _bufferNamespace()
+      ..resize(80, 14, TerminalCellAttributes());
+    expect(buffers.normal.length, 14);
+  });
+
+  test('xterm Buffer 25', () {
+    final buffers = _bufferNamespace();
+    buffers.normal.cursorY = 18;
+    buffers.resize(80, 14, TerminalCellAttributes());
+    expect(buffers.normal.length, 19);
+    expect((buffers.normal.viewportY, buffers.normal.baseY), (5, 5));
+  });
+
+  test('xterm Buffer 26', () {
+    final buffers = _bufferNamespace(scrollback: 0);
+    final attributes = TerminalCellAttributes();
+    buffers.normal
+      ..cursorY = 23
+      ..getLine(5)!.setCell(0, 'a', 1, attributes)
+      ..getLine(23)!.setCell(0, 'b', 1, attributes);
+    buffers.resize(80, 19, attributes);
+    expect(buffers.normal.getLine(0)!.getCell(0)!.chars, 'a');
+    expect(buffers.normal.getLine(18)!.getCell(0)!.chars, 'b');
+  });
+
+  test('xterm Buffer 27', () {
+    final buffers = _bufferNamespace();
+    expect(buffers.normal.viewportY, 0);
+    buffers.resize(80, 34, TerminalCellAttributes());
+    expect(buffers.normal.viewportY, 0);
+    expect(buffers.normal.length, 34);
+  });
+
+  test('xterm Buffer 28', () {
+    final buffers = _scrolledBuffer();
+    buffers.normal.displayY = buffers.normal.baseY;
+    buffers.resize(80, 29, TerminalCellAttributes());
+    expect((buffers.normal.viewportY, buffers.normal.baseY), (5, 5));
+    expect(buffers.normal.length, 34);
+  });
+
+  test('xterm Buffer 29', () {
+    final buffers = _scrolledBuffer();
+    buffers.normal.displayY = 0;
+    buffers.resize(80, 29, TerminalCellAttributes());
+    expect(buffers.normal.viewportY, 0);
+    expect(buffers.normal.baseY, 5);
+    expect(buffers.normal.length, 34);
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -567,4 +618,15 @@ TerminalBuffer _wideTranslationBuffer() {
     ..setCell(1, '', 0, TerminalCellAttributes())
     ..setCell(2, 'a', 1, TerminalCellAttributes());
   return buffer;
+}
+
+TerminalBufferNamespace _scrolledBuffer() {
+  final buffers = _bufferNamespace();
+  final attributes = TerminalCellAttributes();
+  buffers.normal.cursorY = 23;
+  for (var row = 0; row < 10; row++) {
+    buffers.normal.scroll(attributes);
+  }
+  expect((buffers.normal.length, buffers.normal.baseY), (34, 10));
+  return buffers;
 }
