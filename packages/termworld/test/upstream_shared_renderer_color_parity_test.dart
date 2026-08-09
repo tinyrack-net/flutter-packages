@@ -278,6 +278,35 @@ void main() {
         ],
       );
     });
+
+    test('DOM minimum contrast enforces half ratio for dim cells', () async {
+      final actual = await _contrastColors(
+        const Color(0xffffffff),
+        dim: true,
+      );
+      const expected = <Color>[
+        Color(0xff96999a),
+        Color(0xffe57f7f),
+        Color(0xff3f7c04),
+        Color(0xff7f6800),
+        Color(0xff99b2d1),
+        Color(0xffbaa7bd),
+        Color(0xff047a7c),
+        Color(0xff6e706c),
+        Color(0xffaaaba9),
+        Color(0xffd72424),
+        Color(0xff487519),
+        Color(0xff756d24),
+        Color(0xff486787),
+        Color(0xff7d5b79),
+        Color(0xff197575),
+        Color(0xff6f6f6e),
+      ];
+      expect(actual, hasLength(expected.length));
+      for (var index = 0; index < expected.length; index++) {
+        _expectColorApprox(actual[index], expected[index]);
+      }
+    });
   });
 }
 
@@ -302,10 +331,14 @@ final class _CellFrame {
 
 enum _TrueColorChannel { red, green, blue, grey }
 
-Future<List<Color>> _contrastColors(Color background) async {
+Future<List<Color>> _contrastColors(
+  Color background, {
+  bool dim = false,
+}) async {
   final terminal = Terminal(options: TerminalOptions(cols: 8, rows: 2));
   try {
     await terminal.writeAndWait(
+      "${dim ? '\x1b[2m' : ''}"
       '\x1b[30m■\x1b[31m■\x1b[32m■\x1b[33m■'
       '\x1b[34m■\x1b[35m■\x1b[36m■\x1b[37m■\r\n'
       '\x1b[90m■\x1b[91m■\x1b[92m■\x1b[93m■'
@@ -324,7 +357,7 @@ Future<List<Color>> _contrastColors(Color background) async {
       drawBoldTextInBrightColors: true,
       minimumContrastRatio: 10,
     );
-    return <Color>[
+    final colors = <Color>[
       for (var row = 0; row < 2; row++)
         for (var column = 0; column < 8; column++)
           resolver
@@ -334,9 +367,21 @@ Future<List<Color>> _contrastColors(Color background) async {
               )
               .foreground,
     ];
+    return dim
+        ? <Color>[
+            for (final color in colors) TerminalThemes.blend(background, color),
+          ]
+        : colors;
   } finally {
     terminal.dispose();
   }
+}
+
+void _expectColorApprox(Color actual, Color expected) {
+  expect((actual.r * 255).round(), closeTo((expected.r * 255).round(), 1));
+  expect((actual.g * 255).round(), closeTo((expected.g * 255).round(), 1));
+  expect((actual.b * 255).round(), closeTo((expected.b * 255).round(), 1));
+  expect(actual.a, 1);
 }
 
 Future<void> _verifyPalette256({

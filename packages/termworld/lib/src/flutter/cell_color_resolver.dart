@@ -124,9 +124,6 @@ final class TerminalCellColorResolver {
     }
 
     apply(bottomDecorations);
-    if (cell.isDim && !foregroundOverridden) {
-      foreground = foreground.withValues(alpha: foreground.a * 0.5);
-    }
     final cellBackground = background;
     final paintCellBackground = hasBackground;
     final backgroundOverlays = <Color>[];
@@ -147,7 +144,11 @@ final class TerminalCellColorResolver {
           : selection;
       backgroundOverlays.add(selectionLayer);
       background = TerminalThemes.blend(background, selectionLayer);
-      foreground = theme.selectionForeground ?? foreground;
+      final selectionForeground = theme.selectionForeground;
+      if (selectionForeground != null) {
+        foreground = selectionForeground;
+        foregroundOverridden = true;
+      }
     }
     for (final decoration in topDecorations) {
       final decorationBackground = decoration.background;
@@ -156,7 +157,10 @@ final class TerminalCellColorResolver {
         background = TerminalThemes.blend(background, decorationBackground);
       }
       final decorationForeground = decoration.foreground;
-      if (decorationForeground != null) foreground = decorationForeground;
+      if (decorationForeground != null) {
+        foreground = decorationForeground;
+        foregroundOverridden = true;
+      }
     }
     if (cell.code != 0 &&
         !treatGlyphAsBackground(cell.code) &&
@@ -166,6 +170,9 @@ final class TerminalCellColorResolver {
         foreground,
         minimumContrastRatio / (cell.isDim ? 2 : 1),
       );
+    }
+    if (cell.isDim && !foregroundOverridden) {
+      foreground = foreground.withValues(alpha: foreground.a * 0.5);
     }
     return TerminalResolvedCellColors(
       foreground: foreground,
