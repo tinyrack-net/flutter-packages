@@ -875,9 +875,10 @@ final class _TerminalCoreEngine {
           } else if (termName.startsWith('screen')) {
             onData?.call('\u001b[>83;40003;0c');
           }
-        } else if (termName.startsWith('xterm') ||
-            termName.startsWith('rxvt-unicode') ||
-            termName.startsWith('screen')) {
+        } else if (prefix.isEmpty &&
+            (termName.startsWith('xterm') ||
+                termName.startsWith('rxvt-unicode') ||
+                termName.startsWith('screen'))) {
           onData?.call('\u001b[?1;2c');
         } else if (termName.startsWith('linux')) {
           onData?.call('\u001b[?6c');
@@ -1918,7 +1919,28 @@ final class _TerminalCoreEngine {
       onData?.call(
         prefix == '?' ? '\u001b[?$row;${column}R' : '\u001b[$row;${column}R',
       );
+    } else if (prefix == '?' &&
+        mode == 996 &&
+        options.vtExtensions.colorSchemeQuery) {
+      final background = cssToColor(options.theme.background ?? '#000000');
+      final foreground = cssToColor(options.theme.foreground ?? '#ffffff');
+      final bgLuminance = _relativeLuminance(background.rgba >> 8);
+      final fgLuminance = _relativeLuminance(foreground.rgba >> 8);
+      onData?.call('\u001b[?997;${bgLuminance < fgLuminance ? 1 : 2}n');
     }
+  }
+
+  double _relativeLuminance(int rgb) {
+    double channel(int value) {
+      final normalized = value / 255;
+      return normalized <= 0.03928
+          ? normalized / 12.92
+          : math.pow((normalized + 0.055) / 1.055, 2.4).toDouble();
+    }
+
+    return 0.2126 * channel(rgb >> 16 & 0xff) +
+        0.7152 * channel(rgb >> 8 & 0xff) +
+        0.0722 * channel(rgb & 0xff);
   }
 
   void _requestMode(String prefix, List<List<int>> params) {

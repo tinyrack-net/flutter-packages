@@ -6,6 +6,7 @@ import 'package:termworld/src/core/addon.dart';
 import 'package:termworld/src/core/addon_manager.dart';
 import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/clipboard.dart';
+import 'package:termworld/src/core/color.dart';
 import 'package:termworld/src/core/decoration_service.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
