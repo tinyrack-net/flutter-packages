@@ -147,6 +147,7 @@ final class _ImeHarness {
   final TermworldExampleController controller;
   final String windowId;
   Process? _clipboard;
+  bool _hangulEngine = true;
 
   String get output => controller.output;
 
@@ -248,11 +249,17 @@ final class _ImeHarness {
 
   Future<void> toggleLanguage() async {
     await _releaseModifiers();
-    await _run('xdotool', <String>[
-      'key',
-      '--clearmodifiers',
-      'Hangul',
-    ]);
+    final target = _hangulEngine ? 'xkb:us::eng' : 'hangul';
+    await _run('ibus', <String>['engine', target]);
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (DateTime.now().isBefore(deadline)) {
+      final current = await _run('ibus', <String>['engine']);
+      if (current.stdout.toString().trim() == target) break;
+      await tester.pump(const Duration(milliseconds: 20));
+    }
+    final current = await _run('ibus', <String>['engine']);
+    expect(current.stdout.toString().trim(), target);
+    _hangulEngine = !_hangulEngine;
     await _releaseModifiers();
     await tester.pumpAndSettle();
   }
