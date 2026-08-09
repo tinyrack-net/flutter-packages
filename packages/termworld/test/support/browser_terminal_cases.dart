@@ -27,7 +27,7 @@ Future<void> verifyBrowserTerminalCase(String name) async {
     expect((options.cols, options.rows), (80, 24));
     return;
   }
-  throw StateError('Unimplemented browser Terminal parity case: $name');
+  throw StateError('Unknown pinned browser Terminal parity case: $name');
 }
 
 Terminal _terminal({TerminalOptions? options}) {

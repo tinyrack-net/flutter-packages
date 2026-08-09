@@ -125,7 +125,7 @@ Future<void> verifyInputHandlerSgrPlaywrightCase(String name) async {
   if (name.startsWith('Ps = 48;2;')) {
     return _extendedColor(terminal, '\u001b[48;2;18;52;86m#', false, 0x123456);
   }
-  throw StateError('Unimplemented InputHandler SGR parity case: $name');
+  throw StateError('Unknown pinned InputHandler SGR parity case: $name');
 }
 
 const Set<int> _setAttributes = <int>{1, 2, 3, 4, 5, 7, 8, 9, 21};

@@ -55,6 +55,7 @@ void main() {
   _checkCount(snapshot, 'sourceBlobHashes', 321, failures);
   _checkCount(snapshot, 'fixtureBlobHashes', 162, failures);
   _checkMappings(package, snapshot, mappingsFile, failures);
+  _checkNoParityPlaceholders(package, failures);
 
   final contracts = manifest['contracts'] as YamlMap;
   for (final contractName in const <String>['core', 'flutter']) {
@@ -397,6 +398,20 @@ void _checkMappings(
         _checkPath(package, path, failures);
       }
     }
+    for (final path in implementation.whereType<String>()) {
+      if (!path.startsWith('lib/') || !path.endsWith('.dart')) {
+        failures.add('source implementation is not production Dart: $path');
+      }
+    }
+    for (final path in mappedTests.whereType<String>()) {
+      final isUnitTest =
+          path.startsWith('test/') && path.endsWith('_test.dart');
+      final isConformance =
+          path == 'example/integration_test/conformance_test.dart';
+      if (!isUnitTest && !isConformance) {
+        failures.add('source evidence is not an executable Dart test: $path');
+      }
+    }
   }
 
   final dartTests = <String>{};
@@ -422,6 +437,11 @@ void _checkMappings(
       failures.add('multiple upstream tests map to $identity');
     }
     _checkPath(package, file, failures);
+    if (!file.startsWith('test/') ||
+        !file.endsWith('_test.dart') ||
+        file.substring('test/'.length).contains('/')) {
+      failures.add('mapped test is outside the CI shard discovery: $file');
+    }
     final source = File('${package.path}/$file');
     if (source.existsSync()) {
       final quotedCandidates = <String>[
@@ -438,6 +458,36 @@ void _checkMappings(
       );
       if (!literal.hasMatch(source.readAsStringSync())) {
         failures.add('mapped Dart test is not executable: ${entry.key}');
+      }
+    }
+  }
+}
+
+void _checkNoParityPlaceholders(Directory package, List<String> failures) {
+  final roots = <Directory>[
+    Directory('${package.path}/lib'),
+    Directory('${package.path}/test/support'),
+  ];
+  final banned = <RegExp, String>{
+    RegExp(r'\bUnimplementedError\b'): 'UnimplementedError',
+    RegExp(r'\b[Tt][Oo][Dd][Oo]\b'): 'TODO marker',
+    RegExp(r'\b[Uu]nimplemented\b'): 'unimplemented marker',
+    RegExp(r'\b[Nn]ot[Ii]mplemented\b'): 'notImplemented marker',
+  };
+  for (final root in roots) {
+    if (!root.existsSync()) continue;
+    for (final file
+        in root
+            .listSync(recursive: true)
+            .whereType<File>()
+            .where((file) => file.path.endsWith('.dart'))) {
+      final source = file.readAsStringSync();
+      for (final entry in banned.entries) {
+        if (!entry.key.hasMatch(source)) continue;
+        failures.add(
+          '${file.path.substring(package.path.length + 1)} contains '
+          '${entry.value}',
+        );
       }
     }
   }
