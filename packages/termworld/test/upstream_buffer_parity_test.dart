@@ -573,6 +573,44 @@ void main() {
     );
   });
 
+  test('xterm Buffer 45', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace(scrollback: 1)..resize(10, 5, attributes);
+    _writeAsciiLine(buffers.normal, 3, 'abcdefghij', attributes);
+    buffers.normal.cursorY = 4;
+
+    buffers.resize(2, 5, attributes);
+    expect((buffers.normal.cursorY, buffers.normal.baseY), (4, 1));
+    expect(buffers.normal.length, 6);
+    expect(_fullLines(buffers.normal, 5), <String>[
+      'ab',
+      'cd',
+      'ef',
+      'gh',
+      'ij',
+    ]);
+
+    buffers.resize(1, 5, attributes);
+    expect((buffers.normal.cursorY, buffers.normal.baseY), (4, 1));
+    expect(buffers.normal.length, 6);
+    expect(_fullLines(buffers.normal, 6), <String>[
+      'f',
+      'g',
+      'h',
+      'i',
+      'j',
+      ' ',
+    ]);
+
+    buffers.resize(10, 5, attributes);
+    expect((buffers.normal.cursorY, buffers.normal.baseY), (1, 0));
+    expect(buffers.normal.length, 5);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'fghij     ');
+    for (var row = 1; row < 5; row++) {
+      expect(buffers.normal.getLine(row)!.translateToString(), '          ');
+    }
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -973,6 +1011,11 @@ String _trimmedLine(TerminalBuffer buffer, int row) =>
 
 List<String> _trimmedLines(TerminalBuffer buffer, int count) => <String>[
   for (var row = 0; row < count; row++) _trimmedLine(buffer, row),
+];
+
+List<String> _fullLines(TerminalBuffer buffer, int count) => <String>[
+  for (var row = 0; row < count; row++)
+    buffer.getLine(row)!.translateToString(),
 ];
 
 TerminalBufferNamespace _tabReflowBuffer(
