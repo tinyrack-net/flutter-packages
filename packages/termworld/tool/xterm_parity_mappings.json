@@ -1702,6 +1702,8 @@
     "unit:src/common/InputHandler.test.ts:InputHandler OSC 111: restore BG color": {"dartTestFile":"test/upstream_input_handler_osc_color_parity_test.dart","dartTestName":"111: restore BG color","dartTestKind":"test"},
     "unit:src/common/InputHandler.test.ts:InputHandler OSC 12: cursor color set & query events": {"dartTestFile":"test/upstream_input_handler_osc_color_parity_test.dart","dartTestName":"12: cursor color set & query events","dartTestKind":"test"},
     "unit:src/common/InputHandler.test.ts:InputHandler OSC 112: restore cursor color": {"dartTestFile":"test/upstream_input_handler_osc_color_parity_test.dart","dartTestName":"112: restore cursor color","dartTestKind":"test"},
+    "unit:src/common/InputHandler.test.ts:InputHandler OSC 8: hyperlink with id": {"dartTestFile":"test/upstream_input_handler_osc_link_parity_test.dart","dartTestName":"8: hyperlink with id","dartTestKind":"test"},
+    "unit:src/common/InputHandler.test.ts:InputHandler OSC 8: hyperlink with semi-colon": {"dartTestFile":"test/upstream_input_handler_osc_link_parity_test.dart","dartTestName":"8: hyperlink with semi-colon","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-00fb205852147913d4c5": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 0","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-0877151632a7f4961eee": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 1","dartTestKind":"test"},
     "playwright:c46a828217ec586856a0-08c71fb199dc6d197152": {"dartTestFile":"test/upstream_image_addon_browser_parity_test.dart","dartTestName":"xterm ImageAddon playwright 2","dartTestKind":"test"},
