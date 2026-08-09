@@ -273,18 +273,28 @@ final class SearchEngine {
         );
         for (final match in _overlappingMatches(expression, prefix)) {
           if (match.end > searchOffset) break;
-          if (match.start != match.end) {
-            resultIndex = match.start;
-            matchedTerm = match.value;
+          if (match.start == match.end ||
+              options.wholeWord &&
+                  !_isWholeWord(match.start, searchableLine, match.value)) {
+            continue;
           }
+          resultIndex = match.start;
+          matchedTerm = match.value;
         }
       } else {
-        final match = expression.firstMatch(
+        for (final match in expression.allMatches(
           searchableLine.substring(searchOffset),
-        );
-        if (match != null && match.start != match.end) {
-          resultIndex = searchOffset + match.start;
-          matchedTerm = match.group(0)!;
+        )) {
+          if (match.start == match.end) continue;
+          final candidateIndex = searchOffset + match.start;
+          final candidateTerm = match.group(0)!;
+          if (options.wholeWord &&
+              !_isWholeWord(candidateIndex, searchableLine, candidateTerm)) {
+            continue;
+          }
+          resultIndex = candidateIndex;
+          matchedTerm = candidateTerm;
+          break;
         }
       }
     } else if (reverse) {
