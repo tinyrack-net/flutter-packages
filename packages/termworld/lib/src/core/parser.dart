@@ -50,6 +50,47 @@ typedef TerminalOscHandler = FutureOr<bool> Function(String data);
 /// xterm-compatible `Function` API.
 typedef TerminalApcHandler = FutureOr<bool> Function(String data);
 
+/// Receives a contiguous run of printable parser input.
+typedef TerminalPrintHandler = FutureOr<void> Function(String data);
+
+/// Receives one executable C0 control character.
+typedef TerminalExecuteHandler = FutureOr<void> Function(int code);
+
+/// Describes an invalid parser transition before recovery.
+final class TerminalParsingState {
+  /// Creates an xterm-compatible parsing error snapshot.
+  const TerminalParsingState({
+    required this.position,
+    required this.code,
+    required this.currentState,
+    required this.collect,
+    required this.parameters,
+    this.abort = false,
+  });
+
+  /// Input position of the invalid code point.
+  final int position;
+
+  /// Invalid code point.
+  final int code;
+
+  /// Numeric [ParserState] index at the point of failure.
+  final int currentState;
+
+  /// Collected prefix and intermediate bytes.
+  final String collect;
+
+  /// Parameters accumulated before the failure.
+  final List<TerminalParameter> parameters;
+
+  /// Whether parsing should abort immediately.
+  final bool abort;
+}
+
+/// Inspects and may replace a parser error recovery snapshot.
+typedef TerminalParserErrorHandler =
+    TerminalParsingState Function(TerminalParsingState state);
+
 /// Custom parser handler registry with xterm's newest-handler-first ordering.
 final class TerminalParser implements Disposable {
   /// Creates a parser with an optional security gate for custom CSI handlers.
@@ -71,6 +112,10 @@ final class TerminalParser implements Disposable {
       <int, List<TerminalOscHandler>>{};
   final Map<String, List<TerminalApcHandler>> _apc =
       <String, List<TerminalApcHandler>>{};
+  final Map<int, TerminalExecuteHandler> _execute =
+      <int, TerminalExecuteHandler>{};
+  TerminalPrintHandler? _printHandler;
+  TerminalParserErrorHandler? _errorHandler;
   String _pending = '';
   bool _isDisposed = false;
 
@@ -86,6 +131,11 @@ final class TerminalParser implements Disposable {
     TerminalCsiHandler handler,
   ) => registerCsiHandler(identifier, handler);
 
+  /// Removes every CSI handler registered for [identifier].
+  void clearCsiHandler(TerminalFunctionIdentifier identifier) {
+    _csi.remove(_validate(identifier, csiOrDcs: true).key);
+  }
+
   /// xterm-compatible `registerDcsHandler` API.
   Disposable registerDcsHandler(
     TerminalFunctionIdentifier identifier,
@@ -97,6 +147,11 @@ final class TerminalParser implements Disposable {
     TerminalFunctionIdentifier identifier,
     TerminalDcsHandler handler,
   ) => registerDcsHandler(identifier, handler);
+
+  /// Removes every DCS handler registered for [identifier].
+  void clearDcsHandler(TerminalFunctionIdentifier identifier) {
+    _dcs.remove(_validate(identifier, csiOrDcs: true).key);
+  }
 
   /// xterm-compatible `registerEscHandler` API.
   Disposable registerEscHandler(
@@ -110,6 +165,11 @@ final class TerminalParser implements Disposable {
     TerminalEscHandler handler,
   ) => registerEscHandler(identifier, handler);
 
+  /// Removes every ESC handler registered for [identifier].
+  void clearEscHandler(TerminalFunctionIdentifier identifier) {
+    _esc.remove(_validate(identifier).key);
+  }
+
   /// xterm-compatible `registerOscHandler` API.
   Disposable registerOscHandler(int identifier, TerminalOscHandler handler) =>
       _register(_osc, identifier, handler);
@@ -117,6 +177,11 @@ final class TerminalParser implements Disposable {
   /// Deprecated xterm alias for [registerOscHandler].
   Disposable addOscHandler(int identifier, TerminalOscHandler handler) =>
       registerOscHandler(identifier, handler);
+
+  /// Removes every OSC handler registered for [identifier].
+  void clearOscHandler(int identifier) {
+    _osc.remove(identifier);
+  }
 
   /// xterm-compatible `registerApcHandler` API.
   Disposable registerApcHandler(
@@ -131,6 +196,57 @@ final class TerminalParser implements Disposable {
       finalByte: validated.finalByte,
     );
     return _register(_apc, apcIdentifier.key, handler);
+  }
+
+  /// Removes every APC handler registered for [identifier].
+  void clearApcHandler(TerminalFunctionIdentifier identifier) {
+    final validated = _validate(identifier);
+    _apc.remove(
+      TerminalFunctionIdentifier(
+        intermediates: validated.intermediates,
+        finalByte: validated.finalByte,
+      ).key,
+    );
+  }
+
+  /// Replaces the printable data handler.
+  // xterm exposes this as a method; retaining the name is API parity.
+  // ignore: use_setters_to_change_properties
+  void setPrintHandler(TerminalPrintHandler handler) {
+    _printHandler = handler;
+  }
+
+  /// Restores default printable data forwarding.
+  void clearPrintHandler() {
+    _printHandler = null;
+  }
+
+  /// Replaces the handler for one executable control [flag].
+  void setExecuteHandler(String flag, TerminalExecuteHandler handler) {
+    if (flag.length != 1) {
+      throw ArgumentError.value(flag, 'flag', 'must contain one character');
+    }
+    _execute[flag.codeUnitAt(0)] = handler;
+  }
+
+  /// Restores default forwarding for executable control [flag].
+  void clearExecuteHandler(String flag) {
+    if (flag.length != 1) {
+      throw ArgumentError.value(flag, 'flag', 'must contain one character');
+    }
+    _execute.remove(flag.codeUnitAt(0));
+  }
+
+  /// Replaces the invalid-transition recovery handler.
+  // xterm exposes this as a method; retaining the name is API parity.
+  // ignore: use_setters_to_change_properties
+  void setErrorHandler(TerminalParserErrorHandler handler) {
+    _errorHandler = handler;
+  }
+
+  /// Restores default invalid-transition recovery.
+  void clearErrorHandler() {
+    _errorHandler = null;
   }
 
   TerminalFunctionIdentifier _validate(
@@ -197,10 +313,12 @@ final class TerminalParser implements Disposable {
     while (index < source.length) {
       final escape = source.indexOf('\u001b', index);
       if (escape < 0) {
-        await emit(source.substring(index));
+        await _emitGround(source.substring(index), emit);
         break;
       }
-      if (escape > index) await emit(source.substring(index, escape));
+      if (escape > index) {
+        await _emitGround(source.substring(index, escape), emit);
+      }
       final parsed = await _parseAt(source, escape, emit);
       if (parsed == null) {
         _pending = source.substring(escape);
@@ -209,6 +327,43 @@ final class TerminalParser implements Disposable {
       if (!parsed.handled) await emit(parsed.sequence);
       index = parsed.end;
     }
+  }
+
+  Future<void> _emitGround(
+    String data,
+    FutureOr<void> Function(String data) emit,
+  ) async {
+    if (_printHandler == null && _execute.isEmpty) {
+      await emit(data);
+      return;
+    }
+    final printable = StringBuffer();
+    Future<void> flushPrintable() async {
+      if (printable.isEmpty) return;
+      final value = printable.toString();
+      printable.clear();
+      final handler = _printHandler;
+      if (handler == null) {
+        await emit(value);
+      } else {
+        await handler(value);
+      }
+    }
+
+    for (final rune in data.runes) {
+      if (!_isExecutable(rune)) {
+        printable.writeCharCode(rune);
+        continue;
+      }
+      await flushPrintable();
+      final handler = _execute[rune];
+      if (handler == null) {
+        await emit(String.fromCharCode(rune));
+      } else {
+        await handler(rune);
+      }
+    }
+    await flushPrintable();
   }
 
   String _normalizeC1(String source) {
@@ -297,6 +452,15 @@ final class TerminalParser implements Disposable {
       }
       if (code >= 0xa0) {
         if (executed.isNotEmpty) await emit(executed.toString());
+        _errorHandler?.call(
+          TerminalParsingState(
+            position: index,
+            code: code,
+            currentState: ParserState.csiParam.index,
+            collect: _identifier(body.toString(), 'm').prefix,
+            parameters: _parameters(_parameterPart(body.toString())),
+          ),
+        );
         return _ParsedSequence(
           source.substring(start, index + 1),
           index + 1,
@@ -617,6 +781,9 @@ final class TerminalParser implements Disposable {
     _esc.clear();
     _osc.clear();
     _apc.clear();
+    _execute.clear();
+    _printHandler = null;
+    _errorHandler = null;
   }
 }
 
