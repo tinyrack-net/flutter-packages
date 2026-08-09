@@ -75,6 +75,7 @@ void main() {
     await harness.keys(<String>[...'gksrmf'.split(''), 'space']);
     await harness.toggleLanguage();
     await harness.keys('a b c minus 4 2 space'.split(' '));
+    await harness.waitForOutput('한글 abc-42 ');
     await harness.toggleLanguage();
     await harness.keys(<String>[...'dkssud'.split(''), 'space']);
     await harness.waitForOutput('한글 abc-42 안녕 ');
@@ -84,6 +85,7 @@ void main() {
     await harness.toggleLanguage();
     await harness.waitForOutput('한');
     await harness.keys(<String>['a', 'b', 'c', 'space']);
+    await harness.waitForOutput('한abc ');
     await harness.toggleLanguage();
     await harness.keys(<String>['d', 'k', 's', 'space']);
     await harness.waitForOutput('한abc 안 ');
