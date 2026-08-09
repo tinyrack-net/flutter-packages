@@ -243,11 +243,18 @@ final class _ImeHarness {
         '40',
         key,
       ]);
+      await tester.pump(const Duration(milliseconds: 20));
     }
+    // IBus can enqueue the final key-up/text-input delivery after xdotool has
+    // returned. Drain that boundary before a following engine switch so the
+    // last committed character cannot be cancelled by the new engine.
+    await tester.pump(const Duration(milliseconds: 80));
     await tester.pumpAndSettle();
   }
 
   Future<void> toggleLanguage() async {
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.pumpAndSettle();
     await _releaseModifiers();
     final target = _hangulEngine ? 'xkb:us::eng' : 'hangul';
     await _run('ibus', <String>['engine', target]);
