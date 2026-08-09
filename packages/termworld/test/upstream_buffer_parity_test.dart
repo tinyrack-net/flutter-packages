@@ -284,6 +284,38 @@ void main() {
     expect(buffers.normal.length, 34);
   });
 
+  test('xterm Buffer 30', () {
+    final buffers = _bufferNamespace();
+    final attributes = TerminalCellAttributes();
+    buffers.normal.getLine(0)!.setCell(0, 'a', 1, attributes);
+    buffers.normal.translateBufferLineToString(0);
+    expect(buffers.normal.stringCache.entries.length, 1);
+    expect(buffers.normal.stringCache.hasPendingClear, isTrue);
+
+    buffers.normal.clear();
+    expect(buffers.normal.stringCache.entries, isEmpty);
+    expect(buffers.normal.stringCache.hasPendingClear, isFalse);
+
+    buffers.normal.getLine(0)!.setCell(0, 'b', 1, attributes);
+    buffers.normal.translateBufferLineToString(0);
+    expect(buffers.normal.stringCache.entries.length, 1);
+    buffers.resize(79, 24, attributes);
+    expect(buffers.normal.stringCache.entries, isEmpty);
+    expect(buffers.normal.stringCache.hasPendingClear, isFalse);
+  });
+
+  test('xterm Buffer 31', () async {
+    final buffers = _bufferNamespace()
+      ..resize(39, 24, TerminalCellAttributes());
+    for (var row = 0; row < 24; row++) {
+      expect(buffers.normal.getLine(row)!.length, 39);
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    for (var row = 0; row < 24; row++) {
+      expect(buffers.normal.getLine(row)!.length, 39);
+    }
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
