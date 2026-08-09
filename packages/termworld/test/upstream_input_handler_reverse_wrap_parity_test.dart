@@ -25,9 +25,9 @@ void main() {
       final terminal = _terminal();
       addTearDown(terminal.dispose);
       await terminal.writeAndWait('\x1b[?45h12345$_ttyBackspace');
-      expect(_lines(terminal, 1), <String>['1234']);
+      expect(_lines(terminal, 1), <String>['1234 ']);
       await terminal.writeAndWait(_repeat(_ttyBackspace, 7));
-      expect(_lines(terminal, 1), <String>['']);
+      expect(_lines(terminal, 1), <String>['     ']);
     });
 
     test('reverseWraparound set can access previous wrapped line', () async {
@@ -36,9 +36,9 @@ void main() {
       await terminal.writeAndWait(
         '\x1b[?45h${_repeat('12345', 2)}$_ttyBackspace',
       );
-      expect(_lines(terminal, 2), <String>['12345', '1234']);
+      expect(_lines(terminal, 2), <String>['12345', '1234 ']);
       await terminal.writeAndWait(_repeat(_ttyBackspace, 7));
-      expect(_lines(terminal, 2), <String>['12', '']);
+      expect(_lines(terminal, 2), <String>['12   ', '     ']);
     });
 
     test('reverseWraparound set lifts wrapped state', () async {
@@ -57,7 +57,7 @@ void main() {
         '\x1b[?45h12345\r\n${_repeat('12345', 2)}'
         '${_repeat(_ttyBackspace, 50)}',
       );
-      expect(_lines(terminal, 3), <String>['12345', '', '']);
+      expect(_lines(terminal, 3), <String>['12345', '     ', '     ']);
       expect(terminal.buffer.active.cursorX, 0);
       expect(terminal.buffer.active.cursorY, 1);
     });
@@ -68,18 +68,18 @@ void main() {
       await terminal.writeAndWait('\x1b[?45h￥￥￥');
       expect(_lines(terminal, 2), <String>['￥￥', '￥']);
       await terminal.writeAndWait(_ttyBackspace);
-      expect(_lines(terminal, 2), <String>['￥￥', '']);
+      expect(_lines(terminal, 2), <String>['￥￥', '  ']);
       expect(terminal.buffer.active.cursorX, 1);
       await terminal.writeAndWait(_ttyBackspace);
-      expect(_lines(terminal, 2), <String>['￥￥', '']);
+      expect(_lines(terminal, 2), <String>['￥￥', '  ']);
       expect(terminal.buffer.active.cursorX, 0);
       await terminal.writeAndWait(_ttyBackspace);
-      expect(_lines(terminal, 2), <String>['￥', '']);
+      expect(_lines(terminal, 2), <String>['￥  ', '  ']);
       expect(terminal.buffer.active.cursorX, 3);
       await terminal.writeAndWait(_ttyBackspace);
       expect(terminal.buffer.active.cursorX, 2);
       await terminal.writeAndWait(_ttyBackspace);
-      expect(_lines(terminal, 2), <String>['', '']);
+      expect(_lines(terminal, 2), <String>['    ', '  ']);
       expect(terminal.buffer.active.cursorX, 1);
       await terminal.writeAndWait(_ttyBackspace);
       expect(terminal.buffer.active.cursorX, 0);
