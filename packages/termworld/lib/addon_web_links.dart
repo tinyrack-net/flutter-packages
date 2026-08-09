@@ -93,7 +93,6 @@ final class _WebLinkProvider implements TerminalLinkProvider {
     if (text.isEmpty) return const <TerminalLink>[];
     final links = <TerminalLink>[];
     for (final match in pattern.allMatches(text)) {
-      if (!(Uri.tryParse(match.group(0)!)?.hasAuthority ?? false)) continue;
       final link = _linkForMatch(window.startLine, match);
       if (link != null) links.add(link);
     }
