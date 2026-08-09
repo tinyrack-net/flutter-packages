@@ -611,6 +611,58 @@ void main() {
     }
   });
 
+  test('xterm Buffer 46', () {
+    final attributes = TerminalCellAttributes();
+    TerminalBufferNamespace prepare(int buildNumber) {
+      final buffers = _bufferNamespace()
+        ..resize(
+          5,
+          10,
+          attributes,
+          windowsPty: TerminalWindowsPtyOptions(
+            backend: 'conpty',
+            buildNumber: buildNumber,
+          ),
+        );
+      _writeAsciiLine(buffers.normal, 0, 'abcde', attributes);
+      buffers.normal.cursorY = 1;
+      buffers.resize(
+        1,
+        10,
+        attributes,
+        windowsPty: TerminalWindowsPtyOptions(
+          backend: 'conpty',
+          buildNumber: buildNumber,
+        ),
+      );
+      return buffers;
+    }
+
+    final oldConpty = prepare(21375);
+    expect(_trimmedLine(oldConpty.normal, 1), '');
+    final reflowConpty = prepare(21376);
+    expect(_trimmedLine(reflowConpty.normal, 1), 'b');
+    expect(reflowConpty.normal.getLine(1)!.isWrapped, isTrue);
+  });
+
+  test('xterm Buffer 47', () {
+    const windowsPty = TerminalWindowsPtyOptions(
+      backend: 'conpty',
+      buildNumber: 19000,
+    );
+    final buffers = _scrolledBuffer();
+    buffers.normal.displayY = buffers.normal.baseY;
+    final linesBefore = buffers.normal.length;
+    buffers.resize(
+      80,
+      29,
+      TerminalCellAttributes(),
+      windowsPty: windowsPty,
+    );
+    expect((buffers.normal.baseY, buffers.normal.viewportY), (10, 10));
+    expect(buffers.normal.length, linesBefore + 5);
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),

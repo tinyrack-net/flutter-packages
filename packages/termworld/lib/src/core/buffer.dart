@@ -2,6 +2,7 @@ import 'package:termworld/src/core/buffer_line_string_cache.dart';
 import 'package:termworld/src/core/disposable.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/marker.dart';
+import 'package:termworld/src/core/options.dart';
 
 /// Terminal buffer kind.
 enum TerminalBufferType {
@@ -1230,6 +1231,7 @@ final class TerminalBuffer implements Disposable {
     int rows,
     TerminalCellAttributes eraseAttributes, {
     bool reflowCursorLine = false,
+    TerminalWindowsPtyOptions windowsPty = const TerminalWindowsPtyOptions(),
   }) {
     _stringCache.clear();
     if (type == TerminalBufferType.alternate && _lines.isEmpty) {
@@ -1239,7 +1241,15 @@ final class TerminalBuffer implements Disposable {
       cursorY = cursorY.clamp(0, rows - 1);
       return;
     }
-    if (type == TerminalBufferType.normal && columns != _columns) {
+    final hasWindowsPtyConfiguration =
+        windowsPty.backend != null || windowsPty.buildNumber != null;
+    final reflowEnabled =
+        !hasWindowsPtyConfiguration ||
+        windowsPty.backend == 'conpty' &&
+            (windowsPty.buildNumber ?? 0) >= 21376;
+    if (type == TerminalBufferType.normal &&
+        columns != _columns &&
+        reflowEnabled) {
       _reflow(columns, eraseAttributes, reflowCursorLine);
     }
     final oldRows = _rows;
@@ -1252,8 +1262,12 @@ final class TerminalBuffer implements Disposable {
     if (rows > oldRows) {
       final growth = rows - oldRows;
       final canRevealHistory =
-          oldBase > 0 && _lines.length <= absoluteCursor + 1;
-      final linesToAdd = canRevealHistory
+          !hasWindowsPtyConfiguration &&
+          oldBase > 0 &&
+          _lines.length <= absoluteCursor + 1;
+      final linesToAdd = hasWindowsPtyConfiguration
+          ? growth
+          : canRevealHistory
           ? growth > oldBase
                 ? growth - oldBase
                 : 0
@@ -1820,6 +1834,7 @@ final class TerminalBufferNamespace implements Disposable {
     int rows,
     TerminalCellAttributes eraseAttributes, {
     bool reflowCursorLine = false,
+    TerminalWindowsPtyOptions windowsPty = const TerminalWindowsPtyOptions(),
   }) {
     _columns = columns;
     _rows = rows;
@@ -1828,8 +1843,14 @@ final class TerminalBufferNamespace implements Disposable {
       rows,
       eraseAttributes,
       reflowCursorLine: reflowCursorLine,
+      windowsPty: windowsPty,
     );
-    alternate.resize(columns, rows, eraseAttributes);
+    alternate.resize(
+      columns,
+      rows,
+      eraseAttributes,
+      windowsPty: windowsPty,
+    );
   }
 
   @override

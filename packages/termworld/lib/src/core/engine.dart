@@ -1929,6 +1929,7 @@ final class _TerminalCoreEngine {
       rows,
       _eraseAttributes,
       reflowCursorLine: options.reflowCursorLine,
+      windowsPty: options.windowsPty,
     );
     _resetTabStops();
   }
