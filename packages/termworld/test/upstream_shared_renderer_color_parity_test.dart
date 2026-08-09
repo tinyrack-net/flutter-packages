@@ -435,7 +435,6 @@ void main() {
         terminal.dispose();
       }
     });
-
   });
 }
 
@@ -496,11 +495,7 @@ Future<List<Color>> _contrastColors(
               )
               .foreground,
     ];
-    return dim
-        ? <Color>[
-            for (final color in colors) TerminalThemes.blend(background, color),
-          ]
-        : colors;
+    return colors;
   } finally {
     terminal.dispose();
   }

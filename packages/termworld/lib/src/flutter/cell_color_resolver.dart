@@ -169,16 +169,19 @@ final class TerminalCellColorResolver {
         foregroundOverridden = true;
       }
     }
+    var contrastOverridden = false;
     if (cell.code != 0 &&
         !treatGlyphAsBackground(cell.code) &&
         minimumContrastRatio != 1) {
-      foreground = TerminalThemes.ensureContrast(
+      final adjusted = TerminalThemes.ensureContrast(
         background,
         foreground,
         minimumContrastRatio / (cell.isDim ? 2 : 1),
       );
+      contrastOverridden = adjusted != foreground;
+      foreground = adjusted;
     }
-    if (cell.isDim && !foregroundOverridden) {
+    if (cell.isDim && !foregroundOverridden && !contrastOverridden) {
       foreground = foreground.withValues(alpha: foreground.a * 0.5);
     }
     return TerminalResolvedCellColors(

@@ -18,7 +18,7 @@ void main() {
       fixture.terminal.selectAll();
       fixture.focusNode.requestFocus();
       await tester.pump();
-      final image = await fixture.capture();
+      final image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 0, _blue), isTrue);
     });
 
@@ -36,13 +36,13 @@ void main() {
       fixture.terminal.scrollLines(-2);
       fixture.focusNode.requestFocus();
       await tester.pump();
-      var image = await fixture.capture();
+      var image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 4, _blue), isTrue);
       expect(_cellContains(image, 0, 2, _blue), isFalse);
 
       fixture.focusNode.unfocus();
       await tester.pump();
-      image = await fixture.capture();
+      image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 4, _blue), isTrue);
       expect(_cellCenter(image, 0, 4), _black);
     });
@@ -67,7 +67,7 @@ void main() {
         )
         ..scrollLines(-2);
       await tester.pump();
-      final image = await fixture.capture();
+      final image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 0, _red), isFalse);
       expect(_cellCenter(image, 0, 0), _black);
     });
@@ -81,7 +81,7 @@ void main() {
       );
       fixture.focusNode.requestFocus();
       await tester.pump();
-      final image = await fixture.capture();
+      final image = await _capture(tester, fixture);
       expect(_cellCenter(image, 0, 0), const Color(0xff800000));
     });
 
@@ -97,7 +97,7 @@ void main() {
         );
         fixture.focusNode.requestFocus();
         await tester.pump();
-        final image = await fixture.capture();
+        final image = await _capture(tester, fixture);
         expect(_cellContains(image, 0, 0, const Color(0xff800000)), isTrue);
       },
     );
@@ -106,7 +106,7 @@ void main() {
       tester,
     ) async {
       final fixture = await _mount(tester);
-      final image = await fixture.capture();
+      final image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 0, _white), isFalse);
       expect(_cellCenter(image, 0, 0), _black);
     });
@@ -115,7 +115,7 @@ void main() {
       tester,
     ) async {
       final fixture = await _mount(tester, nestedSurface: true);
-      final image = await fixture.capture();
+      final image = await _capture(tester, fixture);
       expect(_cellContains(image, 0, 0, _white), isFalse);
       expect(_cellCenter(image, 0, 0), _black);
     });
@@ -212,6 +212,9 @@ final class _Pixels {
     );
   }
 }
+
+Future<_Pixels> _capture(WidgetTester tester, _Fixture fixture) async =>
+    (await tester.runAsync(fixture.capture))!;
 
 Color _cellCenter(_Pixels image, int column, int row) => image.colorAt(
   column * _cellWidth + _cellWidth ~/ 2,
