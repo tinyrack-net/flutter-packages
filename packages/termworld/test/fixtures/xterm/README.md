@@ -5,6 +5,10 @@ The files in `escape_sequence_files` are copied from xterm.js revision
 in `packages/termworld/tool/xterm_reference.json`. They remain available under
 the adjacent xterm.js MIT license.
 
+`issue-2444` is the exact addon-search regression fixture from the same pinned
+revision. Its SHA-256 is
+`06993b5124767fedb0d2a4aa1e2cafe5fee1ddb66a9da61acea0b81e3225f847`.
+
 `kitty_keyboard_cases.json` captures every evaluation performed by
 `src/common/input/KittyKeyboard.test.ts` at the same revision. It was produced
 by instrumenting the pinned implementation in memory while running all 165
