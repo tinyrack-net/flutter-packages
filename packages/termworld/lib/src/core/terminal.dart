@@ -1549,10 +1549,10 @@ final class _OscLinkProvider implements TerminalLinkProvider {
     if (terminal.options.linkHandler?.allowNonHttpProtocols ?? false) {
       return true;
     }
-    final parsed = Uri.tryParse(uri);
-    return parsed != null &&
-        parsed.hasScheme &&
-        (parsed.scheme == 'http' || parsed.scheme == 'https');
+    final schemeEnd = uri.indexOf(':');
+    if (schemeEnd <= 0) return false;
+    final scheme = uri.substring(0, schemeEnd).toLowerCase();
+    return scheme == 'http' || scheme == 'https';
   }
 
   TerminalBufferRange _wrappedRange(

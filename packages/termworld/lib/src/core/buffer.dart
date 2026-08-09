@@ -615,7 +615,7 @@ final class TerminalBufferLine {
     }
   }
 
-  /// Replaces a cell and its wide-character continuation when needed.
+  /// Replaces a cell and writes its wide-character continuation when needed.
   void setCell(
     int index,
     String chars,
@@ -624,15 +624,6 @@ final class TerminalBufferLine {
   ) {
     if (index < 0 || index >= length) return;
     _invalidateStringCache();
-    if (_cells[index].width == 0 && index > 0) {
-      var base = index - 1;
-      while (base > 0 && _cells[base].width == 0) {
-        base--;
-      }
-      _cells[base].reset(attributes);
-    } else if (_cells[index].width == 2 && width != 2 && index + 1 < length) {
-      _cells[index + 1].reset(attributes);
-    }
     _cells[index]
       ..chars = chars
       ..width = width

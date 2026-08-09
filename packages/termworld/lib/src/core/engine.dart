@@ -845,8 +845,11 @@ final class _TerminalCoreEngine {
         }
       case 'b':
         if (_precedingCharacter.isNotEmpty) {
+          final precedingCharacter = _precedingCharacter;
           for (var count = 0; count < amount; count++) {
-            _print(_precedingCharacter, _precedingCharacter.runes.single);
+            for (final codePoint in precedingCharacter.runes) {
+              _print(String.fromCharCode(codePoint), codePoint);
+            }
           }
         }
       case 'c':
@@ -1108,6 +1111,12 @@ final class _TerminalCoreEngine {
     if (!autoWrapMode && width == 2 && column == _columns - 1) column--;
     if (insertMode) {
       buffer.active.currentLine.insertCells(column, width, _eraseAttributes);
+    } else {
+      buffer.active.currentLine.erase(
+        column,
+        column + width,
+        _attributes,
+      );
     }
     buffer.active.currentLine.setCell(column, mapped, width, _attributes);
     _precedingCharacter = mapped;
@@ -1345,6 +1354,10 @@ final class _TerminalCoreEngine {
       buffer.active.currentLine.isWrapped = false;
       buffer.active.cursorY--;
       buffer.active.cursorX = _columns - 1;
+      final cell = buffer.active.currentLine.getCell(buffer.active.cursorX);
+      if (cell != null && cell.width == 1 && cell.chars.isEmpty) {
+        buffer.active.cursorX--;
+      }
     }
   }
 
@@ -1423,8 +1436,8 @@ final class _TerminalCoreEngine {
 
   void _moveX(int amount) {
     _pendingWrap = false;
-    final current = buffer.active.cursorX.clamp(0, _columns - 1);
-    buffer.active.cursorX = (current + amount).clamp(
+    _restrictCursor();
+    buffer.active.cursorX = (buffer.active.cursorX + amount).clamp(
       0,
       _columns - 1,
     );
@@ -1464,11 +1477,13 @@ final class _TerminalCoreEngine {
 
   void _setX(int column) {
     _pendingWrap = false;
+    _restrictCursor();
     buffer.active.cursorX = column.clamp(0, _columns - 1);
   }
 
   void _setY(int row) {
     _pendingWrap = false;
+    _restrictCursor();
     final adjusted = originMode ? row + marginTop : row;
     buffer.active.cursorY = adjusted.clamp(
       originMode ? marginTop : 0,
