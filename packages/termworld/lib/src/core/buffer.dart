@@ -165,6 +165,7 @@ final class TerminalCellAttributes {
     this.overline = false,
     this.protected = false,
     this.hyperlinkId = 0,
+    this.underlineVariantOffset = 0,
   });
 
   /// Foreground color.
@@ -209,6 +210,9 @@ final class TerminalCellAttributes {
   /// Internal numeric identity assigned to an OSC 8 hyperlink.
   int hyperlinkId;
 
+  /// Vertical underline variant offset encoded by xterm in extended attrs.
+  int underlineVariantOffset;
+
   /// Returns an independent copy of these attributes.
   TerminalCellAttributes copy() => TerminalCellAttributes(
     foreground: foreground,
@@ -225,6 +229,7 @@ final class TerminalCellAttributes {
     overline: overline,
     protected: protected,
     hyperlinkId: hyperlinkId,
+    underlineVariantOffset: underlineVariantOffset,
   );
 
   /// Whether every observable attribute equals [other].
@@ -242,7 +247,8 @@ final class TerminalCellAttributes {
       strikethrough == other.strikethrough &&
       overline == other.overline &&
       protected == other.protected &&
-      hyperlinkId == other.hyperlinkId;
+      hyperlinkId == other.hyperlinkId &&
+      underlineVariantOffset == other.underlineVariantOffset;
 }
 
 final class _CellData {
@@ -386,6 +392,15 @@ final class TerminalCell {
   /// Numeric OSC 8 hyperlink identity, or zero outside a hyperlink.
   int get hyperlinkId => _cell.attributes.hyperlinkId;
 
+  /// Vertical underline variant offset in the range accepted by xterm.
+  int get underlineVariantOffset => _cell.attributes.underlineVariantOffset;
+
+  /// Whether this cell carries any xterm extended attribute data.
+  bool get hasExtendedAttributes =>
+      underlineStyle != TerminalUnderlineStyle.none ||
+      !isUnderlineColorDefault ||
+      underlineVariantOffset != 0;
+
   /// Whether all attributes have their default values.
   bool get isAttributeDefault =>
       _cell.attributes.sameAs(TerminalCellAttributes());
@@ -458,8 +473,10 @@ final class TerminalBufferLine {
     bool trimRight = false,
     int startColumn = 0,
     int? endColumn,
+    List<int>? outputColumns,
   }) {
-    final isCanonicalRequest = startColumn == 0 && endColumn == null;
+    final isCanonicalRequest =
+        startColumn == 0 && endColumn == null && outputColumns == null;
     final cache = isCanonicalRequest ? stringCache : null;
     cache?.touch();
     final cachedEntry = cache == null ? null : _getStringCacheEntry(false);
@@ -470,20 +487,29 @@ final class TerminalBufferLine {
       }
       if (!cachedEntry!.isTrimmed) return cachedValue;
     }
-    final start = startColumn.clamp(0, length);
-    final end = (endColumn ?? length).clamp(start, length);
+    var start = startColumn.clamp(0, length);
+    var end = (endColumn ?? length).clamp(start, length);
+    if (trimRight) {
+      final trimmedLength = getTrimmedLength();
+      if (trimmedLength < end) end = trimmedLength;
+    }
+    outputColumns?.clear();
     final output = StringBuffer();
-    for (var index = start; index < end; index++) {
-      final cell = _cells[index];
-      if (cell.width == 0) continue;
-      output.write(cell.chars.isEmpty ? ' ' : cell.chars);
+    while (start < end) {
+      final cell = _cells[start];
+      final chars = cell.chars.isEmpty ? ' ' : cell.chars;
+      output.write(chars);
+      for (var index = 0; index < chars.length; index++) {
+        outputColumns?.add(start);
+      }
+      start += cell.width == 0 ? 1 : cell.width;
     }
+    outputColumns?.add(start);
     final value = output.toString();
-    final result = trimRight ? value.trimRight() : value;
     if (cache != null) {
-      _getStringCacheEntry(true)!.setValue(result, isTrimmed: trimRight);
+      _getStringCacheEntry(true)!.setValue(value, isTrimmed: trimRight);
     }
-    return result;
+    return value;
   }
 
   /// Returns an independent copy of this line.
@@ -506,11 +532,16 @@ final class TerminalBufferLine {
   void fill(
     TerminalCellAttributes attributes, {
     bool respectProtection = false,
+    String chars = '',
+    int width = 1,
   }) {
     _invalidateStringCache();
     for (final cell in _cells) {
       if (!respectProtection || !cell.attributes.protected) {
-        cell.reset(attributes);
+        cell
+          ..chars = chars
+          ..width = width
+          ..attributes = attributes.copy();
       }
     }
   }
@@ -524,8 +555,25 @@ final class TerminalBufferLine {
     return 0;
   }
 
+  /// Returns the trimmed length, also treating non-default backgrounds as data.
+  int getNoBackgroundTrimmedLength() {
+    for (var index = length - 1; index >= 0; index--) {
+      final cell = _cells[index];
+      if (cell.chars.isNotEmpty ||
+          cell.attributes.background.mode != TerminalColorMode.defaultColor) {
+        return index + cell.width;
+      }
+    }
+    return 0;
+  }
+
   /// Resizes this line to [columns] cells.
-  void resize(int columns, TerminalCellAttributes eraseAttributes) {
+  void resize(
+    int columns,
+    TerminalCellAttributes eraseAttributes, {
+    String chars = '',
+    int width = 1,
+  }) {
     _invalidateStringCache();
     if (columns < length) {
       _cells.removeRange(columns, length);
@@ -533,7 +581,11 @@ final class TerminalBufferLine {
       _cells.addAll(
         List<_CellData>.generate(
           columns - length,
-          (_) => _CellData(attributes: eraseAttributes),
+          (_) => _CellData(
+            chars: chars,
+            width: width,
+            attributes: eraseAttributes,
+          ),
         ),
       );
     }
@@ -559,6 +611,14 @@ final class TerminalBufferLine {
         ..attributes = attributes.copy();
     }
   }
+
+  /// Stores one Unicode scalar and its display width using [attributes].
+  void setCellFromCodepoint(
+    int index,
+    int codePoint,
+    int width,
+    TerminalCellAttributes attributes,
+  ) => setCell(index, String.fromCharCode(codePoint), width, attributes);
 
   /// Appends [value] to the base cell at or before [index].
   void appendCombining(int index, String value) {
@@ -600,8 +660,10 @@ final class TerminalBufferLine {
   void insertCells(
     int index,
     int count,
-    TerminalCellAttributes eraseAttributes,
-  ) {
+    TerminalCellAttributes eraseAttributes, {
+    String chars = '',
+    int width = 1,
+  }) {
     if (count <= 0 || length == 0) return;
     _invalidateStringCache();
     final position = index % length;
@@ -616,7 +678,11 @@ final class TerminalBufferLine {
         position,
         List<_CellData>.generate(
           amount,
-          (_) => _CellData(attributes: eraseAttributes),
+          (_) => _CellData(
+            chars: chars,
+            width: width,
+            attributes: eraseAttributes,
+          ),
         ),
       )
       ..removeRange(oldLength, oldLength + amount);
@@ -627,8 +693,10 @@ final class TerminalBufferLine {
   void deleteCells(
     int index,
     int count,
-    TerminalCellAttributes eraseAttributes,
-  ) {
+    TerminalCellAttributes eraseAttributes, {
+    String chars = '',
+    int width = 1,
+  }) {
     if (count <= 0 || length == 0) return;
     _invalidateStringCache();
     final position = index % length;
@@ -639,7 +707,11 @@ final class TerminalBufferLine {
       ..addAll(
         List<_CellData>.generate(
           amount,
-          (_) => _CellData(attributes: eraseAttributes),
+          (_) => _CellData(
+            chars: chars,
+            width: width,
+            attributes: eraseAttributes,
+          ),
         ),
       );
     if (position > 0 && _cells[position - 1].width == 2) {
@@ -683,12 +755,68 @@ final class TerminalBufferLine {
     int end,
     TerminalCellAttributes eraseAttributes, {
     bool respectProtection = false,
-  }) => erase(
-    start,
-    end,
-    eraseAttributes,
-    respectProtection: respectProtection,
-  );
+    String chars = '',
+    int width = 1,
+  }) {
+    if (chars.isEmpty && width == 1) {
+      erase(
+        start,
+        end,
+        eraseAttributes,
+        respectProtection: respectProtection,
+      );
+      return;
+    }
+    _invalidateStringCache();
+    final first = start.clamp(0, length);
+    final last = end.clamp(first, length);
+    if (first > 0 &&
+        _cells[first - 1].width == 2 &&
+        (!respectProtection || !_cells[first - 1].attributes.protected)) {
+      _cells[first - 1].reset(eraseAttributes);
+    }
+    if (last < length &&
+        last > 0 &&
+        _cells[last - 1].width == 2 &&
+        (!respectProtection || !_cells[last].attributes.protected)) {
+      _cells[last].reset(eraseAttributes);
+    }
+    for (var index = first; index < last; index++) {
+      if (respectProtection && _cells[index].attributes.protected) continue;
+      _cells[index]
+        ..chars = chars
+        ..width = width
+        ..attributes = eraseAttributes.copy();
+    }
+  }
+
+  /// Copies [count] cells from [source] without creating public cell objects.
+  void copyCellsFrom(
+    TerminalBufferLine source,
+    int sourceColumn,
+    int destinationColumn,
+    int count, {
+    bool applyInReverse = false,
+  }) {
+    _invalidateStringCache();
+    final indices = applyInReverse
+        ? Iterable<int>.generate(count, (index) => count - index - 1)
+        : Iterable<int>.generate(count);
+    for (final index in indices) {
+      final sourceIndex = sourceColumn + index;
+      final destinationIndex = destinationColumn + index;
+      if (sourceIndex < 0 ||
+          sourceIndex >= source.length ||
+          destinationIndex < 0 ||
+          destinationIndex >= length) {
+        continue;
+      }
+      _cells[destinationIndex] = source._cells[sourceIndex].copy();
+    }
+  }
+
+  /// Dart lists do not retain a separately observable spare backing store.
+  int cleanupMemory() => 0;
 
   BufferLineStringCacheEntry? _getStringCacheEntry(bool createIfNeeded) {
     final cache = stringCache;
