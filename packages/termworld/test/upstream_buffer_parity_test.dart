@@ -92,6 +92,147 @@ void main() {
     expect(buffer.getWrappedRangeForLine(7), (first: 6, last: 9));
   });
 
+  test('xterm Buffer 13', () {
+    final buffer = _bufferNamespace()..resize(40, 24, TerminalCellAttributes());
+    expect(buffer.normal.length, 24);
+    for (var row = 0; row < 24; row++) {
+      expect(buffer.normal.getLine(row)!.length, 40);
+    }
+  });
+
+  test('xterm Buffer 14', () {
+    final buffer = _bufferNamespace()..resize(90, 24, TerminalCellAttributes());
+    expect(buffer.normal.length, 24);
+    for (var row = 0; row < 24; row++) {
+      expect(buffer.normal.getLine(row)!.length, 90);
+    }
+  });
+
+  test('xterm Buffer 15', () {
+    final buffers = _bufferNamespace();
+    expect(buffers.alternate.maximumLength, 24);
+    buffers.resize(80, 48, TerminalCellAttributes());
+    expect(buffers.alternate.maximumLength, 48);
+    buffers.resize(80, 12, TerminalCellAttributes());
+    expect(buffers.alternate.maximumLength, 12);
+  });
+
+  test('xterm Buffer 16', () {
+    final buffers = _bufferNamespace(scrollback: 0);
+    final marker = buffers.normal.addMarker(23);
+    buffers.normal.scroll(TerminalCellAttributes());
+    expect(marker.line, 22);
+  });
+
+  test('xterm Buffer 17', () {
+    final buffers = _bufferNamespace(scrollback: 0);
+    final marker = buffers.normal.addMarker(0);
+    expect((marker.isDisposed, buffers.normal.markers.length), (false, 1));
+    buffers.normal.scroll(TerminalCellAttributes());
+    expect((marker.isDisposed, buffers.normal.markers.length), (true, 0));
+  });
+
+  test('xterm Buffer 18', () {
+    final buffers = _bufferNamespace(scrollback: 0);
+    final events = <String>[];
+    final marker = buffers.normal.addMarker(0);
+    marker.onDispose.listen((_) => events.add('disposed'));
+    buffers.normal.scroll(TerminalCellAttributes());
+    expect(events, <String>['disposed']);
+  });
+
+  test('xterm Buffer 19', () {
+    final buffer = _translationBuffer(4)
+      ..getLine(0)!.setCell(0, 'a', 1, TerminalCellAttributes())
+      ..getLine(0)!.setCell(1, 'b', 1, TerminalCellAttributes())
+      ..getLine(0)!.setCell(2, 'c', 1, TerminalCellAttributes())
+      ..getLine(0)!.setCell(3, 'd', 1, TerminalCellAttributes());
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 2),
+      'ab',
+    );
+  });
+
+  test('xterm Buffer 20', () {
+    final buffer = _translationBuffer(3);
+    final line = buffer.getLine(0)!
+      ..setCell(0, '語', 2, TerminalCellAttributes())
+      ..setCell(1, '', 0, TerminalCellAttributes())
+      ..setCell(2, 'a', 1, TerminalCellAttributes());
+    expect(line.getCell(0)!.width, 2);
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 1),
+      '語',
+    );
+  });
+
+  test('xterm Buffer 21', () {
+    final buffer = _wideTranslationBuffer();
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 1),
+      '語',
+    );
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 2),
+      '語',
+    );
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 3),
+      '語a',
+    );
+  });
+
+  test('xterm Buffer 22', () {
+    final buffer = _translationBuffer(2);
+    buffer.getLine(0)!
+      ..setCell(0, '😁', 1, TerminalCellAttributes())
+      ..setCell(1, 'a', 1, TerminalCellAttributes());
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 1),
+      '😁',
+    );
+    expect(
+      buffer.translateBufferLineToString(0, trimRight: true, endColumn: 2),
+      '😁a',
+    );
+  });
+
+  test('xterm Buffer 23', () {
+    final firstBuffer = _translationBuffer(2);
+    firstBuffer.getLine(0)!
+      ..setCell(0, '😁', 2, TerminalCellAttributes())
+      ..setCell(1, '', 0, TerminalCellAttributes());
+    expect(
+      firstBuffer.translateBufferLineToString(
+        0,
+        trimRight: true,
+        endColumn: 1,
+      ),
+      '😁',
+    );
+    expect(
+      firstBuffer.translateBufferLineToString(
+        0,
+        trimRight: true,
+        endColumn: 2,
+      ),
+      '😁',
+    );
+    final secondBuffer = _translationBuffer(3);
+    secondBuffer.getLine(0)!
+      ..setCell(0, '😁', 2, TerminalCellAttributes())
+      ..setCell(1, '', 0, TerminalCellAttributes())
+      ..setCell(2, 'a', 1, TerminalCellAttributes());
+    expect(
+      secondBuffer.translateBufferLineToString(
+        0,
+        trimRight: true,
+        endColumn: 3,
+      ),
+      '😁a',
+    );
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -397,4 +538,33 @@ TerminalBuffer _rangeBuffer() {
   );
   addTearDown(namespace.dispose);
   return namespace.normal;
+}
+
+TerminalBufferNamespace _bufferNamespace({int scrollback = 1000}) {
+  final namespace = TerminalBufferNamespace(
+    columns: 80,
+    rows: 24,
+    scrollback: scrollback,
+  );
+  addTearDown(namespace.dispose);
+  return namespace;
+}
+
+TerminalBuffer _translationBuffer(int columns) {
+  final namespace = TerminalBufferNamespace(
+    columns: columns,
+    rows: 1,
+    scrollback: 0,
+  );
+  addTearDown(namespace.dispose);
+  return namespace.normal;
+}
+
+TerminalBuffer _wideTranslationBuffer() {
+  final buffer = _translationBuffer(3);
+  buffer.getLine(0)!
+    ..setCell(0, '語', 2, TerminalCellAttributes())
+    ..setCell(1, '', 0, TerminalCellAttributes())
+    ..setCell(2, 'a', 1, TerminalCellAttributes());
+  return buffer;
 }
