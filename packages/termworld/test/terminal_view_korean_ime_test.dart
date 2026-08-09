@@ -114,7 +114,8 @@ void main() {
     expect(
       output.join(),
       'ㅁㄴㅇㄹ',
-      reason: 'every jamo reaches the terminal as it commits, never in a '
+      reason:
+          'every jamo reaches the terminal as it commits, never in a '
           'burst on the next space',
     );
     expect(
