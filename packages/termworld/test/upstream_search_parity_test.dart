@@ -590,7 +590,9 @@ void main() {
 
 Future<String> _issue2444Fixture() async {
   var fixture = await File(
-    'packages/termworld/test/fixtures/xterm/issue-2444',
+    Directory.current.path.endsWith('termworld')
+        ? 'test/fixtures/xterm/issue-2444'
+        : 'packages/termworld/test/fixtures/xterm/issue-2444',
   ).readAsString();
   fixture = fixture.replaceAll('\r\n', '\n');
   fixture = fixture.replaceAll('\n', Platform.isWindows ? '\r\n' : '\n\r');

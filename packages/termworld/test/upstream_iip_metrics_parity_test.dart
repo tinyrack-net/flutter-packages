@@ -7,7 +7,7 @@ import 'package:termworld/addon_image.dart';
 
 void main() {
   test('xterm IIPMetrics 00', () {
-    final fixtureRoot = Directory.current.path.endsWith('packages/termworld')
+    final fixtureRoot = Directory.current.path.endsWith('termworld')
         ? 'test/fixtures/xterm_image'
         : 'packages/termworld/test/fixtures/xterm_image';
     final document =

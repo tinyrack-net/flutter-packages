@@ -47,7 +47,7 @@ void main() {
 
   testWidgets('xterm ImageAddon playwright 4', (tester) async {
     await tester.runAsync(() async {
-      final root = Directory.current.path.endsWith('packages/termworld')
+      final root = Directory.current.path.endsWith('termworld')
           ? 'test/fixtures/xterm_image/testimages'
           : 'packages/termworld/test/fixtures/xterm_image/testimages';
       final png = await decodeImageFromList(

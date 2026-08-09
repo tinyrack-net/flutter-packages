@@ -97,7 +97,7 @@ void _runCase(int index, List<Map<String, Object?>> cases) {
 List<Map<String, Object?>> _loadCases() {
   const relative = 'test/fixtures/xterm/win32_input_mode_cases.json';
   final file = File(
-    Directory.current.path.endsWith('packages/termworld')
+    Directory.current.path.endsWith('termworld')
         ? relative
         : 'packages/termworld/$relative',
   );
