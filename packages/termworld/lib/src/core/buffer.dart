@@ -1054,6 +1054,7 @@ final class TerminalBuffer implements Disposable {
     required int columns,
     required int rows,
     required int scrollback,
+    bool fillViewport = true,
     void Function(int amount)? onTrim,
     void Function(int index, int amount)? onInsert,
     void Function(int index, int amount)? onDelete,
@@ -1063,9 +1064,14 @@ final class TerminalBuffer implements Disposable {
        _onTrim = _initialCallback(onTrim),
        _onInsert = _initialCallback(onInsert),
        _onDelete = _initialCallback(onDelete) {
-    _lines.addAll(
-      List<TerminalBufferLine>.generate(rows, (_) => _blankLine(columns, null)),
-    );
+    if (fillViewport) {
+      _lines.addAll(
+        List<TerminalBufferLine>.generate(
+          rows,
+          (_) => _blankLine(columns, null),
+        ),
+      );
+    }
   }
 
   /// Kind of this buffer.
@@ -1203,6 +1209,13 @@ final class TerminalBuffer implements Disposable {
     bool reflowCursorLine = false,
   }) {
     _stringCache.clear();
+    if (type == TerminalBufferType.alternate && _lines.isEmpty) {
+      _columns = columns;
+      _rows = rows;
+      cursorX = cursorX.clamp(0, columns - 1);
+      cursorY = cursorY.clamp(0, rows - 1);
+      return;
+    }
     if (type == TerminalBufferType.normal && columns != _columns) {
       _reflow(columns, eraseAttributes, reflowCursorLine);
     }
@@ -1259,6 +1272,16 @@ final class TerminalBuffer implements Disposable {
           (_) => _blankLine(_columns, eraseAttributes),
         ),
       );
+    cursorX = 0;
+    cursorY = 0;
+    displayY = 0;
+  }
+
+  /// Clears all alternate-buffer storage while it is inactive.
+  void clearToEmpty() {
+    _stringCache.clear();
+    _deleteLines(0, _lines.length);
+    _lines.clear();
     cursorX = 0;
     cursorY = 0;
     displayY = 0;
@@ -1719,6 +1742,7 @@ final class TerminalBufferNamespace implements Disposable {
       columns: _columns,
       rows: _rows,
       scrollback: 0,
+      fillViewport: false,
     );
     _active = _normal;
     _initialized = true;
@@ -1733,7 +1757,7 @@ final class TerminalBufferNamespace implements Disposable {
       ..cursorY = alternate.cursorY;
     alternate
       ..clearAllMarkers()
-      ..clear();
+      ..clearToEmpty();
     _switch(normal);
   }
 

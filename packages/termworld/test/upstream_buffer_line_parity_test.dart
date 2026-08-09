@@ -38,7 +38,11 @@ void main() {
   });
 
   test('xterm BufferLine 05', () {
-    expect(_line('abc  ').getTrimmedLength(), 3);
+    final line = TerminalBufferLine(5)
+      ..setCell(0, 'a', 1, TerminalCellAttributes())
+      ..setCell(1, 'b', 1, TerminalCellAttributes())
+      ..setCell(2, 'c', 1, TerminalCellAttributes());
+    expect(line.getTrimmedLength(), 3);
   });
 
   test('xterm BufferLine 06', () {
@@ -48,7 +52,9 @@ void main() {
   });
 
   test('xterm BufferLine 07', () {
-    final line = _line('a  ')..appendCombining(0, '\u0301');
+    final line = TerminalBufferLine(3)
+      ..setCell(0, 'a', 1, TerminalCellAttributes())
+      ..appendCombining(0, '\u0301');
     expect(line.getTrimmedLength(), 1);
     expect(line.translateToString(trimRight: true), 'a\u0301');
   });

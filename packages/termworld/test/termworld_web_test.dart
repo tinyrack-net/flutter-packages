@@ -81,9 +81,14 @@ void main() {
   test('xterm WebFontsAddon 02', () async {
     _clearFonts();
     addTearDown(_clearFonts);
-    web.document.fonts
-      ..add(_fontFace('"Kongtext"'))
-      ..add(_fontFace("'BPdots'"));
+    final style = web.HTMLStyleElement()
+      ..textContent = '''
+@font-face { font-family: 'Kongtext'; src: local("DejaVu Sans"); }
+@font-face { font-family: 'BPdots'; src: local("DejaVu Sans"); }
+''';
+    web.document.head!.append(style);
+    addTearDown(style.remove);
+    await web.document.fonts.ready.toDart;
     final loaded = await loadFonts(<String>['Kongtext', 'BPdots']);
     expect(loaded, hasLength(2));
     expect(

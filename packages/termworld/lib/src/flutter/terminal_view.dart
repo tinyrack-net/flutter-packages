@@ -11,6 +11,7 @@ import 'package:termworld/src/core/keyboard.dart';
 import 'package:termworld/src/core/kitty_keyboard.dart';
 import 'package:termworld/src/core/marker.dart';
 import 'package:termworld/src/core/options.dart';
+import 'package:termworld/src/core/selection_service.dart';
 import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
@@ -737,90 +738,13 @@ final class _TerminalViewState extends State<TerminalView> {
   TerminalBufferRange? _wordRange(
     TerminalCellOffset position, {
     required bool allowWhitespaceOnly,
-  }) {
-    final terminal = widget.terminal;
-    final buffer = terminal.buffer.active;
-    final line = buffer.getLine(position.y);
-    if (line == null || position.x >= terminal.cols) return null;
-    var column = position.x;
-    while (column > 0 && line.getCell(column)?.width == 0) {
-      column--;
-    }
-    final initial = line.getCell(column);
-    if (initial == null) return null;
-    final spaces = initial.chars == ' ';
-    bool matches(TerminalCell? cell) {
-      if (cell == null) return false;
-      if (spaces) return cell.chars == ' ';
-      if (cell.width == 0) return true;
-      return !terminal.options.wordSeparator.contains(cell.chars);
-    }
+  }) => TerminalSelectionService(widget.terminal).wordRange(
+    TerminalBufferPosition(position.x, position.y),
+    allowWhitespaceOnly: allowWhitespaceOnly,
+  );
 
-    if (!spaces && !matches(initial)) {
-      if (!allowWhitespaceOnly) return null;
-    }
-    var startRow = position.y;
-    var startColumn = column;
-    while (true) {
-      if (startColumn > 0) {
-        final previous = buffer.getLine(startRow)?.getCell(startColumn - 1);
-        if (!matches(previous)) break;
-        startColumn--;
-        continue;
-      }
-      final currentLine = buffer.getLine(startRow);
-      if (spaces || startRow == 0 || !(currentLine?.isWrapped ?? false)) {
-        break;
-      }
-      final previous = buffer.getLine(startRow - 1)?.getCell(terminal.cols - 1);
-      if (!matches(previous)) break;
-      startRow--;
-      startColumn = terminal.cols - 1;
-    }
-    var endRow = position.y;
-    var endColumn = column;
-    while (true) {
-      if (endColumn + 1 < terminal.cols) {
-        final next = buffer.getLine(endRow)?.getCell(endColumn + 1);
-        if (!matches(next)) break;
-        endColumn++;
-        continue;
-      }
-      final nextLine = buffer.getLine(endRow + 1);
-      if (spaces ||
-          nextLine == null ||
-          !nextLine.isWrapped ||
-          !matches(nextLine.getCell(0))) {
-        break;
-      }
-      endRow++;
-      endColumn = 0;
-    }
-    final onlyWhitespace = spaces || initial.chars.trim().isEmpty;
-    if (!allowWhitespaceOnly && onlyWhitespace) return null;
-    return TerminalBufferRange(
-      start: TerminalBufferPosition(startColumn, startRow),
-      end: TerminalBufferPosition(endColumn + 1, endRow),
-    );
-  }
-
-  TerminalBufferRange? _wrappedLineRange(int row) {
-    final buffer = widget.terminal.buffer.active;
-    if (buffer.getLine(row) == null) return null;
-    var first = row;
-    while (first > 0 && (buffer.getLine(first)?.isWrapped ?? false)) {
-      first--;
-    }
-    var last = row;
-    while (last + 1 < buffer.length &&
-        (buffer.getLine(last + 1)?.isWrapped ?? false)) {
-      last++;
-    }
-    return TerminalBufferRange(
-      start: TerminalBufferPosition(0, first),
-      end: TerminalBufferPosition(widget.terminal.cols, last),
-    );
-  }
+  TerminalBufferRange? _wrappedLineRange(int row) =>
+      TerminalSelectionService(widget.terminal).wrappedLineRange(row);
 
   void _selectRange(
     TerminalBufferRange range, {

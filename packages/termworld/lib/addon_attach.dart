@@ -21,6 +21,8 @@ final class AttachAddon extends ManagedTerminalAddon {
   final bool bidirectional;
 
   StreamSubscription<Object?>? _subscription;
+  final List<Object> _incoming = <Object>[];
+  Timer? _incomingTimer;
   _AttachSocketState _socketState = _AttachSocketState.connecting;
 
   @override
@@ -51,9 +53,9 @@ final class AttachAddon extends ManagedTerminalAddon {
     _subscription = socket.stream.listen(
       (event) {
         if (event is String || event is Uint8List) {
-          terminal.write(event as Object);
+          _queueIncoming(terminal, event as Object);
         } else if (event is List<int>) {
-          terminal.write(Uint8List.fromList(event));
+          _queueIncoming(terminal, Uint8List.fromList(event));
         }
       },
       onError: (_) {
@@ -65,6 +67,17 @@ final class AttachAddon extends ManagedTerminalAddon {
         dispose();
       },
     );
+  }
+
+  void _queueIncoming(Terminal terminal, Object data) {
+    _incoming.add(data);
+    _incomingTimer ??= Timer(Duration.zero, () {
+      _incomingTimer = null;
+      if (isDisposed) return;
+      final pending = List<Object>.of(_incoming);
+      _incoming.clear();
+      pending.forEach(terminal.write);
+    });
   }
 
   void _send(Object data) {
@@ -81,6 +94,9 @@ final class AttachAddon extends ManagedTerminalAddon {
   @override
   void dispose() {
     if (isDisposed) return;
+    _incomingTimer?.cancel();
+    _incomingTimer = null;
+    _incoming.clear();
     unawaited(_subscription?.cancel());
     _subscription = null;
     super.dispose();

@@ -847,7 +847,13 @@ final class Terminal extends DisposableStore {
       _onCursorMove.fire(TerminalVoid.value);
     }
     if (!_engine.synchronizedOutputMode) {
-      _onRender.fire(TerminalRenderEvent(start: 0, end: rows - 1));
+      final nextCursorY = buffer.active.cursorY;
+      _onRender.fire(
+        TerminalRenderEvent(
+          start: cursorY < nextCursorY ? cursorY : nextCursorY,
+          end: cursorY > nextCursorY ? cursorY : nextCursorY,
+        ),
+      );
     }
   }
 
@@ -1124,7 +1130,6 @@ final class Terminal extends DisposableStore {
   TerminalMarker? registerMarker({int cursorYOffset = 0}) {
     final active = buffer.active;
     final y = active.absoluteCursorY + cursorYOffset;
-    if (y < 0 || y >= active.length) return null;
     return active.addMarker(y);
   }
 

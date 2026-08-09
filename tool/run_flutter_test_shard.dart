@@ -40,7 +40,7 @@ Future<void> main(List<String> arguments) async {
     '$shardIndex of $shardCount',
   );
   final process = await Process.start(
-    'flutter',
+    Platform.isWindows ? 'flutter.bat' : 'flutter',
     <String>[
       'test',
       ...selected,

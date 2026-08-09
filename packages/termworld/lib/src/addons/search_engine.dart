@@ -293,9 +293,21 @@ final class SearchEngine {
           searchableTerm,
           searchOffset - searchableTerm.length,
         );
+        while (resultIndex >= 0 &&
+            options.wholeWord &&
+            !_isWholeWord(resultIndex, searchableLine, searchableTerm)) {
+          resultIndex = resultIndex == 0
+              ? -1
+              : searchableLine.lastIndexOf(searchableTerm, resultIndex - 1);
+        }
       }
     } else {
       resultIndex = searchableLine.indexOf(searchableTerm, searchOffset);
+      while (resultIndex >= 0 &&
+          options.wholeWord &&
+          !_isWholeWord(resultIndex, searchableLine, searchableTerm)) {
+        resultIndex = searchableLine.indexOf(searchableTerm, resultIndex + 1);
+      }
     }
     if (resultIndex < 0) return null;
     if (options.wholeWord &&
