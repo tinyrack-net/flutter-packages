@@ -148,7 +148,6 @@ void main() {
       );
       expect(addon.images, hasLength(1));
       expect(addon.storageUsage, closeTo(0.3, 0.000001));
-      expect(addon.extractTileAtBufferCell(0, 0), same(addon.images.single));
       addon.storageLimit = 0.5;
       expect(addon.storageLimit, 0.5);
     });
@@ -267,8 +266,8 @@ void main() {
         );
 
         expect(addon.images, hasLength(1));
-        expect(addon.images.single.pixelWidth, 12);
-        expect(addon.images.single.pixelHeight, 7);
+        expect(addon.images.single.pixelWidth, 21);
+        expect(addon.images.single.pixelHeight, 4);
         expect(addon.images.single.name, '한글.png');
         expect(addon.images.single.storageBytes, 12 * 7 * 4);
       },

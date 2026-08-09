@@ -114,11 +114,11 @@ void main() {
         error!.code,
         error!.currentState,
         error!.collect,
-        error!.parameters,
         error!.abort,
       ),
-      (6, '€'.codeUnitAt(0), 4, '', <TerminalParameter>[1, 2, 0], false),
+      (6, '€'.codeUnitAt(0), 4, '', false),
     );
+    expect(error!.parameters, <TerminalParameter>[1, 2, 0]);
     parser
       ..clearErrorHandler()
       ..clearErrorHandler();
