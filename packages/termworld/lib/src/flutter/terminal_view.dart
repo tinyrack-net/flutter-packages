@@ -1399,9 +1399,16 @@ final class _TerminalPainter extends CustomPainter {
           dimensions.cellWidth * cell.width,
           dimensions.cellHeight,
         );
+        final foregroundValue =
+            cell.isBold &&
+                terminal.options.drawBoldTextInBrightColors &&
+                cell.foregroundMode == TerminalColorMode.palette &&
+                cell.foreground < 8
+            ? cell.foreground + 8
+            : cell.foreground;
         var foreground = _color(
           cell.foregroundMode,
-          cell.foreground,
+          foregroundValue,
           theme.foreground,
         );
         var background = _color(
@@ -1442,7 +1449,14 @@ final class _TerminalPainter extends CustomPainter {
             terminal.options.minimumContrastRatio / (cell.isDim ? 2 : 1),
           );
         }
-        if (!cell.isInvisible && cell.chars.isNotEmpty) {
+        if (!cell.isInvisible &&
+            (!cell.isBlink || cursorVisible) &&
+            cell.chars.isNotEmpty) {
+          final underlineColor = _color(
+            cell.underlineColorMode,
+            cell.underlineColorValue,
+            foreground,
+          );
           TextPainter(
               text: TextSpan(
                 text: cell.chars,
@@ -1464,6 +1478,20 @@ final class _TerminalPainter extends CustomPainter {
                         if (cell.isStrikethrough) TextDecoration.lineThrough,
                         if (cell.isOverline) TextDecoration.overline,
                       ]),
+                      decorationColor: cell.isUnderline
+                          ? underlineColor
+                          : foreground,
+                      decorationStyle: switch (cell.underlineStyle) {
+                        TerminalUnderlineStyle.double =>
+                          TextDecorationStyle.double,
+                        TerminalUnderlineStyle.curly =>
+                          TextDecorationStyle.wavy,
+                        TerminalUnderlineStyle.dotted =>
+                          TextDecorationStyle.dotted,
+                        TerminalUnderlineStyle.dashed =>
+                          TextDecorationStyle.dashed,
+                        _ => TextDecorationStyle.solid,
+                      },
                     ),
               ),
               textDirection: TextDirection.ltr,
