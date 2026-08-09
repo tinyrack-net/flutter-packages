@@ -3,17 +3,36 @@ import 'package:termworld/termworld_headless.dart';
 
 void main() {
   group('InputHandler colon notation', () {
-    for (final fixture in _fixtures) {
-      test(fixture.name, () async {
-        final expected = await _attributes(fixture.semicolon);
-        final actual = await _attributes(fixture.colon);
-        expect(actual, expected);
-        expect(actual.value, fixture.value);
-        expect(actual.bold, fixture.bold);
-        expect(actual.underline, fixture.underline);
-      });
-    }
+    test('CSI 38:2::50:100:150 m', () => _verify(_fixtures[0]));
+    test('CSI 38:2::50:100: m', () => _verify(_fixtures[1]));
+    test('CSI 38:2::50:: m', () => _verify(_fixtures[2]));
+    test('CSI 38:2:::: m', () => _verify(_fixtures[3]));
+    test('CSI 38;2::50:100:150 m', () => _verify(_fixtures[4]));
+    test('CSI 38;2;50:100:150 m', () => _verify(_fixtures[5]));
+    test('CSI 38;2;50;100:150 m', () => _verify(_fixtures[6]));
+    test('CSI 38:5:50 m', () => _verify(_fixtures[7]));
+    test('CSI 38:5: m', () => _verify(_fixtures[8]));
+    test('CSI 38;5:50 m', () => _verify(_fixtures[9]));
+    test('CSI 38:2 m', () => _verify(_fixtures[10]));
+    test('CSI 38:5 m', () => _verify(_fixtures[11]));
+    test(
+      'CSI 1 ; 38:2::50:100:150 ; 4 m',
+      () => _verify(_fixtures[12]),
+    );
+    test('CSI 1 ; 38:2::50:100: ; 4 m', () => _verify(_fixtures[13]));
+    test('CSI 1 ; 38:2::50:100 ; 4 m', () => _verify(_fixtures[14]));
+    test('CSI 1 ; 38:2:: ; 4 m', () => _verify(_fixtures[15]));
+    test('CSI 1 ; 38;2:: ; 4 m', () => _verify(_fixtures[16]));
   });
+}
+
+Future<void> _verify(_Fixture fixture) async {
+  final expected = await _attributes(fixture.semicolon);
+  final actual = await _attributes(fixture.colon);
+  expect(actual, expected);
+  expect(actual.value, fixture.value);
+  expect(actual.bold, fixture.bold);
+  expect(actual.underline, fixture.underline);
 }
 
 final class _Fixture {
