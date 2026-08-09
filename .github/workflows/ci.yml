@@ -55,7 +55,7 @@ jobs:
         run: dart run tool/verify_termworld_dependencies.dart
 
   dart:
-    name: Dart (${{ matrix.os }})
+    name: Dart (${{ matrix.os }}, shard ${{ matrix.shard }})
     strategy:
       fail-fast: false
       matrix:
@@ -63,6 +63,11 @@ jobs:
           - ubuntu-latest
           - macos-26
           - windows-2025
+        shard:
+          - 0
+          - 1
+          - 2
+          - 3
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
@@ -71,10 +76,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter pub get
-      - name: L1 and L2 Dart unit and widget tests
-        run: |
-          flutter test packages/dropwell/test --test-randomize-ordering-seed=random
-          flutter test packages/termworld/test --test-randomize-ordering-seed=random
+      - name: Dropwell L1 and L2 Dart unit and widget tests
+        if: ${{ matrix.shard == 0 }}
+        run: flutter test packages/dropwell/test --test-randomize-ordering-seed=random
+      - name: Termworld L1 and L2 Dart unit and widget tests
+        run: dart run tool/run_flutter_test_shard.dart packages/termworld ${{ matrix.shard }} 4
 
   coverage:
     name: Coverage
