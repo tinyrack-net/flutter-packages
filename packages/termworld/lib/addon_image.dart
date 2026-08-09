@@ -343,6 +343,7 @@ final class ImageAddon extends ManagedTerminalAddon {
       }),
     );
     add(terminal.onWriteParsed.listen((_) => _evictUnreferencedImages()));
+    add(terminal.onReset.listen((_) => reset()));
   }
 
   void _watchNormalBuffer(TerminalBuffer buffer) {

@@ -637,6 +637,8 @@ final class Terminal extends DisposableStore {
       TerminalEventEmitter<TerminalRenderEvent>();
   final TerminalEventEmitter<TerminalVoid> _onWriteParsed =
       TerminalEventEmitter<TerminalVoid>();
+  final TerminalEventEmitter<TerminalVoid> _onReset =
+      TerminalEventEmitter<TerminalVoid>();
   final TerminalEventEmitter<TerminalResizeEvent> _onResize =
       TerminalEventEmitter<TerminalResizeEvent>();
   final TerminalEventEmitter<int> _onScroll = TerminalEventEmitter<int>();
@@ -676,6 +678,9 @@ final class Terminal extends DisposableStore {
 
   /// xterm-compatible `onWriteParsed` API.
   TerminalEvent<TerminalVoid> get onWriteParsed => _onWriteParsed.event;
+
+  /// Fires synchronously after a full RIS or API reset.
+  TerminalEvent<TerminalVoid> get onReset => _onReset.event;
 
   /// xterm-compatible `onResize` API.
   TerminalEvent<TerminalResizeEvent> get onResize => _onResize.event;
@@ -1356,6 +1361,7 @@ final class Terminal extends DisposableStore {
     _viewportY = 0;
     buffer.active.displayY = 0;
     clearSelection();
+    _onReset.fire(TerminalVoid.value);
     refresh(0, rows - 1);
   }
 
@@ -1397,6 +1403,7 @@ final class Terminal extends DisposableStore {
       _onA11yTab,
       _onRender,
       _onWriteParsed,
+      _onReset,
       _onResize,
       _onScroll,
       _onSelectionChange,
