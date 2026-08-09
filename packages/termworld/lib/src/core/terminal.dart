@@ -1056,9 +1056,10 @@ final class Terminal extends DisposableStore {
     }
     if (!_mouseStateService.restrictMouseEvent(coreEvent)) return false;
     final report = _mouseStateService.encodeMouseEvent(coreEvent);
-    if (report.isNotEmpty && _mouseStateService.isDefaultEncoding) {
+    if (report.isEmpty) return false;
+    if (_mouseStateService.isDefaultEncoding) {
       _onBinary.fire(report);
-    } else if (report.isNotEmpty) {
+    } else {
       _triggerData(report);
     }
     _lastMouseEvent = coreEvent;

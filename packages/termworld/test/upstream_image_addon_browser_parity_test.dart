@@ -45,19 +45,21 @@ void main() {
     );
   });
 
-  test('xterm ImageAddon playwright 4', () async {
-    final root = Directory.current.path.endsWith('packages/termworld')
-        ? 'test/fixtures/xterm_image/testimages'
-        : 'packages/termworld/test/fixtures/xterm_image/testimages';
-    final png = await decodeImageFromList(
-      File('$root/w3c_home.png').readAsBytesSync(),
-    );
-    addTearDown(png.dispose);
-    final data = await png.toByteData();
-    final pixels = data!.buffer.asUint8List();
-    final qoi = decodeQoi(_encodeQoi(png.width, png.height, pixels));
-    expect((qoi.width, qoi.height), (png.width, png.height));
-    expect(qoi.pixels, pixels);
+  testWidgets('xterm ImageAddon playwright 4', (tester) async {
+    await tester.runAsync(() async {
+      final root = Directory.current.path.endsWith('packages/termworld')
+          ? 'test/fixtures/xterm_image/testimages'
+          : 'packages/termworld/test/fixtures/xterm_image/testimages';
+      final png = await decodeImageFromList(
+        File('$root/w3c_home.png').readAsBytesSync(),
+      );
+      addTearDown(png.dispose);
+      final data = await png.toByteData();
+      final pixels = data!.buffer.asUint8List();
+      final qoi = decodeQoi(_encodeQoi(png.width, png.height, pixels));
+      expect((qoi.width, qoi.height), (png.width, png.height));
+      expect(qoi.pixels, pixels);
+    });
   });
 
   test('xterm ImageAddon playwright 5', () {

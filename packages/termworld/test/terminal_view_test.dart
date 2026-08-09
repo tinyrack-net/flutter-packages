@@ -1164,9 +1164,8 @@ Future<void> _writeAndPump(
   Terminal terminal,
   String data,
 ) async {
-  final completed = terminal.writeAndWait(data);
+  await tester.runAsync(() => terminal.writeAndWait(data));
   await tester.pump();
-  await completed;
 }
 
 final class _TrackingLinkProvider implements TerminalLinkProvider {

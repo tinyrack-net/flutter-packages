@@ -94,12 +94,8 @@ Future<void> _writeAndPump(
   Terminal terminal,
   String data,
 ) async {
-  var parsed = false;
-  terminal.write(data, onParsed: () => parsed = true);
-  for (var attempt = 0; attempt < 10 && !parsed; attempt++) {
-    await tester.pump();
-  }
-  expect(parsed, isTrue, reason: 'the queued DEC mouse mode was not parsed');
+  await tester.runAsync(() => terminal.writeAndWait(data));
+  await tester.pump();
 }
 
 MouseCursor _cursor(WidgetTester tester) =>
