@@ -1208,6 +1208,19 @@ final class _TerminalViewState extends State<TerminalView> {
       ),
     );
     if (!allowed) return KeyEventResult.handled;
+    if (event is! KeyUpEvent &&
+        event.logicalKey == LogicalKeyboardKey.space &&
+        !keyboard.isAltPressed &&
+        !keyboard.isControlPressed &&
+        !keyboard.isMetaPressed &&
+        !(_inputKey.currentState?._isComposing ?? false)) {
+      // Browsers deliver an unmodified space through xterm's hidden textarea.
+      // Linux IBus can omit that TextInput delta while still sending the key
+      // event, so bridge it here and absorb a delayed platform echo elsewhere.
+      _inputKey.currentState?._suppressPhysicalCommitEcho(' ');
+      widget.terminal.input(' ');
+      return KeyEventResult.handled;
+    }
     final protocolEvent = KittyKeyboardEvent(
       key: character != null && character.isNotEmpty
           ? character
@@ -2045,6 +2058,11 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _committedPrefix = '';
     _connection?.setEditingState(_editingValue);
     widget.onComposingChanged();
+  }
+
+  void _suppressPhysicalCommitEcho(String text) {
+    if (_isComposing || text.isEmpty) return;
+    _resetEchoPrefix = text;
   }
 
   TextEditingValue _withoutResetEcho(TextEditingValue value) {

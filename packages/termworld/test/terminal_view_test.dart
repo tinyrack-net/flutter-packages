@@ -337,6 +337,30 @@ void main() {
     expect(output.join(), '한글 ');
   });
 
+  testWidgets('bridges a physical Latin space and absorbs its text echo', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    addTearDown(terminal.dispose);
+    final output = <String>[];
+    terminal.onData.listen(output.add);
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
+    );
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: ' ',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+    );
+    await tester.pump();
+
+    expect(output, <String>[' ']);
+  });
+
   testWidgets('cancels preedit without output and commits it on focus loss', (
     tester,
   ) async {
