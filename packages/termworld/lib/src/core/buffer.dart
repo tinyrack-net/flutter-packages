@@ -1819,12 +1819,12 @@ final class TerminalBufferNamespace implements Disposable {
   }
 
   /// Activates the alternate buffer, optionally clearing it first.
-  void useAlternate() {
+  void useAlternate([TerminalCellAttributes? eraseAttributes]) {
     if (identical(_active, alternate)) return;
     // xterm keeps the inactive alternate buffer storage-free, then fills a
     // fresh viewport before the input handler can address its cursor line.
     alternate
-      ..clear()
+      ..clear(eraseAttributes)
       ..cursorX = normal.cursorX
       ..cursorY = normal.cursorY;
     _switch(alternate);

@@ -1749,7 +1749,7 @@ final class _TerminalCoreEngine {
         case 47 || 1047:
           if (enabled) {
             _switchKittyKeyboardBuffer(alternate: true);
-            buffer.useAlternate();
+            buffer.useAlternate(_eraseAttributes);
           } else {
             _switchKittyKeyboardBuffer(alternate: false);
             buffer.useNormal();
@@ -1789,7 +1789,7 @@ final class _TerminalCoreEngine {
           if (enabled) {
             _saveCursor();
             _switchKittyKeyboardBuffer(alternate: true);
-            buffer.useAlternate();
+            buffer.useAlternate(_eraseAttributes);
           } else {
             _switchKittyKeyboardBuffer(alternate: false);
             buffer.useNormal();
