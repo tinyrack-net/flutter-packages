@@ -50,24 +50,35 @@ report their capability and throw `UnsupportedError` when activated outside
 web. Other addons have the same Dart contract on Android, iOS, Linux, macOS,
 Windows, and web.
 
+On web, `WebglAddon` replaces the Flutter cell painter with a WebGL2 canvas,
+uploads terminal frames through a GPU texture, maintains the xterm-compatible
+multi-page glyph-atlas model, and rebuilds GPU resources after context restore.
+While the context is lost, `TerminalView` immediately falls back to its default
+renderer. CI exercises this lifecycle in Chromium, Firefox, and WebKit.
+
 ## Reference and verification
 
 `xterm_parity.yaml` maps the public API, implementation, tests, platform
 adaptations, and all addons. `tool/xterm_reference.json` records the pinned
 upstream declarations, test names, fixture hashes, and source blob hashes.
-The vendored VT fixtures are MIT-licensed xterm.js test data from that revision;
-CI never needs a local xterm checkout or network access.
+The vendored VT fixtures are MIT-licensed xterm.js test data from that revision.
+Parity verification and behavior tests never access a local xterm checkout or
+fetch upstream fixtures at runtime.
 
 Run the package checks from the repository root:
 
 ```console
-flutter test packages/termworld
+flutter analyze --fatal-infos
 dart run tool/verify_xterm_parity.dart
+dart run tool/verify_termworld_dependencies.dart
 dart run tool/verify_platform_matrix.dart
+cd packages/termworld/example && flutter build web --release
 ```
 
-The example contains the shared six-platform conformance test. Linux CI also
-runs an actual IBus Hangul session under X11.
+Local verification is compile-only. The example contains the shared
+six-platform conformance test, which runs only in CI. Linux CI also runs an
+actual IBus Hangul session under X11, and the browser matrix executes the real
+WebGL2 renderer in Chromium, Firefox, and WebKit.
 
 ## Migration to 0.4.0
 

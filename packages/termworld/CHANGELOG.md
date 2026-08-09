@@ -9,6 +9,9 @@
   source hashes, test IDs, and MIT fixtures.
 - Ports xterm's Unicode 6 and 11 width tables and Unicode 15 grapheme property
   trie without a runtime data dependency.
+- Activates the owned WebGL2 renderer on Flutter web, including GPU frame
+  upload, atlas lifecycle, context-loss fallback/restoration, and required
+  Chromium, Firefox, and WebKit conformance jobs.
 - Uses Flutter's real delta text-input boundary on all six platforms and the
   browser font-loading boundary on web.
 
