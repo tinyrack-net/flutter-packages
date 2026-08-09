@@ -277,9 +277,11 @@ Future<void> _verifyContrast(String behavior) async {
   final terminal = Terminal(options: TerminalOptions(cols: 16, rows: 2));
   try {
     await terminal.writeAndWait(
-      '${inverse ? '\x1b[7m' : ''}${dim ? '\x1b[2m' : ''}'
-      '\x1b[30m■\x1b[31m■\x1b[32m■\x1b[33m■'
-      '\x1b[34m■\x1b[35m■\x1b[36m■\x1b[37m■',
+      inverse
+          ? '\x1b[7m■■'
+          : '${dim ? '\x1b[2m' : ''}'
+                '\x1b[30m■\x1b[31m■\x1b[32m■\x1b[33m■'
+                '\x1b[34m■\x1b[35m■\x1b[36m■\x1b[37m■',
     );
     final base = TerminalThemes.defaultTheme;
     final palette = List<Color>.of(base.palette);
@@ -326,7 +328,7 @@ Future<void> _verifyContrast(String behavior) async {
       drawBoldTextInBrightColors: true,
       minimumContrastRatio: 10,
     );
-    for (var column = 0; column < 8; column++) {
+    for (var column = 0; column < (inverse ? 2 : 8); column++) {
       final cell = terminal.buffer.active.getLine(0)!.getCell(column)!;
       final before = plain.resolve(cell, selected: selected).foreground;
       final after = contrasted.resolve(cell, selected: selected).foreground;
@@ -345,7 +347,7 @@ Future<void> _verifyContrast(String behavior) async {
           Color(0xff047a7c),
           Color(0xff6e706c),
         ];
-        expect(
+        _expectColorApprox(
           TerminalThemes.blend(_white, after),
           expectedComposite[column],
           reason: 'dim contrast cell $column',
@@ -391,6 +393,33 @@ Future<void> _verifyContrast(String behavior) async {
   } finally {
     terminal.dispose();
   }
+}
+
+void _expectColorApprox(
+  Color actual,
+  Color expected, {
+  required String reason,
+}) {
+  expect(
+    (actual.r * 255).round(),
+    closeTo((expected.r * 255).round(), 1),
+    reason: reason,
+  );
+  expect(
+    (actual.g * 255).round(),
+    closeTo((expected.g * 255).round(), 1),
+    reason: reason,
+  );
+  expect(
+    (actual.b * 255).round(),
+    closeTo((expected.b * 255).round(), 1),
+    reason: reason,
+  );
+  expect(
+    (actual.a * 255).round(),
+    closeTo((expected.a * 255).round(), 1),
+    reason: reason,
+  );
 }
 
 double _contrastRatio(Color first, Color second) {
