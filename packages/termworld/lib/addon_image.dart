@@ -1016,8 +1016,11 @@ final class ImageAddon extends ManagedTerminalAddon {
 
   /// xterm-compatible `getImageAtBufferCell` API.
   TerminalImage? getImageAtBufferCell(int column, int row) {
-    for (final image in _images.reversed) {
-      if (image.column == column && image.row == row) return image;
+    final line = terminal.buffer.active.getLine(row);
+    final imageId = line?.getCell(column)?.imageId ?? -1;
+    if (imageId < 0) return null;
+    for (final image in _images) {
+      if (image.storageId == imageId) return image;
     }
     return null;
   }
