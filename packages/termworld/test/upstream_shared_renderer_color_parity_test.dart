@@ -307,6 +307,39 @@ void main() {
         _expectColorApprox(actual[index], expected[index]);
       }
     });
+
+    test('DOM regression 4758 multiple invisible cells stay hidden', () async {
+      final terminal = Terminal();
+      try {
+        await terminal.writeAndWait('■\x1b[8m■■\r\n');
+        final line = terminal.buffer.active.getLine(0)!;
+        expect(line.getCell(0)!.isInvisible, isFalse);
+        expect(line.getCell(1)!.isInvisible, isTrue);
+        expect(line.getCell(2)!.isInvisible, isTrue);
+        final resolver = TerminalCellColorResolver(
+          theme: TerminalThemes.defaultTheme,
+          focused: true,
+          drawBoldTextInBrightColors: true,
+          minimumContrastRatio: 1,
+        );
+        expect(
+          <Color>[
+            for (var column = 0; column < 3; column++)
+              if (line.getCell(column)!.isInvisible)
+                resolver
+                    .resolve(line.getCell(column)!, selected: false)
+                    .background
+              else
+                resolver
+                    .resolve(line.getCell(column)!, selected: false)
+                    .foreground,
+          ],
+          const <Color>[Color(0xffffffff), _black, _black],
+        );
+      } finally {
+        terminal.dispose();
+      }
+    });
   });
 }
 
