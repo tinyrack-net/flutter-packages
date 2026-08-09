@@ -28,7 +28,8 @@ Future<void> main(List<String> arguments) async {
         ..sort();
   final selected = <String>[
     for (var index = 0; index < tests.length; index++)
-      if (index % shardCount == shardIndex) tests[index],
+      if (index % shardCount == shardIndex)
+        tests[index].substring(package.length + 1),
   ];
   if (selected.isEmpty) {
     stderr.writeln('shard $shardIndex of $shardCount contains no tests');
@@ -48,6 +49,7 @@ Future<void> main(List<String> arguments) async {
       '--test-randomize-ordering-seed=random',
       '--timeout=30s',
     ],
+    workingDirectory: package,
     mode: ProcessStartMode.inheritStdio,
   );
   exitCode = await process.exitCode;
