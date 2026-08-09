@@ -663,6 +663,55 @@ void main() {
     expect(buffers.normal.length, linesBefore + 5);
   });
 
+  test('xterm Buffer 48', () {
+    const windowsPty = TerminalWindowsPtyOptions(
+      backend: 'conpty',
+      buildNumber: 21376,
+    );
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace()
+      ..resize(5, 10, attributes, windowsPty: windowsPty);
+    _writeAsciiLine(buffers.normal, 0, 'abcde', attributes);
+    buffers.normal.cursorY = 1;
+    buffers
+      ..resize(1, 10, attributes, windowsPty: windowsPty)
+      ..resize(5, 10, attributes, windowsPty: windowsPty);
+    expect(buffers.normal.getLine(0)!.translateToString(), 'abcde');
+    expect(buffers.normal.getLine(1)!.translateToString(), '     ');
+  });
+
+  test('xterm Buffer 49', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _bufferNamespace()..resize(10, 10, attributes);
+    buffers.normal.cursorY = 2;
+    _writeAsciiLine(buffers.normal, 0, 'abcdefghij', attributes);
+    _writeAsciiLine(buffers.normal, 1, '0123456789', attributes);
+
+    buffers.resize(2, 10, attributes);
+    expect((buffers.normal.baseY, buffers.normal.length), (1, 11));
+    expect(_fullLines(buffers.normal, 11), <String>[
+      'ab',
+      'cd',
+      'ef',
+      'gh',
+      'ij',
+      '01',
+      '23',
+      '45',
+      '67',
+      '89',
+      '  ',
+    ]);
+
+    buffers.resize(10, 10, attributes);
+    expect((buffers.normal.baseY, buffers.normal.length), (0, 10));
+    expect(buffers.normal.getLine(0)!.translateToString(), 'abcdefghij');
+    expect(buffers.normal.getLine(1)!.translateToString(), '0123456789');
+    for (var row = 2; row < 10; row++) {
+      expect(buffers.normal.getLine(row)!.translateToString(), '          ');
+    }
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
