@@ -1574,7 +1574,9 @@ final class _TerminalCoreEngine {
       final code = group[0];
       switch (code) {
         case 0:
-          _attributes = TerminalCellAttributes();
+          _attributes = TerminalCellAttributes(
+            hyperlinkId: _attributes.hyperlinkId,
+          );
         case 1:
           _attributes.bold = true;
         case 2:
