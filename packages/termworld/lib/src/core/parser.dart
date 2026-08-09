@@ -118,6 +118,20 @@ final class TerminalParser implements Disposable {
   TerminalParserErrorHandler? _errorHandler;
   String _pending = '';
   bool _isDisposed = false;
+  bool _isProcessing = false;
+  int _currentState = ParserState.ground.index;
+
+  /// Initial parser state, always xterm's `GROUND` state.
+  int get initialState => ParserState.ground.index;
+
+  /// Current numeric parser state between input chunks.
+  int get currentState => _currentState;
+
+  /// Restores parser state and abandons incomplete input.
+  void reset() {
+    _pending = '';
+    _currentState = initialState;
+  }
 
   /// xterm-compatible `registerCsiHandler` API.
   Disposable registerCsiHandler(
@@ -307,26 +321,52 @@ final class TerminalParser implements Disposable {
     FutureOr<void> Function(String data) emit,
   ) async {
     if (_isDisposed) throw StateError('TerminalParser has been disposed');
-    final source = '$_pending${_normalizeC1(chunk)}';
-    _pending = '';
-    var index = 0;
-    while (index < source.length) {
-      final escape = source.indexOf('\u001b', index);
-      if (escape < 0) {
-        await _emitGround(source.substring(index), emit);
-        break;
-      }
-      if (escape > index) {
-        await _emitGround(source.substring(index, escape), emit);
-      }
-      final parsed = await _parseAt(source, escape, emit);
-      if (parsed == null) {
-        _pending = source.substring(escape);
-        break;
-      }
-      if (!parsed.handled) await emit(parsed.sequence);
-      index = parsed.end;
+    if (_isProcessing) {
+      throw StateError(
+        'improper continuation due to previous async handler, '
+        'giving up parsing',
+      );
     }
+    _isProcessing = true;
+    try {
+      final source = '$_pending${_normalizeC1(chunk)}';
+      _pending = '';
+      var index = 0;
+      while (index < source.length) {
+        final escape = source.indexOf('\u001b', index);
+        if (escape < 0) {
+          await _emitGround(source.substring(index), emit);
+          _currentState = ParserState.ground.index;
+          break;
+        }
+        if (escape > index) {
+          await _emitGround(source.substring(index, escape), emit);
+        }
+        final parsed = await _parseAt(source, escape, emit);
+        if (parsed == null) {
+          _pending = source.substring(escape);
+          _currentState = _pendingState(_pending);
+          break;
+        }
+        if (!parsed.handled) await emit(parsed.sequence);
+        index = parsed.end;
+        _currentState = ParserState.ground.index;
+      }
+    } finally {
+      _isProcessing = false;
+    }
+  }
+
+  int _pendingState(String pending) {
+    if (pending.length < 2) return ParserState.escape.index;
+    return switch (pending.codeUnitAt(1)) {
+      0x5b => ParserState.csiEntry.index,
+      0x5d => ParserState.oscString.index,
+      0x50 => ParserState.dcsEntry.index,
+      0x5f => ParserState.apcEntry.index,
+      0x58 || 0x5e => ParserState.sosPmString.index,
+      _ => ParserState.escape.index,
+    };
   }
 
   Future<void> _emitGround(
@@ -776,6 +816,7 @@ final class TerminalParser implements Disposable {
     if (_isDisposed) return;
     _isDisposed = true;
     _pending = '';
+    _currentState = initialState;
     _csi.clear();
     _dcs.clear();
     _esc.clear();
