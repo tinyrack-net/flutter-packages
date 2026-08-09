@@ -9,6 +9,7 @@ import 'package:termworld/src/addons/iip_header_parser.dart';
 import 'package:termworld/src/addons/iip_metrics.dart';
 import 'package:termworld/src/addons/kitty_graphics_types.dart';
 import 'package:termworld/src/addons/managed_addon.dart';
+import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/event.dart';
 import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/core/parser.dart';
@@ -41,6 +42,7 @@ final class TerminalImage {
     required this.row,
     required this.scrolls,
     required this.storageBytes,
+    required this.bufferType,
     this.pixelWidth,
     this.pixelHeight,
     this.name = 'Unnamed file',
@@ -77,6 +79,9 @@ final class TerminalImage {
 
   /// RGBA-equivalent bytes charged against the FIFO storage limit.
   final int storageBytes;
+
+  /// Buffer that owns the image anchor.
+  final TerminalBufferType bufferType;
 
   /// Kitty image identifier, when this is a Kitty placement.
   final int? kittyId;
@@ -191,6 +196,7 @@ final class ImageAddon extends ManagedTerminalAddon {
   final Map<int, _KittyPending> _kittyPending = <int, _KittyPending>{};
   int _nextKittyId = 1;
   int? _lastKittyPendingKey;
+  TerminalBuffer? _trimBuffer;
 
   /// xterm-compatible `unmodifiable` API.
   List<TerminalImage> get images => List<TerminalImage>.unmodifiable(_images);
@@ -286,11 +292,24 @@ final class ImageAddon extends ManagedTerminalAddon {
         terminal.parser.registerDcsHandler(
           const TerminalFunctionIdentifier(finalByte: 'q'),
           (data, parameters) {
+            final dimensions = _sixelDimensions(data);
             _add(
               TerminalImageProtocol.sixel,
               latin1.encode(data),
               options.sixelSizeLimit,
+              pixelWidth: dimensions?.$1,
+              pixelHeight: dimensions?.$2,
+              storageBytes: dimensions == null
+                  ? null
+                  : dimensions.$1 * dimensions.$2 * 4,
             );
+            if (_sixelScrolling && dimensions != null) {
+              final rows = (dimensions.$2 / _cellHeight).floor();
+              terminal.buffer.active.cursorY = math.min(
+                terminal.rows - 1,
+                terminal.buffer.active.cursorY + rows,
+              );
+            }
             return true;
           },
         ),
@@ -309,6 +328,32 @@ final class ImageAddon extends ManagedTerminalAddon {
         ),
       );
     }
+    _watchNormalBuffer(terminal.buffer.normal);
+    add(
+      terminal.buffer.onBufferActivate.listen((event) {
+        if (event.activeBuffer.type == TerminalBufferType.normal) {
+          _removeImagesFrom(TerminalBufferType.alternate);
+          _watchNormalBuffer(event.activeBuffer);
+        }
+      }),
+    );
+  }
+
+  void _watchNormalBuffer(TerminalBuffer buffer) {
+    if (identical(_trimBuffer, buffer)) return;
+    _trimBuffer = buffer;
+    add(buffer.onTrim.listen(_trimNormalImages));
+  }
+
+  (int, int)? _sixelDimensions(String data) {
+    final match = RegExp(r'"\d+;\d+;(\d+);(\d+)').firstMatch(data);
+    if (match == null) return null;
+    final width = int.tryParse(match.group(1)!);
+    final height = int.tryParse(match.group(2)!);
+    if (width == null || height == null || width <= 0 || height <= 0) {
+      return null;
+    }
+    return (width, height);
   }
 
   bool _handleKitty(String data) {
@@ -663,16 +708,77 @@ final class ImageAddon extends ManagedTerminalAddon {
         metrics.width * metrics.height >= options.pixelLimit) {
       return;
     }
+    final dimensions = _iipDimensions(header, metrics.width, metrics.height);
+    if (dimensions == null ||
+        dimensions.$1 * dimensions.$2 >= options.pixelLimit) {
+      return;
+    }
+    final cellWidth = _cellWidth;
+    final cellHeight = _cellHeight;
     _add(
       TerminalImageProtocol.iTerm2,
       bytes,
       options.iipSizeLimit,
-      pixelWidth: metrics.width,
-      pixelHeight: metrics.height,
+      pixelWidth: dimensions.$1,
+      pixelHeight: dimensions.$2,
       name: header.name,
-      storageBytes: metrics.width * metrics.height * 4,
+      storageBytes: dimensions.$1 * dimensions.$2 * 4,
+      columns: math.max(1, (dimensions.$1 / cellWidth).ceil()),
+      rows: math.max(1, (dimensions.$2 / cellHeight).ceil()),
     );
   }
+
+  (int, int)? _iipDimensions(
+    _IipHeader header,
+    int sourceWidth,
+    int sourceHeight,
+  ) {
+    var width = _iipExtent(header.width, horizontal: true);
+    var height = _iipExtent(header.height, horizontal: false);
+    if (header.preserveAspectRatio != 0) {
+      if (width != null && height == null) {
+        height = (width * sourceHeight / sourceWidth).floor();
+      } else if (height != null && width == null) {
+        width = (height * sourceWidth / sourceHeight).floor();
+      } else if (width != null && height != null) {
+        final scale = math.min(width / sourceWidth, height / sourceHeight);
+        width = (sourceWidth * scale).floor();
+        height = (sourceHeight * scale).floor();
+      }
+    }
+    width ??= sourceWidth;
+    height ??= sourceHeight;
+    if (width <= 0 || height <= 0) return null;
+    return (width, height);
+  }
+
+  int? _iipExtent(String source, {required bool horizontal}) {
+    if (source == 'auto' || source.isEmpty) return null;
+    if (source.endsWith('px')) {
+      return int.tryParse(source.substring(0, source.length - 2));
+    }
+    if (source.endsWith('%')) {
+      final percentage = double.tryParse(
+        source.substring(0, source.length - 1),
+      );
+      if (percentage == null) return null;
+      final viewport = horizontal
+          ? terminal.dimensions?.width ?? terminal.cols * _cellWidth
+          : terminal.dimensions?.height ?? terminal.rows * _cellHeight;
+      return (viewport * percentage / 100).floor();
+    }
+    final cells = int.tryParse(source);
+    if (cells == null) return null;
+    return (cells * (horizontal ? _cellWidth : _cellHeight)).round();
+  }
+
+  double get _cellWidth =>
+      terminal.dimensions?.cellWidth ??
+      (terminal.dimensions?.width ?? terminal.cols * 7) / terminal.cols;
+
+  double get _cellHeight =>
+      terminal.dimensions?.cellHeight ??
+      (terminal.dimensions?.height ?? terminal.rows * 14) / terminal.rows;
 
   Uint8List? _decodeBase64(String payload, int limit) {
     if (payload.length > (limit * 4 / 3).ceil() ||
@@ -769,6 +875,7 @@ final class ImageAddon extends ManagedTerminalAddon {
       pixelHeight: pixelHeight,
       name: name,
       storageBytes: storageBytes ?? bytes.length,
+      bufferType: terminal.buffer.active.type,
       kittyId: kittyId,
       placementId: placementId,
       columns: columns,
@@ -799,6 +906,45 @@ final class ImageAddon extends ManagedTerminalAddon {
       _storageBytes -= _images.removeAt(0).storageBytes;
     }
   }
+
+  void _trimNormalImages(int amount) {
+    for (var index = _images.length - 1; index >= 0; index--) {
+      final image = _images[index];
+      if (image.bufferType != TerminalBufferType.normal) continue;
+      final shiftedRow = image.row - amount;
+      if (shiftedRow < 0) {
+        _storageBytes -= image.storageBytes;
+        _images.removeAt(index);
+      } else {
+        _images[index] = _copyAtRow(image, shiftedRow);
+      }
+    }
+  }
+
+  void _removeImagesFrom(TerminalBufferType type) {
+    for (var index = _images.length - 1; index >= 0; index--) {
+      if (_images[index].bufferType != type) continue;
+      _storageBytes -= _images.removeAt(index).storageBytes;
+    }
+  }
+
+  TerminalImage _copyAtRow(TerminalImage image, int row) => TerminalImage(
+    protocol: image.protocol,
+    data: image.data,
+    column: image.column,
+    row: row,
+    scrolls: image.scrolls,
+    storageBytes: image.storageBytes,
+    bufferType: image.bufferType,
+    pixelWidth: image.pixelWidth,
+    pixelHeight: image.pixelHeight,
+    name: image.name,
+    kittyId: image.kittyId,
+    placementId: image.placementId,
+    columns: image.columns,
+    rows: image.rows,
+    zIndex: image.zIndex,
+  );
 
   /// xterm-compatible `getImageAtBufferCell` API.
   TerminalImage? getImageAtBufferCell(int column, int row) {
