@@ -710,16 +710,7 @@ final class _TerminalViewState extends State<TerminalView> {
           : _PointerSelectionMode.normal;
       _selectionAnchor = bufferCell;
       _selectionAnchorEnd = TerminalCellOffset(bufferCell.x + 1, bufferCell.y);
-      if (columnSelection) {
-        widget.terminal.selectColumns(
-          bufferCell.x,
-          bufferCell.y,
-          bufferCell.x,
-          bufferCell.y,
-        );
-      } else {
-        widget.terminal.select(bufferCell.x, bufferCell.y, 0);
-      }
+      if (widget.terminal.hasSelection()) widget.terminal.clearSelection();
       _startDragScroll();
       return;
     }
