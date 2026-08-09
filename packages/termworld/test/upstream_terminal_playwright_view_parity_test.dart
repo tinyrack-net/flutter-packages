@@ -405,8 +405,6 @@ Future<void> _writeAndPump(
   Terminal terminal,
   String data,
 ) async {
-  final parsed = Completer<void>();
-  terminal.write(data, onParsed: parsed.complete);
+  await tester.runAsync(() => terminal.writeAndWait(data));
   await tester.pump();
-  await parsed.future;
 }
