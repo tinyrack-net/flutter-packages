@@ -451,6 +451,61 @@ void main() {
     expect(cache.hasPendingClear, isFalse);
   });
 
+  test('xterm Buffer 40', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _wideReflowBuffer(attributes);
+    expect(_trimmedLine(buffers.normal, 0), '汉语汉语汉语');
+    expect(_trimmedLine(buffers.normal, 1), '汉语汉语汉语');
+    buffers.resize(13, 10, attributes);
+    expect(_trimmedLine(buffers.normal, 0), '汉语汉语汉语');
+    expect(_trimmedLine(buffers.normal, 1), '汉语汉语汉语');
+    buffers.resize(14, 10, attributes);
+    expect(_trimmedLine(buffers.normal, 0), '汉语汉语汉语汉');
+    expect(_trimmedLine(buffers.normal, 1), '语汉语汉语');
+  });
+
+  test('xterm Buffer 41', () {
+    final attributes = TerminalCellAttributes();
+    final buffers = _wideReflowBuffer(attributes)..resize(11, 10, attributes);
+    expect(_trimmedLines(buffers.normal, 3), <String>[
+      '汉语汉语汉',
+      '语汉语汉语',
+      '汉语',
+    ]);
+    buffers.resize(10, 10, attributes);
+    expect(_trimmedLines(buffers.normal, 3), <String>[
+      '汉语汉语汉',
+      '语汉语汉语',
+      '汉语',
+    ]);
+    buffers.resize(9, 10, attributes);
+    expect(_trimmedLines(buffers.normal, 3), <String>[
+      '汉语汉语',
+      '汉语汉语',
+      '汉语汉语',
+    ]);
+    buffers.resize(8, 10, attributes);
+    expect(_trimmedLines(buffers.normal, 3), <String>[
+      '汉语汉语',
+      '汉语汉语',
+      '汉语汉语',
+    ]);
+    buffers.resize(7, 10, attributes);
+    expect(_trimmedLines(buffers.normal, 4), <String>[
+      '汉语汉',
+      '语汉语',
+      '汉语汉',
+      '语汉语',
+    ]);
+    buffers.resize(6, 10, attributes);
+    expect(_trimmedLines(buffers.normal, 4), <String>[
+      '汉语汉',
+      '语汉语',
+      '汉语汉',
+      '语汉语',
+    ]);
+  });
+
   test('BufferLine cell mutation, copy and selective erase', () {
     final attributes = TerminalCellAttributes(
       foreground: const TerminalCellColor.palette(3),
@@ -828,3 +883,27 @@ final class _ManualCacheTimer {
 
   void cancel() => _isCanceled = true;
 }
+
+TerminalBufferNamespace _wideReflowBuffer(
+  TerminalCellAttributes attributes,
+) {
+  final buffers = _bufferNamespace()..resize(12, 10, attributes);
+  buffers.normal.cursorY = 2;
+  for (var row = 0; row < 2; row++) {
+    final line = buffers.normal.getLine(row)!;
+    for (var column = 0; column < 12; column += 4) {
+      line
+        ..setCell(column, '汉', 2, attributes)
+        ..setCell(column + 2, '语', 2, attributes);
+    }
+  }
+  buffers.normal.getLine(1)!.isWrapped = true;
+  return buffers;
+}
+
+String _trimmedLine(TerminalBuffer buffer, int row) =>
+    buffer.getLine(row)!.translateToString(trimRight: true);
+
+List<String> _trimmedLines(TerminalBuffer buffer, int count) => <String>[
+  for (var row = 0; row < count; row++) _trimmedLine(buffer, row),
+];
