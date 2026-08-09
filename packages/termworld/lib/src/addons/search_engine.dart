@@ -251,6 +251,11 @@ final class SearchEngine {
     final stringLine = cache.line;
     final offsets = cache.lineOffsets;
     final offset = _bufferColumnsToStringOffset(row, position.column);
+    // JavaScript's String#indexOf/String#lastIndexOf clamp their position to
+    // the string length. Dart instead throws when the start index is beyond
+    // the end, which is common for a reverse search beginning at terminal.cols
+    // on a short line.
+    final searchOffset = offset.clamp(0, stringLine.length);
     var matchedTerm = term;
     final searchableTerm = options.regex || options.caseSensitive
         ? term
@@ -264,10 +269,10 @@ final class SearchEngine {
       if (reverse) {
         final prefix = searchableLine.substring(
           0,
-          offset.clamp(0, searchableLine.length),
+          searchOffset,
         );
         for (final match in _overlappingMatches(expression, prefix)) {
-          if (match.end > offset) break;
+          if (match.end > searchOffset) break;
           if (match.start != match.end) {
             resultIndex = match.start;
             matchedTerm = match.value;
@@ -275,22 +280,22 @@ final class SearchEngine {
         }
       } else {
         final match = expression.firstMatch(
-          searchableLine.substring(offset.clamp(0, searchableLine.length)),
+          searchableLine.substring(searchOffset),
         );
         if (match != null && match.start != match.end) {
-          resultIndex = offset + match.start;
+          resultIndex = searchOffset + match.start;
           matchedTerm = match.group(0)!;
         }
       }
     } else if (reverse) {
-      if (offset - searchableTerm.length >= 0) {
+      if (searchOffset - searchableTerm.length >= 0) {
         resultIndex = searchableLine.lastIndexOf(
           searchableTerm,
-          offset - searchableTerm.length,
+          searchOffset - searchableTerm.length,
         );
       }
     } else {
-      resultIndex = searchableLine.indexOf(searchableTerm, offset);
+      resultIndex = searchableLine.indexOf(searchableTerm, searchOffset);
     }
     if (resultIndex < 0) return null;
     if (options.wholeWord &&
