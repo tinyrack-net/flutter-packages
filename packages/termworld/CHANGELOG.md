@@ -2,6 +2,14 @@
 
 ## 0.4.0
 
+- Keeps a terminal resize from abandoning output. `Terminal.resize` flushes the
+  write buffer synchronously first, and that flush re-entered the parser when a
+  chunk was still awaiting an asynchronous handler. This parser refuses
+  re-entry, unlike xterm.js' resumable synchronous one, so the flush threw
+  `improper continuation due to previous async handler` out of the frame
+  callback and dropped the chunk it was holding. A resize landing mid-handler
+  now leaves the queue to the pending write, which parses it in order once the
+  handler resolves. `writeSync` is guarded the same way.
 - Removes the xterm.dart dependency, exports, delegates, wrappers, and
   fallbacks. Core, headless, Flutter, and addon behavior is owned by termworld.
 - Pins the behavioral contract to xterm.js
