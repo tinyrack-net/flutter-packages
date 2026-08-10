@@ -444,8 +444,10 @@ jobs:
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart android
 
-  ios:
-    name: iOS
+  # The two iOS pyramids used to share one job and one simulator; run them on
+  # separate runners so the pipeline's wall clock is one pyramid, not both.
+  ios-dropwell:
+    name: iOS dropwell
     runs-on: macos-26
     # Simulator test processes occasionally stop producing output. Bound the
     # required job so a stuck host is reported and retried instead of holding
@@ -490,9 +492,35 @@ jobs:
       - name: L5 ios release build
         run: flutter build ios --release --no-codesign
         working-directory: packages/dropwell/example
+      - name: Assert the Debug-only testing hook is absent from the release build
+        # Only this job's release artifact exists here, so the check covers
+        # exactly the dropwell example.
+        run: dart run tool/verify_release_hooks.dart ios
+
+  ios-termworld:
+    name: iOS termworld
+    runs-on: macos-26
+    # Simulator test processes occasionally stop producing output. Bound the
+    # required job so a stuck host is reported and retried instead of holding
+    # every newer parity run indefinitely.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
       - name: Resolve the termworld example app
         run: flutter pub get
         working-directory: packages/termworld/example
+      - name: Boot an iOS simulator
+        # `flutter test -d <udid>` only sees a simulator that finished booting,
+        # so wait on bootstatus instead of racing the device list.
+        run: |
+          UDID=$(xcrun simctl list devices available --json | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];c=[x['udid'] for k,v in sorted(d.items()) if 'iOS' in k for x in v if x['name'].startswith('iPhone')];print(c[-1])")
+          bash tool/ios_simulator_ci.sh reset "$UDID"
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
       - name: L3 ios termworld input boundary tests
         run: |
           flutter build ios --debug --simulator --config-only
@@ -521,4 +549,6 @@ jobs:
         run: flutter build ios --release --no-codesign
         working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
+        # Only this job's release artifact exists here, so the check covers
+        # exactly the termworld example.
         run: dart run tool/verify_release_hooks.dart ios
