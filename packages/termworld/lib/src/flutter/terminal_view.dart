@@ -1916,6 +1916,20 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   String _resetEchoPrefix = '';
   String _compositionSuffix = '';
 
+  /// Committed text the platform inserted outside the live composing range.
+  ///
+  /// GTK's Wayland input-method path can deliver a settled syllable's commit
+  /// after the next preedit has already opened (GNOME/gtk#1365): the commit
+  /// lands to the right of the composing range and the following preedit
+  /// rewrites the range in place, so settled syllables pile up in reverse on
+  /// the platform side. The deltas still arrive in typed order, so the
+  /// terminal forwards each such commit the moment it arrives and records
+  /// where the platform buffer holds it — in platform coordinates — hiding
+  /// it from the ordinary settle logic, which would otherwise flush the
+  /// reordered pile once the preedit closes.
+  String _reorderedCommitText = '';
+  int _reorderedCommitStart = 0;
+
   /// Whether the platform input method still holds an open composition.
   ///
   /// This is not the same as [_isComposing]. An input method that settles a
@@ -1998,6 +2012,8 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _committedPrefix = '';
     _resetEchoPrefix = '';
     _compositionSuffix = '';
+    _reorderedCommitText = '';
+    _reorderedCommitStart = 0;
     _platformComposing = false;
     _previousDeltaComposing = false;
     _connection?.setEditingState(_editingValue);
@@ -2074,7 +2090,9 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     for (final delta in deltas) {
       _trackPlatformComposition(delta);
+      _followReorderedCommit(delta);
       _platformEditingValue = delta.apply(_platformEditingValue);
+      if (_consumeStaleBufferCommit(delta)) continue;
       _accept(_platformEditingValue);
     }
     _finishCommittedInput();
@@ -2098,10 +2116,182 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _previousDeltaComposing = composing;
   }
 
+  /// Forwards out-of-band commits and keeps the recorded region aligned.
+  ///
+  /// A preedit insertion always ends up covered by its delta's composing
+  /// range, so an insertion at or past `composing.end` can only be committed
+  /// text (see [_reorderedCommitText]). Every other delta merely moves the
+  /// already-forwarded region: edits to its left shift it, deletions
+  /// overlapping it retract already-written clusters, and any shape no input
+  /// method produces clears the region so behavior degrades to the plain
+  /// pile-up flush instead of corrupting state.
+  void _followReorderedCommit(TextEditingDelta delta) {
+    final composing = delta.composing;
+    if (delta is TextEditingDeltaInsertion &&
+        composing.isValid &&
+        !composing.isCollapsed &&
+        delta.insertionOffset >= composing.end) {
+      _forwardOutOfBandCommit(delta);
+      return;
+    }
+    if (_reorderedCommitText.isEmpty ||
+        delta is TextEditingDeltaNonTextUpdate) {
+      return;
+    }
+    final (editStart, editEnd, insertedLength) = switch (delta) {
+      TextEditingDeltaInsertion(:final insertionOffset, :final textInserted) =>
+        (insertionOffset, insertionOffset, textInserted.length),
+      TextEditingDeltaReplacement(
+        :final replacedRange,
+        :final replacementText,
+      ) =>
+        (replacedRange.start, replacedRange.end, replacementText.length),
+      TextEditingDeltaDeletion(:final deletedRange) => (
+        deletedRange.start,
+        deletedRange.end,
+        0,
+      ),
+      _ => (0, 0, 0),
+    };
+    final start = _reorderedCommitStart;
+    final end = start + _reorderedCommitText.length;
+    if (editEnd <= start) {
+      _reorderedCommitStart += insertedLength - (editEnd - editStart);
+    } else if (editStart >= end) {
+      // Entirely right of the region: its coordinates are unaffected.
+    } else if (delta is TextEditingDeltaDeletion) {
+      _retractReorderedCommit(editStart, editEnd);
+    } else {
+      // An insertion or replacement tearing into already-forwarded text has
+      // no input-method shape; forget the region rather than guess.
+      _reorderedCommitText = '';
+      _reorderedCommitStart = 0;
+    }
+  }
+
+  void _forwardOutOfBandCommit(TextEditingDeltaInsertion delta) {
+    final start = _reorderedCommitStart;
+    final end = start + _reorderedCommitText.length;
+    if (_reorderedCommitText.isEmpty) {
+      _reorderedCommitStart = delta.insertionOffset;
+      _reorderedCommitText = delta.textInserted;
+    } else if (delta.insertionOffset >= start && delta.insertionOffset <= end) {
+      final at = delta.insertionOffset - start;
+      _reorderedCommitText = _reorderedCommitText.replaceRange(
+        at,
+        at,
+        delta.textInserted,
+      );
+    } else {
+      // A commit disjoint from the tracked region has no input-method shape;
+      // degrade to the pile-up flush rather than guess at coordinates.
+      _reorderedCommitText = '';
+      _reorderedCommitStart = 0;
+      return;
+    }
+    widget.terminal.input(delta.textInserted);
+  }
+
+  void _retractReorderedCommit(int editStart, int editEnd) {
+    final start = _reorderedCommitStart;
+    final end = start + _reorderedCommitText.length;
+    final overlapStart = math.max(editStart, start);
+    final overlapEnd = math.min(editEnd, end);
+    final overlapped = _reorderedCommitText.substring(
+      overlapStart - start,
+      overlapEnd - start,
+    );
+    // The platform retracted text that has already been written; retract it
+    // from the terminal too, one DEL per grapheme cluster, matching
+    // _reconcileCommitted's semantics.
+    widget.terminal.input('\u007f' * overlapped.characters.length);
+    _reorderedCommitText = _reorderedCommitText.replaceRange(
+      overlapStart - start,
+      overlapEnd - start,
+      '',
+    );
+    _reorderedCommitStart = math.min(start, editStart);
+  }
+
+  /// Consumes a commit the platform applied to a stale, not-yet-reset buffer.
+  ///
+  /// The same race that reorders mid-composition commits can also fire right
+  /// after a composition closes: the terminal has sent its `setEditingState`
+  /// reset, but the platform commits the final syllable into the buffer the
+  /// reset has not cleared yet — at offset zero, in front of text that has
+  /// already been written. Forwarding the inserted text directly (arrival
+  /// order is typed order) and accounting for the whole buffer keeps the
+  /// positional diff in [_reconcileCommitted] from flushing the pile again.
+  bool _consumeStaleBufferCommit(TextEditingDelta delta) {
+    if (_resetEchoPrefix.isEmpty ||
+        delta is! TextEditingDeltaInsertion ||
+        delta.oldText != _resetEchoPrefix ||
+        delta.insertionOffset != 0) {
+      return false;
+    }
+    final composing = delta.composing;
+    if (composing.isValid && !composing.isCollapsed) {
+      // The race surfaced as a fresh preedit over the stale buffer instead:
+      // keep the preedit and hide the stale tail, which is already written.
+      _resetEchoPrefix = '';
+      _committedPrefix = '';
+      _reorderedCommitStart = delta.textInserted.length;
+      _reorderedCommitText = delta.oldText;
+      return false;
+    }
+    widget.terminal.input(delta.textInserted);
+    _resetEchoPrefix = '';
+    _reorderedCommitStart = 0;
+    _reorderedCommitText = _platformEditingValue.text;
+    return true;
+  }
+
+  /// Removes the already-forwarded reordered commits from a platform value.
+  ///
+  /// The structural twin of [_withoutResetEcho], excising the tracked region
+  /// instead of a prefix. If the platform buffer no longer holds what was
+  /// forwarded, the region is forgotten rather than mangling the value —
+  /// worst case is the pre-fix pile-up flush, never corrupted state.
+  TextEditingValue _withoutReorderedCommits(TextEditingValue value) {
+    final text = _reorderedCommitText;
+    if (text.isEmpty) return value;
+    final start = _reorderedCommitStart;
+    final end = start + text.length;
+    if (end > value.text.length || value.text.substring(start, end) != text) {
+      _reorderedCommitText = '';
+      _reorderedCommitStart = 0;
+      return value;
+    }
+    int adjusted(int position) => position < 0
+        ? position
+        : position <= start
+        ? position
+        : position >= end
+        ? position - text.length
+        : start;
+    final selection = value.selection;
+    final composing = value.composing;
+    return TextEditingValue(
+      text: value.text.replaceRange(start, end, ''),
+      selection: TextSelection(
+        baseOffset: adjusted(selection.baseOffset),
+        extentOffset: adjusted(selection.extentOffset),
+        affinity: selection.affinity,
+        isDirectional: selection.isDirectional,
+      ),
+      composing: composing.isValid
+          ? TextRange(
+              start: adjusted(composing.start),
+              end: adjusted(composing.end),
+            )
+          : TextRange.empty,
+    );
+  }
+
   void _accept(TextEditingValue value) {
     final wasComposing = _isComposing;
     final previousComposing = _editingValue.composing;
-    final normalized = _withoutResetEcho(value);
+    final normalized = _withoutResetEcho(_withoutReorderedCommits(value));
     _editingValue = normalized;
     final composing = normalized.composing;
     final isComposing = composing.isValid && !composing.isCollapsed;
@@ -2140,16 +2330,24 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   void _finishCommittedInput() {
-    if (_isComposing || _platformComposing || _editingValue.text.isEmpty) {
+    if (_isComposing ||
+        _platformComposing ||
+        (_editingValue.text.isEmpty && _reorderedCommitText.isEmpty)) {
       return;
     }
     // xterm clears its hidden textarea after committed input. Keeping the
     // committed value makes a later platform synchronization to an empty
     // editing value look like a user deletion and emits duplicate DEL bytes.
+    // A fully reordered composition leaves the widget-visible text empty
+    // while the platform buffer still holds the forwarded pile; the reset
+    // must fire for it too, and arming the echo prefix with the verbatim
+    // platform text absorbs the region — the two are never live at once.
     _resetEchoPrefix = _platformEditingValue.text;
     _editingValue = TextEditingValue.empty;
     _platformEditingValue = TextEditingValue.empty;
     _committedPrefix = '';
+    _reorderedCommitText = '';
+    _reorderedCommitStart = 0;
     _connection?.setEditingState(_editingValue);
     widget.onComposingChanged();
   }
