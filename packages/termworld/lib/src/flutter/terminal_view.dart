@@ -1916,6 +1916,19 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   String _resetEchoPrefix = '';
   String _compositionSuffix = '';
 
+  /// Whether the platform input method still holds an open composition.
+  ///
+  /// This is not the same as [_isComposing]. An input method that settles a
+  /// syllable and immediately reopens a preedit — every Hangul keystroke that
+  /// redistributes a final consonant does this — reports a collapsed composing
+  /// range for the commit and a fresh range in the very next message. The
+  /// terminal must not rewrite the platform's editing state in that gap.
+  bool _platformComposing = false;
+
+  /// Whether the previous delta carried a composing range, used to tell an
+  /// input method's commit-then-recompose gap from ordinary uncomposed input.
+  bool _previousDeltaComposing = false;
+
   bool get _isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
 
@@ -1985,6 +1998,8 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _committedPrefix = '';
     _resetEchoPrefix = '';
     _compositionSuffix = '';
+    _platformComposing = false;
+    _previousDeltaComposing = false;
     _connection?.setEditingState(_editingValue);
   }
 
@@ -2048,6 +2063,9 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   @override
   void updateEditingValue(TextEditingValue value) {
     _platformEditingValue = value;
+    _platformComposing =
+        value.composing.isValid && !value.composing.isCollapsed;
+    _previousDeltaComposing = _platformComposing;
     _accept(value);
     _finishCommittedInput();
   }
@@ -2055,10 +2073,29 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     for (final delta in deltas) {
+      _trackPlatformComposition(delta);
       _platformEditingValue = delta.apply(_platformEditingValue);
       _accept(_platformEditingValue);
     }
     _finishCommittedInput();
+  }
+
+  /// Follows the platform composition across deltas.
+  ///
+  /// A composition is over once the platform says so outright — a non-text
+  /// update is the only message an input method sends purely to close one —
+  /// or once two consecutive deltas carry no composing range at all, which is
+  /// what ordinary uncomposed typing looks like.
+  void _trackPlatformComposition(TextEditingDelta delta) {
+    final composing = delta.composing.isValid && !delta.composing.isCollapsed;
+    if (delta is TextEditingDeltaNonTextUpdate) {
+      _platformComposing = false;
+    } else if (composing) {
+      _platformComposing = true;
+    } else if (!_previousDeltaComposing) {
+      _platformComposing = false;
+    }
+    _previousDeltaComposing = composing;
   }
 
   void _accept(TextEditingValue value) {
@@ -2103,7 +2140,9 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   }
 
   void _finishCommittedInput() {
-    if (_isComposing || _editingValue.text.isEmpty) return;
+    if (_isComposing || _platformComposing || _editingValue.text.isEmpty) {
+      return;
+    }
     // xterm clears its hidden textarea after committed input. Keeping the
     // committed value makes a later platform synchronization to an empty
     // editing value look like a user deletion and emits duplicate DEL bytes.
@@ -2117,11 +2156,10 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   void _suppressPhysicalCommitEcho(String text) {
     if (_isComposing || text.isEmpty) return;
-    // Appended rather than assigned: a physical key can land while the echo
-    // of an earlier committed reset is still armed — Hangul then Space leaves
-    // the platform text carrying both — and replacing the prefix would make
-    // that combined echo look like fresh user input, re-sending everything.
-    _resetEchoPrefix += text;
+    // The platform will report this text in its own time. Charging it to the
+    // committed prefix — which is already expressed in post-reset coordinates
+    // — makes the echo diff away whether or not a reset is currently armed.
+    _committedPrefix += text;
   }
 
   TextEditingValue _withoutResetEcho(TextEditingValue value) {
