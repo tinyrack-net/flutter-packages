@@ -28,7 +28,16 @@ fi
 reset_simulator() {
   # XCTest can leave the base simulator booted but unable to launch a Flutter
   # app. Erasing it also removes stale permissions and installed test runners.
+  #
+  # The erase alone cannot reach a wedged host-side simulator stack: Flutter
+  # discovers the app's VM service by reading the simulator's unified log,
+  # and once that log reader dies ("Error waiting for a debug connection:
+  # The log reader failed unexpectedly") every attempt fails no matter how
+  # clean the device is. Restart the whole CoreSimulator stack first; simctl
+  # respawns the service on the next invocation.
   xcrun simctl shutdown "$simulator_udid" || true
+  killall Simulator 2>/dev/null || true
+  sudo killall -9 com.apple.CoreSimulator.CoreSimulatorService 2>/dev/null || true
   xcrun simctl erase "$simulator_udid"
   xcrun simctl boot "$simulator_udid"
   xcrun simctl bootstatus "$simulator_udid" -b
