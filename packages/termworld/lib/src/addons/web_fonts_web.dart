@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 import 'package:web/web.dart' as web;
 
 @JS('Array.from')

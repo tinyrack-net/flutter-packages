@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Renderer color override attached to one terminal cell.
 @immutable

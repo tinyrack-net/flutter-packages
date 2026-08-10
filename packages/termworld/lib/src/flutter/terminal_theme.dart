@@ -1,9 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:termworld/src/core/options.dart';
-import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/css_color_parser.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Cursor shape rendered by the Flutter terminal view.
 enum TerminalCursorType {

@@ -8,12 +8,7 @@ import 'dart:typed_data';
 import 'package:termworld/src/addons/iip_header_parser.dart';
 import 'package:termworld/src/addons/iip_metrics.dart';
 import 'package:termworld/src/addons/kitty_graphics_types.dart';
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/buffer.dart';
-import 'package:termworld/src/core/event.dart';
-import 'package:termworld/src/core/options.dart';
-import 'package:termworld/src/core/parser.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 export 'src/addons/iip_header_parser.dart';
 export 'src/addons/iip_metrics.dart';

@@ -8,18 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:termworld/addon_image.dart';
 import 'package:termworld/src/addons/qoi_decoder.dart';
-import 'package:termworld/src/core/buffer.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/keyboard.dart';
-import 'package:termworld/src/core/kitty_keyboard.dart';
-import 'package:termworld/src/core/marker.dart';
-import 'package:termworld/src/core/options.dart';
-import 'package:termworld/src/core/selection_service.dart';
-import 'package:termworld/src/core/terminal.dart';
 import 'package:termworld/src/flutter/cell_color_resolver.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/src/flutter/terminal_view_controller.dart';
 import 'package:termworld/src/flutter/webgl_surface.dart';
+import 'package:vtworld/vtworld.dart';
 
 enum _PointerSelectionMode { normal, word, line, column }
 

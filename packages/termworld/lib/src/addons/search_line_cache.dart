@@ -1,7 +1,6 @@
 import 'dart:async';
 
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Cached string form of one logical buffer line and its wrapped-line offsets.
 final class SearchLineCacheEntry {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/src/addons/webgl_cell_color_resolver.dart';
-import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/flutter/cell_color_resolver.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
+import 'package:vtworld/vtworld.dart';
 
 const _red = Color(0xffff0000);
 const _blue = Color(0xff0000ff);

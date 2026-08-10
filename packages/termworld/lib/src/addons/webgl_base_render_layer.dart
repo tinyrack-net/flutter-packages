@@ -1,6 +1,5 @@
 import 'package:termworld/src/addons/webgl_render_layer.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Canvas operations used by xterm's base render layer.
 abstract interface class TerminalWebglLayerCanvasContext {

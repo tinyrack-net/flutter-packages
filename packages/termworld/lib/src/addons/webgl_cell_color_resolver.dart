@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:termworld/src/core/renderer_utils.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// xterm packed cell color masks used by the WebGL renderer.
 abstract final class TerminalWebglAttributes {

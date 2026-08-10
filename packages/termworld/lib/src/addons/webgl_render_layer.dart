@@ -1,5 +1,4 @@
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Renderer-layer lifecycle contract ported from xterm's WebGL renderer.
 abstract interface class TerminalWebglRenderLayer implements Disposable {

@@ -1,6 +1,4 @@
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/event.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Opaque handle identifying the current renderer texture atlas generation.
 final class TerminalTextureAtlas {

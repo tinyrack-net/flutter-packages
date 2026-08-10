@@ -1,9 +1,7 @@
 /// OSC 9;4 task progress addon.
 library;
 
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/event.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Progress state codes defined by the xterm progress addon.
 /// xterm-compatible `TerminalProgressState` API.

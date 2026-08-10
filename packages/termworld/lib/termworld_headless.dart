@@ -1,26 +1,9 @@
 /// Headless xterm-compatible terminal APIs.
+///
+/// The parser, the cell grid, and ANSI serialization live in `vtworld`, a
+/// plain Dart package, so a server with no Flutter SDK can hold the same
+/// screen model this package renders. They are re-exported here so a consumer
+/// of `termworld` never has to name the split.
 library;
 
-export 'src/core/addon.dart';
-export 'src/core/buffer.dart';
-export 'src/core/character_joiner_service.dart';
-export 'src/core/clipboard.dart';
-export 'src/core/color_zone_store.dart';
-export 'src/core/decoration_service.dart';
-export 'src/core/disposable.dart';
-export 'src/core/event.dart';
-export 'src/core/keyboard.dart';
-export 'src/core/kitty_keyboard.dart';
-export 'src/core/marker.dart';
-export 'src/core/mouse_coordinates.dart';
-export 'src/core/move_to_cell.dart';
-export 'src/core/options.dart';
-export 'src/core/parser.dart';
-export 'src/core/renderer_utils.dart';
-export 'src/core/selection_service.dart';
-export 'src/core/terminal.dart';
-export 'src/core/text_blink_state_manager.dart';
-export 'src/core/text_decoder.dart';
-export 'src/core/unicode.dart';
-export 'src/core/windows_mode.dart';
-export 'src/core/write_buffer.dart';
+export 'package:vtworld/vtworld.dart';

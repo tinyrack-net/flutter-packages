@@ -15,6 +15,11 @@ dependencies:
   characters: ^1.4.1
   flutter:
     sdk: flutter
+  vtworld:
+    git:
+      url: https://github.com/tinyrack-net/dart-packages.git
+      ref: 7fcd102c36eac932f37ae30d450e375018a165f5
+      path: packages/vtworld
   web: ^1.1.1
   web_socket_channel: ^3.0.3
 

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_image.dart';
 import 'package:termworld/addon_progress.dart';
-import 'package:termworld/addon_serialize.dart';
 import 'package:termworld/addon_unicode11.dart';
 import 'package:termworld/addon_unicode_graphemes.dart';
 import 'package:termworld/termworld_headless.dart';

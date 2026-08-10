@@ -1,4 +1,4 @@
-import 'package:termworld/src/core/buffer.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Renderer-facing projection of an absolute terminal selection.
 final class SelectionRenderModel {

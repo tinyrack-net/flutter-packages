@@ -93,9 +93,14 @@ void main() {
     }
   }
 
-  final terminalSource = File(
-    '${package.path}/lib/src/core/terminal.dart',
-  ).readAsStringSync();
+  final terminalFile = _resolveParityFile(
+    package,
+    'lib/src/core/terminal.dart',
+  );
+  if (terminalFile == null) {
+    _finish([...failures, 'lib/src/core/terminal.dart is missing']);
+  }
+  final terminalSource = terminalFile.readAsStringSync();
   for (final api in manifest['required_terminal_api'] as YamlList) {
     if (!RegExp(
       '\\b${RegExp.escape(api as String)}\\b',
@@ -374,8 +379,8 @@ void _checkMappings(
       continue;
     }
     _checkPath(package, implementation, failures);
-    final source = File('${package.path}/$implementation');
-    if (source.existsSync() && !source.readAsStringSync().contains(symbol)) {
+    final source = _resolveParityFile(package, implementation);
+    if (source != null && !source.readAsStringSync().contains(symbol)) {
       failures.add('mapped declaration symbol is missing: ${entry.key}');
     }
   }
@@ -570,9 +575,41 @@ void _checkFixtureHashes(
 }
 
 void _checkPath(Directory package, String path, List<String> failures) {
-  if (!File('${package.path}/$path').existsSync()) {
+  if (_resolveParityFile(package, path) == null) {
     failures.add('$path is missing');
   }
+}
+
+/// Finds a manifest path in termworld or in the package its core moved to.
+///
+/// The parser and cell grid now live in `vtworld` so a plain Dart server can
+/// hold the same screen model. The parity contract still covers both halves as
+/// one port, so a mapping resolves against whichever package now owns the file
+/// rather than being split across two manifests.
+File? _resolveParityFile(Directory package, String path) {
+  final local = File('${package.path}/$path');
+  if (local.existsSync()) return local;
+  final root = _vtworldRoot(package);
+  if (root == null) return null;
+  final moved = File('${root.path}/$path');
+  return moved.existsSync() ? moved : null;
+}
+
+Directory? _vtworldRoot(Directory package) {
+  final config = File(
+    '${package.parent.parent.path}/.dart_tool/package_config.json',
+  );
+  if (!config.existsSync()) return null;
+  final decoded = jsonDecode(config.readAsStringSync()) as Map<String, Object?>;
+  final packages = (decoded['packages']! as List<Object?>)
+      .cast<Map<String, Object?>>();
+  for (final entry in packages) {
+    if (entry['name'] != 'vtworld') continue;
+    return Directory.fromUri(
+      config.uri.resolve(entry['rootUri']! as String),
+    );
+  }
+  return null;
 }
 
 Never _finish(List<String> failures) {

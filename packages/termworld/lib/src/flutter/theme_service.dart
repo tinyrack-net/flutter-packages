@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/event.dart';
-import 'package:termworld/src/core/options.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Two-color-key cache used by xterm's contrast calculation path.
 final class ColorContrastCache {
