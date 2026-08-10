@@ -1,10 +1,13 @@
 name: CI
 
-# Every job below is a required status check and none uses continue-on-error.
-# A platform this repository declares is a platform this workflow proves, on a
-# real runner of that operating system. Step names carry the L3/L4/L5 prefixes
-# that tool/verify_platform_matrix.dart matches, so adding a platform without
-# its jobs fails the build instead of passing quietly.
+# Every platform this repository declares is proved on a real runner of that
+# operating system, and no job uses continue-on-error. A pull request scoped
+# to one package runs only that package's jobs; the packages do not depend on
+# each other, so the other package's evidence cannot change. Anything touching
+# shared surfaces (tool/, the workflows, root configuration) and every push to
+# main runs the full matrix. Step names carry the L3/L4/L5 prefixes that
+# tool/verify_platform_matrix.dart matches, so adding a platform without its
+# jobs fails the build instead of passing quietly.
 
 on:
   push:
@@ -23,6 +26,49 @@ env:
   FLUTTER_VERSION: 3.44.4
 
 jobs:
+  changes:
+    name: Detect affected packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      dropwell: ${{ steps.affected.outputs.dropwell }}
+      termworld: ${{ steps.affected.outputs.termworld }}
+    steps:
+      - uses: actions/checkout@v5
+      # Pinned dorny/paths-filter v4.0.3.
+      - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d
+        id: filter
+        with:
+          filters: |
+            dropwell:
+              - 'packages/dropwell/**'
+            termworld:
+              - 'packages/termworld/**'
+            shared:
+              - '**'
+              - '!packages/**'
+      - name: Resolve shared changes to every package
+        id: affected
+        env:
+          EVENT: ${{ github.event_name }}
+          DROPWELL: ${{ steps.filter.outputs.dropwell }}
+          TERMWORLD: ${{ steps.filter.outputs.termworld }}
+          SHARED: ${{ steps.filter.outputs.shared }}
+        run: |
+          affected() {
+            if [[ "$EVENT" != "pull_request" || "$SHARED" == "true" || "$1" == "true" ]]; then
+              echo true
+            else
+              echo false
+            fi
+          }
+          {
+            echo "dropwell=$(affected "$DROPWELL")"
+            echo "termworld=$(affected "$TERMWORLD")"
+          } >> "$GITHUB_OUTPUT"
+
   analyze:
     name: Analyze
     runs-on: ubuntu-latest
@@ -54,8 +100,33 @@ jobs:
       - name: Verify termworld has no xterm dependency or delegation
         run: dart run tool/verify_termworld_dependencies.dart
 
-  dart:
-    name: Dart (${{ matrix.os }}, shard ${{ matrix.shard }})
+  dart-dropwell:
+    name: Dart dropwell (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-26
+          - windows-2025
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
+      - name: Dropwell L1 and L2 Dart unit and widget tests
+        run: flutter test packages/dropwell/test --test-randomize-ordering-seed=random
+
+  dart-termworld:
+    name: Dart termworld (${{ matrix.os }}, shard ${{ matrix.shard }})
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
     timeout-minutes: 45
     strategy:
       fail-fast: false
@@ -77,14 +148,13 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter pub get
-      - name: Dropwell L1 and L2 Dart unit and widget tests
-        if: ${{ matrix.shard == 0 }}
-        run: flutter test packages/dropwell/test --test-randomize-ordering-seed=random
       - name: Termworld L1 and L2 Dart unit and widget tests
         run: dart run tool/run_flutter_test_shard.dart packages/termworld ${{ matrix.shard }} 4
 
-  coverage:
-    name: Coverage
+  coverage-dropwell:
+    name: Coverage dropwell
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -94,16 +164,39 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
       - run: flutter pub get
-      - run: dart run tool/verify_coverage.dart
+      - run: dart run tool/verify_coverage.dart dropwell
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: dart-coverage
-          path: packages/*/coverage/lcov.info
+          name: dart-coverage-dropwell
+          path: packages/dropwell/coverage/lcov.info
           if-no-files-found: error
 
-  windows:
-    name: Windows (${{ matrix.os }})
+  coverage-termworld:
+    name: Coverage termworld
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
+      - run: dart run tool/verify_coverage.dart termworld
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dart-coverage-termworld
+          path: packages/termworld/coverage/lcov.info
+          if-no-files-found: error
+
+  windows-dropwell:
+    name: Windows dropwell (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -129,6 +222,33 @@ jobs:
       - name: L5 windows release build
         run: flutter build windows --release
         working-directory: packages/dropwell/example
+      - name: Assert the Debug-only testing hook is absent from the release build
+        run: dart run tool/verify_release_hooks.dart windows
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: windows-dropwell-${{ matrix.os }}-logs
+          path: packages/dropwell/example/build/windows/**/*.log
+          if-no-files-found: ignore
+
+  windows-termworld:
+    name: Windows termworld (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2025
+          - windows-2022
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
       - name: Resolve the termworld example app
         run: flutter pub get
         working-directory: packages/termworld/example
@@ -145,15 +265,11 @@ jobs:
         working-directory: packages/termworld/example
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart windows
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: windows-${{ matrix.os }}-logs
-          path: packages/dropwell/example/build/windows/**/*.log
-          if-no-files-found: ignore
 
-  macos:
-    name: macOS (${{ matrix.os }})
+  macos-dropwell:
+    name: macOS dropwell (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -179,6 +295,27 @@ jobs:
       - name: L5 macos release build
         run: flutter build macos --release
         working-directory: packages/dropwell/example
+      - name: Assert the Debug-only testing hook is absent from the release build
+        run: dart run tool/verify_release_hooks.dart macos
+
+  macos-termworld:
+    name: macOS termworld (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-26
+          - macos-15
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
       - name: Resolve the termworld example app
         run: flutter pub get
         working-directory: packages/termworld/example
@@ -199,8 +336,10 @@ jobs:
       - name: Assert the Debug-only testing hook is absent from the release build
         run: dart run tool/verify_release_hooks.dart macos
 
-  linux:
-    name: Linux (${{ matrix.os }})
+  linux-dropwell:
+    name: Linux dropwell (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     strategy:
       fail-fast: false
       matrix:
@@ -231,6 +370,32 @@ jobs:
       - name: L5 linux release build
         run: flutter build linux --release
         working-directory: packages/dropwell/example
+      - name: Assert the Debug-only testing hook is absent from the release build
+        run: dart run tool/verify_release_hooks.dart linux
+
+  linux-termworld:
+    name: Linux termworld (${{ matrix.os }})
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Install the GTK and test toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            clang cmake ninja-build pkg-config libgtk-3-dev libgtest-dev xvfb
+      - run: flutter pub get
       - name: Resolve the termworld example app
         run: flutter pub get
         working-directory: packages/termworld/example
@@ -252,6 +417,8 @@ jobs:
 
   linux-ibus:
     name: Linux IBus Hangul E2E
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -285,8 +452,10 @@ jobs:
           path: ibus-artifacts
           if-no-files-found: warn
 
-  web:
-    name: Web
+  web-dropwell:
+    name: Web dropwell
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -316,6 +485,20 @@ jobs:
       - name: L5 web release build
         run: flutter build web --release
         working-directory: packages/dropwell/example
+
+  web-termworld:
+    name: Web termworld
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - uses: nanasess/setup-chromedriver@v2
+      - run: flutter pub get
       - name: Resolve the termworld example app
         run: flutter pub get
         working-directory: packages/termworld/example
@@ -324,6 +507,7 @@ jobs:
         working-directory: packages/termworld
       - name: L4 web termworld conformance suite
         run: |
+          chromedriver --port=4444 &
           flutter drive \
             --driver=test_driver/integration_test.dart \
             --target=integration_test/conformance_test.dart \
@@ -338,6 +522,8 @@ jobs:
 
   web-browsers:
     name: Web renderer (${{ matrix.browser }})
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -377,8 +563,10 @@ jobs:
           xvfb-run -a node tool/run_termworld_browser_conformance.cjs \
             "${{ matrix.browser }}"
 
-  android:
-    name: Android (API ${{ matrix.api-level }})
+  android-dropwell:
+    name: Android dropwell (API ${{ matrix.api-level }})
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     runs-on: ubuntu-latest
     # An emulator that never finishes booting otherwise holds the whole run
     # open for hours and keeps every other job's logs out of reach.
@@ -422,6 +610,34 @@ jobs:
       - name: L5 android release build
         run: flutter build apk --release
         working-directory: packages/dropwell/example
+      - name: Assert the Debug-only testing hook is absent from the release build
+        run: dart run tool/verify_release_hooks.dart android
+
+  android-termworld:
+    name: Android termworld (API ${{ matrix.api-level }})
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    runs-on: ubuntu-latest
+    # An emulator that never finishes booting otherwise holds the whole run
+    # open for hours and keeps every other job's logs out of reach.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        api-level:
+          - 24
+          - 35
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - run: flutter pub get
       - name: Resolve the termworld example app
         run: flutter pub get
         working-directory: packages/termworld/example
@@ -430,6 +646,12 @@ jobs:
           flutter build apk --debug --config-only
           android/gradlew -p android testDebugUnitTest
         working-directory: packages/termworld/example
+      - name: Enable KVM for the emulator
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
       - name: L4 android termworld conformance suite
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -448,6 +670,8 @@ jobs:
   # separate runners so the pipeline's wall clock is one pyramid, not both.
   ios-dropwell:
     name: iOS dropwell
+    needs: changes
+    if: needs.changes.outputs.dropwell == 'true'
     runs-on: macos-26
     # Simulator test processes occasionally stop producing output. Bound the
     # required job so a stuck host is reported and retried instead of holding
@@ -499,6 +723,8 @@ jobs:
 
   ios-termworld:
     name: iOS termworld
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
     runs-on: macos-26
     # Simulator test processes occasionally stop producing output. Bound the
     # required job so a stuck host is reported and retried instead of holding
