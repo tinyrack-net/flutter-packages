@@ -63,7 +63,9 @@ List<String> verifyPackages(String root) {
     return <String>['.github/workflows/ci.yml is missing'];
   }
   final steps = _workflowStepNames(workflow);
-  final violations = <String>[];
+  final violations = <String>[
+    ..._verifyIosSimulatorRecovery(root, workflow),
+  ];
   final ibusRunner = File(p.join(root, 'tool', 'run_linux_ibus_e2e.sh'));
   final workflowText = <String>[
     workflow.readAsStringSync(),
@@ -151,6 +153,83 @@ List<String> verifyPackages(String root) {
           );
         }
       }
+    }
+  }
+  return violations;
+}
+
+const String _iosRetryAction =
+    'nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60';
+const String _resetSelectedIosSimulator =
+    r'bash tool/ios_simulator_ci.sh reset "$UDID"';
+const String _resetIosSimulator =
+    r'bash tool/ios_simulator_ci.sh reset "$SIMULATOR_UDID"';
+const String _diagnoseIosSimulator =
+    r'bash tool/ios_simulator_ci.sh diagnose "$SIMULATOR_UDID"';
+
+List<String> _verifyIosSimulatorRecovery(String root, File workflow) {
+  final helper = File(p.join(root, 'tool', 'ios_simulator_ci.sh'));
+  final violations = <String>[];
+  if (!helper.existsSync()) {
+    violations.add('iOS CI is missing tool/ios_simulator_ci.sh');
+  }
+
+  final document = loadYaml(workflow.readAsStringSync());
+  if (document is! YamlMap || document['jobs'] is! YamlMap) {
+    return <String>[...violations, 'CI workflow has no jobs mapping'];
+  }
+  final jobs = document['jobs'] as YamlMap;
+  final ios = jobs['ios'];
+  if (ios is! YamlMap || ios['steps'] is! YamlList) {
+    return <String>[...violations, 'CI workflow has no iOS job steps'];
+  }
+  final iosSteps = (ios['steps'] as YamlList).whereType<YamlMap>().toList();
+  final bootSteps = iosSteps
+      .where((step) => step['name'] == 'Boot an iOS simulator')
+      .toList();
+  final bootCommand = bootSteps.length == 1
+      ? '${bootSteps.single['run'] ?? ''}'
+      : '';
+  if (!bootCommand.contains(_resetSelectedIosSimulator)) {
+    violations.add('iOS CI must reset the selected simulator before L3');
+  }
+
+  for (final name in const <String>[
+    'L4 ios conformance suite',
+    'L4 ios termworld conformance suite',
+  ]) {
+    final matching = iosSteps.where((step) => step['name'] == name).toList();
+    if (matching.length != 1) {
+      violations.add('iOS CI must contain exactly one "$name" step');
+      continue;
+    }
+    final step = matching.single;
+    if (step['uses'] != _iosRetryAction) {
+      violations.add('$name must pin $_iosRetryAction');
+    }
+    final inputs = step['with'];
+    if (inputs is! YamlMap) {
+      violations.add('$name must configure bounded retry inputs');
+      continue;
+    }
+    const expectedInputs = <String, String>{
+      'timeout_minutes': '10',
+      'max_attempts': '2',
+      'retry_wait_seconds': '5',
+      'retry_on': 'timeout',
+    };
+    for (final entry in expectedInputs.entries) {
+      if ('${inputs[entry.key] ?? ''}' != entry.value) {
+        violations.add('$name must set ${entry.key} to ${entry.value}');
+      }
+    }
+    final command = '${inputs['command'] ?? ''}';
+    if (!command.contains(_resetIosSimulator)) {
+      violations.add('$name must reset the simulator before every attempt');
+    }
+    final onRetry = '${inputs['on_retry_command'] ?? ''}';
+    if (!onRetry.contains(_diagnoseIosSimulator)) {
+      violations.add('$name must collect diagnostics before retrying');
     }
   }
   return violations;

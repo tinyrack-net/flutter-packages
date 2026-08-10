@@ -466,22 +466,27 @@ jobs:
         # so wait on bootstatus instead of racing the device list.
         run: |
           UDID=$(xcrun simctl list devices available --json | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];c=[x['udid'] for k,v in sorted(d.items()) if 'iOS' in k for x in v if x['name'].startswith('iPhone')];print(c[-1])")
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
-          open -a Simulator
+          bash tool/ios_simulator_ci.sh reset "$UDID"
           echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
       - name: L3 ios native unit tests
         run: dart run tool/run_native_tests.dart ios
         env:
           DROPWELL_XCODE_DESTINATION: platform=iOS Simulator,id=${{ env.SIMULATOR_UDID }}
       - name: L4 ios conformance suite
-        # The L3 xcodebuild run can shut the simulator down, and Flutter only
-        # lists a device that is booted right now, so re-boot before asking.
-        run: |
-          xcrun simctl boot "$SIMULATOR_UDID" || true
-          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
-          flutter test integration_test -d "$SIMULATOR_UDID"
-        working-directory: packages/dropwell/example
+        # Pinned nick-fields/retry v4. Retry only Flutter's unbounded simulator
+        # attach wait; real build and assertion failures remain immediate.
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+        with:
+          timeout_minutes: 10
+          max_attempts: 2
+          retry_wait_seconds: 5
+          retry_on: timeout
+          command: |
+            bash tool/ios_simulator_ci.sh reset "$SIMULATOR_UDID"
+            cd packages/dropwell/example
+            flutter test integration_test -d "$SIMULATOR_UDID"
+          on_retry_command: >-
+            bash tool/ios_simulator_ci.sh diagnose "$SIMULATOR_UDID"
       - name: L5 ios release build
         run: flutter build ios --release --no-codesign
         working-directory: packages/dropwell/example
@@ -497,12 +502,21 @@ jobs:
             -destination "platform=iOS Simulator,id=$SIMULATOR_UDID"
         working-directory: packages/termworld/example
       - name: L4 ios termworld conformance suite
-        run: |
-          xcrun simctl boot "$SIMULATOR_UDID" || true
-          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
-          flutter test integration_test/conformance_test.dart \
-            -d "$SIMULATOR_UDID"
-        working-directory: packages/termworld/example
+        # Pinned nick-fields/retry v4. Keep deterministic test failures visible
+        # while recovering once from a stalled simulator attachment.
+        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60
+        with:
+          timeout_minutes: 10
+          max_attempts: 2
+          retry_wait_seconds: 5
+          retry_on: timeout
+          command: |
+            bash tool/ios_simulator_ci.sh reset "$SIMULATOR_UDID"
+            cd packages/termworld/example
+            flutter test integration_test/conformance_test.dart \
+              -d "$SIMULATOR_UDID"
+          on_retry_command: >-
+            bash tool/ios_simulator_ci.sh diagnose "$SIMULATOR_UDID"
       - name: L5 ios termworld release build
         run: flutter build ios --release --no-codesign
         working-directory: packages/termworld/example
