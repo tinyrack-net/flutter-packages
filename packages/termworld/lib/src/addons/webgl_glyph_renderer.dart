@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:termworld/src/addons/webgl_rectangle_renderer.dart';
-import 'package:termworld/src/core/renderer_utils.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Number of float attributes uploaded for each instanced glyph.
 const int terminalWebglGlyphFloatCount = 11;

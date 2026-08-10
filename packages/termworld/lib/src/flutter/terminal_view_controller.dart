@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:termworld/src/core/buffer.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Controls selection, scrolling and keyboard focus for a terminal view.
 final class TerminalViewController extends ChangeNotifier {

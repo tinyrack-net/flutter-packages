@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:termworld/src/core/buffer.dart';
 import 'package:termworld/src/core/render_row_factory.dart';
+import 'package:vtworld/vtworld.dart';
 
 void main() {
   group('DomRendererRowFactory', () {

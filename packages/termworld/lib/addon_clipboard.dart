@@ -5,8 +5,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// UTF-8 base64 codec used by OSC 52.
 abstract interface class TerminalBase64Codec {

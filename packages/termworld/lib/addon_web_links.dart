@@ -1,11 +1,8 @@
 /// HTTP and HTTPS link detection addon.
 library;
 
-import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/addons/web_links_opener.dart';
-import 'package:termworld/src/core/buffer.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Link activation callback.
 typedef WebLinkActivationHandler = void Function(Object? event, String uri);

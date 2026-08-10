@@ -1,4 +1,4 @@
-import 'package:termworld/src/core/buffer.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Cursor decoration attached to a renderer-neutral row span.
 enum TerminalRowCursorStyle {

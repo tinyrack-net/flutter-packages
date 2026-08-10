@@ -1,13 +1,8 @@
 import 'dart:js_interop';
 import 'dart:typed_data' as typed;
 
-import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/addons/webgl_texture_atlas.dart';
-import 'package:termworld/src/core/buffer.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/event.dart';
-import 'package:termworld/src/core/options.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 import 'package:web/web.dart';
 
 WebGLShader _createShader(

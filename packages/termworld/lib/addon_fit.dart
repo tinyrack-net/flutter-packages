@@ -2,8 +2,7 @@
 library;
 
 import 'package:flutter/foundation.dart';
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Proposed terminal row and column count.
 @immutable

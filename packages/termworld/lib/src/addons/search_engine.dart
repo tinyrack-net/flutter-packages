@@ -1,5 +1,5 @@
 import 'package:termworld/src/addons/search_line_cache.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Search flags consumed by the standalone search engine.
 final class SearchEngineOptions {

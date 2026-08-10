@@ -3,14 +3,9 @@ library;
 
 import 'dart:async';
 
-import 'package:termworld/src/addons/managed_addon.dart';
 import 'package:termworld/src/addons/search_engine.dart';
 import 'package:termworld/src/addons/search_line_cache.dart';
-import 'package:termworld/src/core/buffer.dart';
-import 'package:termworld/src/core/disposable.dart';
-import 'package:termworld/src/core/event.dart';
-import 'package:termworld/src/core/marker.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Colors used for inactive and active search result decorations.
 final class TerminalSearchDecorationOptions {

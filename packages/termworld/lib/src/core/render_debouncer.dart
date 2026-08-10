@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:termworld/src/core/disposable.dart';
+import 'package:vtworld/vtworld.dart';
 
 /// Platform scheduling boundary for animation-frame render coalescing.
 abstract interface class TerminalFrameHost {

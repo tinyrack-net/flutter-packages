@@ -8,6 +8,11 @@ const _allowedProductionDependencies = <String>{
   'flutter',
   'web',
   'web_socket_channel',
+  // `vtworld` is termworld's own parsing half, extracted so a plain Dart
+  // server can hold the same screen model. This check exists to keep termworld
+  // from delegating to the `xterm` package; depending on code this repository
+  // wrote and moved is not that.
+  'vtworld',
 };
 
 /// Proves that termworld owns its implementation and has no xterm dependency.

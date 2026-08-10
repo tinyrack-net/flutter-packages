@@ -2,7 +2,7 @@ import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
 import 'package:termworld/src/addons/webgl_web.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 final Expando<bool> _registered = Expando<bool>();
 

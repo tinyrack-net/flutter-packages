@@ -1,9 +1,7 @@
 /// Unicode 15 grapheme-width addon.
 library;
 
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/terminal.dart';
-import 'package:termworld/src/core/unicode.dart';
+import 'package:vtworld/vtworld.dart';
 
 part 'unicode15_properties.g.dart';
 

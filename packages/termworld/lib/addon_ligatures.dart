@@ -5,8 +5,7 @@ import 'dart:async';
 
 import 'package:termworld/src/addons/ligature_font.dart';
 import 'package:termworld/src/addons/ligature_font_loader.dart';
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 
 enum _LigatureFontLoadingState { unloaded, loading, loaded, failed }
 

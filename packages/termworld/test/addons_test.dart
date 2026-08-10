@@ -5,7 +5,6 @@ import 'package:termworld/addon_image.dart';
 import 'package:termworld/addon_ligatures.dart';
 import 'package:termworld/addon_progress.dart';
 import 'package:termworld/addon_search.dart';
-import 'package:termworld/addon_serialize.dart';
 import 'package:termworld/addon_unicode11.dart';
 import 'package:termworld/addon_unicode_graphemes.dart';
 import 'package:termworld/addon_web_fonts.dart';

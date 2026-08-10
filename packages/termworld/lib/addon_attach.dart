@@ -4,8 +4,7 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:termworld/src/addons/managed_addon.dart';
-import 'package:termworld/src/core/terminal.dart';
+import 'package:vtworld/vtworld.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 /// Pipes terminal input and output through a WebSocket channel.
