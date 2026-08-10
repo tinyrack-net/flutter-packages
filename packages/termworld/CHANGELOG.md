@@ -2,6 +2,12 @@
 
 ## 0.4.0
 
+- Picks up the vtworld fix that keeps a resize from abandoning terminal output.
+  `Terminal.resize` flushes the write buffer before it changes the geometry,
+  and that flush re-entered the parser when a chunk was still awaiting an
+  asynchronous handler, throwing out of the frame callback that reported the
+  new dimensions and dropping the chunk. A terminal resized while it streamed
+  output lost that output.
 - Removes the xterm.dart dependency, exports, delegates, wrappers, and
   fallbacks. Core, headless, Flutter, and addon behavior is owned by termworld.
 - Pins the behavioral contract to xterm.js
