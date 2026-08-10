@@ -179,19 +179,27 @@ List<String> _verifyIosSimulatorRecovery(String root, File workflow) {
     return <String>[...violations, 'CI workflow has no jobs mapping'];
   }
   final jobs = document['jobs'] as YamlMap;
-  final ios = jobs['ios'];
-  if (ios is! YamlMap || ios['steps'] is! YamlList) {
-    return <String>[...violations, 'CI workflow has no iOS job steps'];
+  // The iOS pyramids run one job per package. Find every iOS job by its
+  // simulator boot step instead of a hard-coded job id, so reshaping the job
+  // layout cannot silently skip this check.
+  final iosSteps = <YamlMap>[];
+  for (final job in jobs.values.whereType<YamlMap>()) {
+    final steps = job['steps'];
+    if (steps is! YamlList) continue;
+    final jobSteps = steps.whereType<YamlMap>().toList();
+    final bootSteps = jobSteps
+        .where((step) => step['name'] == 'Boot an iOS simulator')
+        .toList();
+    if (bootSteps.isEmpty) continue;
+    for (final boot in bootSteps) {
+      if (!'${boot['run'] ?? ''}'.contains(_resetSelectedIosSimulator)) {
+        violations.add('iOS CI must reset the selected simulator before L3');
+      }
+    }
+    iosSteps.addAll(jobSteps);
   }
-  final iosSteps = (ios['steps'] as YamlList).whereType<YamlMap>().toList();
-  final bootSteps = iosSteps
-      .where((step) => step['name'] == 'Boot an iOS simulator')
-      .toList();
-  final bootCommand = bootSteps.length == 1
-      ? '${bootSteps.single['run'] ?? ''}'
-      : '';
-  if (!bootCommand.contains(_resetSelectedIosSimulator)) {
-    violations.add('iOS CI must reset the selected simulator before L3');
+  if (iosSteps.isEmpty) {
+    return <String>[...violations, 'CI workflow has no iOS job steps'];
   }
 
   for (final name in const <String>[
@@ -213,7 +221,7 @@ List<String> _verifyIosSimulatorRecovery(String root, File workflow) {
       continue;
     }
     const expectedInputs = <String, String>{
-      'timeout_minutes': '10',
+      'timeout_minutes': '15',
       'max_attempts': '2',
       'retry_wait_seconds': '5',
       'retry_on': 'timeout',
