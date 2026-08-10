@@ -27,6 +27,24 @@ void main() {
     await harness.waitForOutput('한글 ');
   });
 
+  testWidgets('real IBus keeps a redistributing word in typed order', (
+    tester,
+  ) async {
+    final harness = await _ImeHarness.start(tester);
+    addTearDown(harness.dispose);
+
+    // 안녕하세요: ㅅ and ㅇ first land as the final consonant of the syllable
+    // in progress and are redistributed into the next one, so those keystrokes
+    // settle a syllable and reopen the preedit in the same breath. The
+    // syllables must still reach the PTY in the order they were typed.
+    await harness.keys(<String>[
+      ...'dkssudgktpdy'.split(''),
+      'period',
+      'space',
+    ]);
+    await harness.waitForOutput('안녕하세요. ');
+  });
+
   testWidgets('real IBus handles words, correction, and boundaries', (
     tester,
   ) async {
