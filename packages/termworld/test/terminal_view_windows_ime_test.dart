@@ -465,6 +465,39 @@ void main() {
   }, variant: windows);
 
   testWidgets(
+    'full-value updates on Windows keep the post-commit reset',
+    (tester) async {
+      final (_, output) = await _pumpTerminal(tester);
+      TextInputClient client() =>
+          tester.allStates.whereType<DeltaTextInputClient>().single;
+
+      // An embedder that reports whole editing values keeps no cumulative
+      // platform-side model: each committed value stands alone, exactly like
+      // the conformance harness drives. The reset must survive here or the
+      // next standalone value diffs against the previous commit and emits
+      // spurious DELs.
+      client().updateEditingValue(
+        const TextEditingValue(
+          text: '한글',
+          selection: TextSelection.collapsed(offset: 2),
+        ),
+      );
+      await tester.pump();
+
+      client().updateEditingValue(
+        const TextEditingValue(
+          text: '가',
+          selection: TextSelection.collapsed(offset: 1),
+        ),
+      );
+      await tester.pump();
+
+      expect(output.join(), '한글가');
+    },
+    variant: windows,
+  );
+
+  testWidgets(
     'the terminal does not reset the engine model between syllables',
     (tester) async {
       final (_, output) = await _pumpTerminal(tester);

@@ -9,7 +9,9 @@
   the reopen corrupted the model and committed preedit states such as 녀, 핫,
   and 셍 into the PTY ("안녕하세요. " arrived as "안녕녀녕핫하하세셍요요. ").
   Windows now accumulates committed text instead of resetting the platform
-  buffer, and the grapheme-cluster diff keeps writing only the tail.
+  buffer, and the grapheme-cluster diff keeps writing only the tail. The
+  full-value (non-delta) path keeps the reset, since an embedder reporting
+  whole values maintains no cumulative model for a reset to corrupt.
 
 ## 0.4.0
 

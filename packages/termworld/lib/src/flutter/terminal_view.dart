@@ -1936,6 +1936,13 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   /// input method's commit-then-recompose gap from ordinary uncomposed input.
   bool _previousDeltaComposing = false;
 
+  /// Whether the platform has delivered editing state as deltas, which is
+  /// what an embedder that honors `enableDeltaModel` does for the lifetime
+  /// of the connection. Deltas are computed against a platform-side model,
+  /// and on Windows that model is the one `setEditingState` mutates — the
+  /// distinction [_finishCommittedInput] needs.
+  bool _platformSendsDeltas = false;
+
   bool get _isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
 
@@ -2081,6 +2088,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
+    _platformSendsDeltas = true;
     for (final delta in deltas) {
       _trackPlatformComposition(delta);
       _followReorderedCommit(delta);
@@ -2328,7 +2336,8 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
         (_editingValue.text.isEmpty && _reorderedCommitText.isEmpty)) {
       return;
     }
-    if (defaultTargetPlatform == TargetPlatform.windows) {
+    if (_platformSendsDeltas &&
+        defaultTargetPlatform == TargetPlatform.windows) {
       // The Win32 embedder applies `setEditingState` directly to its
       // engine-side TextInputModel instead of echoing it back as a delta, and
       // Microsoft's Korean IME closes its composition after every settled
@@ -2340,6 +2349,8 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
       // are computed against that same authoritative model, so skipping the
       // reset keeps them consistent: committed text simply accumulates in
       // [_committedPrefix] and [_reconcileCommitted] writes only the tail.
+      // The full-value path keeps the reset: an embedder that reports whole
+      // values maintains no cumulative model for a reset to corrupt.
       return;
     }
     // xterm clears its hidden textarea after committed input. Keeping the
