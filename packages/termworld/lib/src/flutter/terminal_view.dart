@@ -2328,6 +2328,20 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
         (_editingValue.text.isEmpty && _reorderedCommitText.isEmpty)) {
       return;
     }
+    if (defaultTargetPlatform == TargetPlatform.windows) {
+      // The Win32 embedder applies `setEditingState` directly to its
+      // engine-side TextInputModel instead of echoing it back as a delta, and
+      // Microsoft's Korean IME closes its composition after every settled
+      // syllable and reopens one on the next keystroke. A post-commit reset
+      // that lands after that reopen strips the model's composing state while
+      // the IME keeps sending composition updates; the model then re-inserts
+      // the preedit over a stale selection and corrupts irrecoverably,
+      // duplicating in-progress syllables into the terminal. Windows deltas
+      // are computed against that same authoritative model, so skipping the
+      // reset keeps them consistent: committed text simply accumulates in
+      // [_committedPrefix] and [_reconcileCommitted] writes only the tail.
+      return;
+    }
     // xterm clears its hidden textarea after committed input. Keeping the
     // committed value makes a later platform synchronization to an empty
     // editing value look like a user deletion and emits duplicate DEL bytes.
