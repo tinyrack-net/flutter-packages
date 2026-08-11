@@ -452,6 +452,44 @@ jobs:
           path: ibus-artifacts
           if-no-files-found: warn
 
+  linux-ibus-wayland:
+    name: Linux IBus Wayland E2E
+    needs: changes
+    if: needs.changes.outputs.termworld == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+      - name: Install the IBus and Wayland test toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y \
+            ibus ibus-gtk3 ibus-hangul sway grim iso-codes \
+            libwayland-dev libwayland-bin libxkbcommon-dev \
+            clang cmake ninja-build pkg-config libgtk-3-dev
+      - name: Run the Linux IBus Wayland E2E
+        env:
+          GDK_BACKEND: wayland
+          GTK_IM_MODULE: ibus
+          IBUS_USE_PORTAL: '0'
+        run: |
+          export XDG_CONFIG_HOME="$RUNNER_TEMP/termworld-ibus-wayland-config"
+          export XDG_RUNTIME_DIR="$RUNNER_TEMP/termworld-ibus-wayland-runtime"
+          mkdir -p "$XDG_CONFIG_HOME" "$XDG_RUNTIME_DIR" \
+            "$GITHUB_WORKSPACE/ibus-wayland-artifacts"
+          chmod 700 "$XDG_RUNTIME_DIR"
+          dbus-run-session -- bash tool/run_linux_ibus_wayland_e2e.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-ibus-wayland-e2e
+          path: ibus-wayland-artifacts
+          if-no-files-found: warn
+
   web-dropwell:
     name: Web dropwell
     needs: changes
