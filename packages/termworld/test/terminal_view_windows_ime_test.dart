@@ -335,6 +335,23 @@ Future<void> _type(
   await tester.pump();
 }
 
+Future<void> _typeSettledHangul(
+  WidgetTester tester,
+  _WindowsEmbedder embedder,
+  String text,
+) async {
+  for (final rune in text.runes) {
+    final syllable = String.fromCharCode(rune);
+    embedder.keystroke(<ImmEvent>[
+      const ImmBegin(),
+      ImmCompose(syllable),
+      ImmResult(syllable),
+      const ImmEnd(),
+    ]);
+    await tester.pump();
+  }
+}
+
 void main() {
   final windows = TargetPlatformVariant.only(TargetPlatform.windows);
 
@@ -462,6 +479,57 @@ void main() {
     await tester.pump();
 
     expect(output.join(), '글 ');
+  }, variant: windows);
+
+  testWidgets(
+    'a physical-only space survives the next Hangul composition',
+    (tester) async {
+      final (_, output) = await _pumpTerminal(tester);
+      final embedder = _WindowsEmbedder(tester, resetLagInKeystrokes: 1);
+
+      await _type(
+        tester,
+        embedder,
+        hangulPerSyllableKeystrokes.sublist(
+          0,
+          hangulPerSyllableKeystrokes.length - 1,
+        ),
+      );
+      for (final word in <String>['저는', '박한솔', '입니다.']) {
+        // Microsoft's Korean IME can settle the preceding composition on
+        // Space while omitting the pass-through WM_CHAR/text delta. The
+        // physical-key bridge is then the only source of the space.
+        await tester.sendKeyEvent(LogicalKeyboardKey.space);
+        await tester.pump();
+        await _typeSettledHangul(tester, embedder, word);
+      }
+
+      expect(
+        output.join(),
+        '안녕하세요. 저는 박한솔 입니다.',
+        reason:
+            'starting the next composition must not reinterpret a '
+            'physical-only space as a deletion from the platform editing '
+            'buffer',
+      );
+      expect(output.join(), isNot(contains('\u007f')));
+    },
+    variant: windows,
+  );
+
+  testWidgets('repeated physical-only spaces survive composition', (
+    tester,
+  ) async {
+    final (_, output) = await _pumpTerminal(tester);
+    final embedder = _WindowsEmbedder(tester, resetLagInKeystrokes: 1);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pump();
+    await _typeSettledHangul(tester, embedder, '가');
+
+    expect(output.join(), '  가');
+    expect(output.join(), isNot(contains('\u007f')));
   }, variant: windows);
 
   testWidgets(

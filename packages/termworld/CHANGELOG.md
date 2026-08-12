@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.2
+
+- Preserves physical-key spaces when Microsoft's Korean IME omits their
+  `WM_CHAR`/text-delta echo. Starting the next Hangul composition no longer
+  treats the shorter platform editing buffer as a deletion, so typing
+  "안녕하세요. 저는 박한솔 입니다." retains every space without emitting
+  spurious DEL bytes.
+
 ## 0.4.1
 
 - Stops duplicating in-progress Hangul syllables on Windows. The Win32

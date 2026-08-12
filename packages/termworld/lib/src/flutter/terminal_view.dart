@@ -1909,6 +1909,16 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   String _resetEchoPrefix = '';
   String _compositionSuffix = '';
 
+  /// Text already sent through the physical-key bridge whose platform echo
+  /// has not been observed yet.
+  ///
+  /// Some input methods omit the text delta entirely. Keeping this separate
+  /// from [_committedPrefix] prevents the next composition, which starts from
+  /// the shorter platform buffer, from looking like it deleted the bridged
+  /// text. When an echo does arrive, [_resolvePhysicalCommitEcho] advances the
+  /// platform baseline without writing the text a second time.
+  String _pendingPhysicalCommitEcho = '';
+
   /// Committed text the platform inserted outside the live composing range.
   ///
   /// GTK's Wayland input-method path can deliver a settled syllable's commit
@@ -2012,6 +2022,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _committedPrefix = '';
     _resetEchoPrefix = '';
     _compositionSuffix = '';
+    _pendingPhysicalCommitEcho = '';
     _reorderedCommitText = '';
     _reorderedCommitStart = 0;
     _platformComposing = false;
@@ -2293,6 +2304,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     final wasComposing = _isComposing;
     final previousComposing = _editingValue.composing;
     final normalized = _withoutResetEcho(_withoutReorderedCommits(value));
+    _resolvePhysicalCommitEcho(normalized.text);
     _editingValue = normalized;
     final composing = normalized.composing;
     final isComposing = composing.isValid && !composing.isCollapsed;
@@ -2364,6 +2376,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _editingValue = TextEditingValue.empty;
     _platformEditingValue = TextEditingValue.empty;
     _committedPrefix = '';
+    _pendingPhysicalCommitEcho = '';
     _reorderedCommitText = '';
     _reorderedCommitStart = 0;
     _connection?.setEditingState(_editingValue);
@@ -2372,10 +2385,42 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   void _suppressPhysicalCommitEcho(String text) {
     if (_isComposing || text.isEmpty) return;
-    // The platform will report this text in its own time. Charging it to the
-    // committed prefix — which is already expressed in post-reset coordinates
-    // — makes the echo diff away whether or not a reset is currently armed.
-    _committedPrefix += text;
+    // The platform may report this text later or omit it entirely. Do not
+    // charge it to the platform baseline until an echo actually arrives: a
+    // composition starting from the unchanged platform buffer must not look
+    // like it deleted text that was already written to the terminal.
+    _pendingPhysicalCommitEcho += text;
+  }
+
+  void _resolvePhysicalCommitEcho(String next) {
+    final pending = _pendingPhysicalCommitEcho;
+    if (pending.isEmpty) return;
+    if (!next.startsWith(_committedPrefix)) {
+      _pendingPhysicalCommitEcho = '';
+      return;
+    }
+    final tail = next.substring(_committedPrefix.length);
+    if (tail.isEmpty) return;
+    var matched = 0;
+    while (matched < pending.length &&
+        matched < tail.length &&
+        pending.codeUnitAt(matched) == tail.codeUnitAt(matched)) {
+      matched++;
+    }
+    if (matched == 0) {
+      // The platform advanced directly into new input, so the expected echo
+      // was omitted. The bridged text is already in the PTY and needs no
+      // further reconciliation.
+      _pendingPhysicalCommitEcho = '';
+      return;
+    }
+    _committedPrefix += pending.substring(0, matched);
+    _pendingPhysicalCommitEcho = pending.substring(matched);
+    if (tail.length > matched) {
+      // New input followed the matching echo in the same platform update;
+      // any still-pending bridged text was omitted.
+      _pendingPhysicalCommitEcho = '';
+    }
   }
 
   TextEditingValue _withoutResetEcho(TextEditingValue value) {

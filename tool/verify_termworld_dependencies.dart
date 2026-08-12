@@ -38,8 +38,8 @@ void _verifyPubspec(Directory package, List<String> failures) {
             File('${package.path}/pubspec.yaml').readAsStringSync(),
           )
           as YamlMap;
-  if (pubspec['version'] != '0.4.1') {
-    failures.add('termworld must use the approved breaking version 0.4.1');
+  if (pubspec['version'] != '0.4.2') {
+    failures.add('termworld must use the approved patch version 0.4.2');
   }
   final dependencies = (pubspec['dependencies'] as YamlMap).keys
       .cast<String>()
