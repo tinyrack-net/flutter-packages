@@ -1,0 +1,19 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application
+        android:allowBackup="false"
+        android:label="Termworld InputConnection harness"
+        android:supportsRtl="true">
+        <service
+            android:name=".TermworldTestInputMethodService"
+            android:exported="true"
+            android:label="Termworld deterministic test IME"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data
+                android:name="android.view.im"
+                android:resource="@xml/termworld_test_input_method" />
+        </service>
+    </application>
+</manifest>

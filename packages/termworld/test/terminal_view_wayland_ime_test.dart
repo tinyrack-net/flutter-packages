@@ -123,6 +123,14 @@ TextEditingDeltaNonTextUpdate _close(String oldText) =>
       composing: TextRange.empty,
     );
 
+void _linuxTestWidgets(String description, WidgetTesterCallback callback) {
+  testWidgets(
+    description,
+    callback,
+    variant: TargetPlatformVariant.only(TargetPlatform.linux),
+  );
+}
+
 void main() {
   final fixtures = <String, String>{
     'wayland_text_input_v3_hangul_cases':
@@ -132,37 +140,40 @@ void main() {
 
   for (final MapEntry(key: fixture, value: label) in fixtures.entries) {
     for (final replay in _loadCases(fixture)) {
-      testWidgets('$label: ${replay.name} reaches the pty in typed order', (
-        tester,
-      ) async {
-        final terminal = Terminal();
-        addTearDown(terminal.dispose);
-        final output = <String>[];
-        terminal.onData.listen(output.add);
-        await _pumpTerminal(tester, terminal);
-        final send = _imeDeltas(tester);
+      _linuxTestWidgets(
+        '$label: ${replay.name} reaches the pty in typed order',
+        (
+          tester,
+        ) async {
+          final terminal = Terminal();
+          addTearDown(terminal.dispose);
+          final output = <String>[];
+          terminal.onData.listen(output.add);
+          await _pumpTerminal(tester, terminal);
+          final send = _imeDeltas(tester);
 
-        // One delta per call, matching the recorded wire traffic.
-        for (final delta in replay.deltas) {
-          send(<TextEditingDelta>[delta]);
-          await tester.pump();
-        }
+          // One delta per call, matching the recorded wire traffic.
+          for (final delta in replay.deltas) {
+            send(<TextEditingDelta>[delta]);
+            await tester.pump();
+          }
 
-        expect(
-          output.join(),
-          replay.expectedPty,
-          reason: replay.recordedBuggyPty == null
-              ? 'the healthy ibus path replay must stay clean'
-              : 'field capture of typing ${replay.typed}; before the '
-                    'arrival-order commit fix this replay emitted '
-                    '${replay.recordedBuggyPty}',
-        );
-        expect(
-          find.byKey(const ValueKey<String>('termworld-preedit')),
-          findsNothing,
-          reason: 'every capture ends with the composition fully closed',
-        );
-      });
+          expect(
+            output.join(),
+            replay.expectedPty,
+            reason: replay.recordedBuggyPty == null
+                ? 'the healthy ibus path replay must stay clean'
+                : 'field capture of typing ${replay.typed}; before the '
+                      'arrival-order commit fix this replay emitted '
+                      '${replay.recordedBuggyPty}',
+          );
+          expect(
+            find.byKey(const ValueKey<String>('termworld-preedit')),
+            findsNothing,
+            reason: 'every capture ends with the composition fully closed',
+          );
+        },
+      );
     }
   }
 
@@ -170,7 +181,7 @@ void main() {
   // never hit: retraction of forwarded text, the degrade guards, a commit
   // and preedit sharing one batch, and the fresh-preedit-over-stale-buffer
   // variant of the post-close race.
-  testWidgets('retracts a forwarded commit the platform deletes', (
+  _linuxTestWidgets('retracts a forwarded commit the platform deletes', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -206,7 +217,7 @@ void main() {
     );
   });
 
-  testWidgets('ignores platform edits right of the forwarded commit', (
+  _linuxTestWidgets('ignores platform edits right of the forwarded commit', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -236,7 +247,7 @@ void main() {
     );
   });
 
-  testWidgets('degrades to a plain flush when the buffer desyncs', (
+  _linuxTestWidgets('degrades to a plain flush when the buffer desyncs', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -273,7 +284,7 @@ void main() {
     );
   });
 
-  testWidgets('degrades when a commit lands disjoint from the region', (
+  _linuxTestWidgets('degrades when a commit lands disjoint from the region', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -301,7 +312,7 @@ void main() {
     );
   });
 
-  testWidgets('keeps a batched commit and preedit in arrival order', (
+  _linuxTestWidgets('keeps a batched commit and preedit in arrival order', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -335,44 +346,47 @@ void main() {
     );
   });
 
-  testWidgets('hides the stale buffer under a fresh preedit after a reset', (
-    tester,
-  ) async {
-    final terminal = Terminal();
-    addTearDown(terminal.dispose);
-    final output = <String>[];
-    terminal.onData.listen(output.add);
-    await _pumpTerminal(tester, terminal);
-    final send = _imeDeltas(tester);
+  _linuxTestWidgets(
+    'hides the stale buffer under a fresh preedit after a reset',
+    (
+      tester,
+    ) async {
+      final terminal = Terminal();
+      addTearDown(terminal.dispose);
+      final output = <String>[];
+      terminal.onData.listen(output.add);
+      await _pumpTerminal(tester, terminal);
+      final send = _imeDeltas(tester);
 
-    const preedit = TextRange(start: 0, end: 1);
-    // A settled syllable arms the post-commit reset echo.
-    send(<TextEditingDelta>[_insert('', '가', 0, composing: preedit)]);
-    await tester.pump();
-    send(<TextEditingDelta>[_close('가')]);
-    await tester.pump();
-    expect(output.join(), '가', reason: 'the first syllable settles');
+      const preedit = TextRange(start: 0, end: 1);
+      // A settled syllable arms the post-commit reset echo.
+      send(<TextEditingDelta>[_insert('', '가', 0, composing: preedit)]);
+      await tester.pump();
+      send(<TextEditingDelta>[_close('가')]);
+      await tester.pump();
+      expect(output.join(), '가', reason: 'the first syllable settles');
 
-    // The next preedit opens in front of the stale, not-yet-reset buffer.
-    send(<TextEditingDelta>[_insert('가', 'ㄴ', 0, composing: preedit)]);
-    await tester.pump();
-    send(<TextEditingDelta>[
-      _replace(
-        'ㄴ가',
-        const TextRange(start: 0, end: 1),
-        '나',
-        composing: preedit,
-      ),
-    ]);
-    await tester.pump();
-    send(<TextEditingDelta>[_close('나가')]);
-    await tester.pump();
-    expect(
-      output.join(),
-      '가나',
-      reason:
-          'the stale tail is already on the terminal and must not flush '
-          'again when the new preedit settles',
-    );
-  });
+      // The next preedit opens in front of the stale, not-yet-reset buffer.
+      send(<TextEditingDelta>[_insert('가', 'ㄴ', 0, composing: preedit)]);
+      await tester.pump();
+      send(<TextEditingDelta>[
+        _replace(
+          'ㄴ가',
+          const TextRange(start: 0, end: 1),
+          '나',
+          composing: preedit,
+        ),
+      ]);
+      await tester.pump();
+      send(<TextEditingDelta>[_close('나가')]);
+      await tester.pump();
+      expect(
+        output.join(),
+        '가나',
+        reason:
+            'the stale tail is already on the terminal and must not flush '
+            'again when the new preedit settles',
+      );
+    },
+  );
 }

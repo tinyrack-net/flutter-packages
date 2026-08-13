@@ -65,12 +65,16 @@ List<String> verifyPackages(String root) {
   final steps = _workflowStepNames(workflow);
   final violations = <String>[
     ..._verifyIosSimulatorRecovery(root, workflow),
+    ...verifyTermworldAndroidInputBoundary(root, workflow),
   ];
   final ibusRunner = File(p.join(root, 'tool', 'run_linux_ibus_e2e.sh'));
   final workflowText = <String>[
     workflow.readAsStringSync(),
     if (ibusRunner.existsSync()) ibusRunner.readAsStringSync(),
   ].join('\n');
+  if (!workflowText.contains('dart test test/tool')) {
+    violations.add('tool: CI must execute the repository tooling tests');
+  }
   const ibusMarkers = <String>[
     'Linux IBus Hangul E2E',
     'subosito/flutter-action@v2',
@@ -154,6 +158,462 @@ List<String> verifyPackages(String root) {
         }
       }
     }
+  }
+  return violations;
+}
+
+/// Verifies termworld's real Android `FlutterView`/`InputConnection` pyramid.
+///
+/// The ordinary cross-platform conformance test intentionally drives Dart's
+/// `TextInputClient` directly. Android IMEs operate one boundary lower, so the
+/// package also owns a Debug-only app driver, a separately installed test IME,
+/// a shared transaction fixture, and required API 24/35 emulator evidence. The
+/// IME operates on its system-provided `currentInputConnection`; it must not
+/// create a second `FlutterView` connection inside the application process.
+/// Keeping these requirements here prevents a green CI edit from silently
+/// returning to the mocked boundary.
+List<String> verifyTermworldAndroidInputBoundary(String root, File workflow) {
+  final violations = <String>[];
+  final termworld = p.join(root, 'packages', 'termworld');
+  final requiredFiles = <String, String>{
+    p.join(
+      termworld,
+      'example',
+      'assets',
+      'ime',
+      'android_input_connection_cases.json',
+    ): 'shared Android input transaction fixture',
+    p.join(
+      termworld,
+      'example',
+      'integration_test',
+      'android_input_connection_test.dart',
+    ): 'native-boundary Android E2E',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'app',
+      'src',
+      'debug',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_example',
+      'DebugMainActivity.kt',
+    ): 'Debug-only Android InputConnection driver',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'build.gradle.kts',
+    ): 'separate Android IME harness application module',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'main',
+      'AndroidManifest.xml',
+    ): 'separate Android IME harness manifest',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'main',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_ime_harness',
+      'TermworldTestInputMethodService.kt',
+    ): 'separate deterministic Android test IME',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'main',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_ime_harness',
+      'HarnessInputCommand.kt',
+    ): 'Android test IME command contract',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'test',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_ime_harness',
+      'HarnessInputCommandTest.kt',
+    ): 'Android test IME command contract tests',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'main',
+      'res',
+      'xml',
+      'termworld_test_input_method.xml',
+    ): 'separate Android test IME metadata',
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'app',
+      'src',
+      'test',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_example',
+      'AndroidInputDriverCommandTest.kt',
+    ): 'Android driver command contract test',
+    p.join(root, 'tool', 'run_android_input_connection_e2e.dart'):
+        'deterministic Android InputConnection E2E runner',
+    p.join(root, 'tool', 'run_android_termworld_input_ci.sh'):
+        'single-shell Android InputConnection CI runner',
+  };
+  for (final entry in requiredFiles.entries) {
+    if (!File(entry.key).existsSync()) {
+      violations.add('termworld: missing ${entry.value}');
+    }
+  }
+
+  final driver = File(
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'app',
+      'src',
+      'debug',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_example',
+      'DebugMainActivity.kt',
+    ),
+  );
+  final fixture = File(
+    p.join(
+      termworld,
+      'example',
+      'assets',
+      'ime',
+      'android_input_connection_cases.json',
+    ),
+  );
+  if (!fixture.existsSync() ||
+      !fixture.readAsStringSync().contains('"op": "repeat"')) {
+    violations.add(
+      'termworld: Android fixture must cover unbarriered repeated input',
+    );
+  }
+  if (driver.existsSync()) {
+    final source = driver.readAsStringSync();
+    for (final marker in const <String>[
+      'completeAfterInputQueue',
+      'TextInputClient.onFocusReceived',
+      'FIFO_BARRIER_CLIENT_ID = -2',
+      'TextInputClient.onConnectionClosed',
+      'sendAppPrivateCommand',
+      'import android.os.Messenger',
+      'replyMessenger',
+      'termworld.testing.INPUT_CONNECTION',
+      'termworld/testing',
+      'JSONMethodCodec.INSTANCE',
+      'termworld-android-input-connection-driver',
+    ]) {
+      if (!source.contains(marker)) {
+        violations.add('termworld: Android Debug driver is missing "$marker"');
+      }
+    }
+    if (source.contains('onCreateInputConnection')) {
+      violations.add(
+        'termworld: Android Debug driver must use the system-owned '
+        'InputConnection',
+      );
+    }
+  }
+
+  final commandDriver = File(
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'app',
+      'src',
+      'debug',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_example',
+      'AndroidInputDriverCommand.kt',
+    ),
+  );
+  if (!commandDriver.existsSync() ||
+      !commandDriver.readAsStringSync().contains('data class Repeat')) {
+    violations.add(
+      'termworld: Android driver must repeat commands before its Dart barrier',
+    );
+  }
+
+  final harnessIme = File(
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'main',
+      'kotlin',
+      'com',
+      'example',
+      'termworld_ime_harness',
+      'TermworldTestInputMethodService.kt',
+    ),
+  );
+  if (harnessIme.existsSync()) {
+    final source = harnessIme.readAsStringSync();
+    for (final marker in const <String>[
+      'InputMethodService',
+      'currentInputConnection',
+      'onAppPrivateCommand',
+      'import android.os.Message',
+      'import android.os.Messenger',
+      'replyMessenger',
+      'termworld.testing.INPUT_CONNECTION',
+      'termworld-android-input-connection-ime-harness',
+    ]) {
+      if (!source.contains(marker)) {
+        violations.add('termworld: Android test IME is missing "$marker"');
+      }
+    }
+  }
+
+  final androidSettings = File(
+    p.join(termworld, 'example', 'android', 'settings.gradle.kts'),
+  );
+  if (!androidSettings.existsSync() ||
+      !androidSettings.readAsStringSync().contains(
+        'include(":app", ":ime_harness")',
+      )) {
+    violations.add('termworld: Android must include the separate IME module');
+  }
+
+  final harnessBuild = File(
+    p.join(termworld, 'example', 'android', 'ime_harness', 'build.gradle.kts'),
+  );
+  if (!harnessBuild.existsSync() ||
+      !harnessBuild.readAsStringSync().contains(
+        'applicationId = "com.example.termworld_ime_harness"',
+      )) {
+    violations.add(
+      'termworld: Android test IME must use its isolated application id',
+    );
+  }
+
+  final harnessManifest = File(
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'ime_harness',
+      'src',
+      'main',
+      'AndroidManifest.xml',
+    ),
+  );
+  if (harnessManifest.existsSync()) {
+    final source = harnessManifest.readAsStringSync();
+    for (final marker in const <String>[
+      '.TermworldTestInputMethodService',
+      'android.permission.BIND_INPUT_METHOD',
+      'android.view.InputMethod',
+      '@xml/termworld_test_input_method',
+    ]) {
+      if (!source.contains(marker)) {
+        violations.add(
+          'termworld: Android test IME manifest is missing "$marker"',
+        );
+      }
+    }
+  }
+
+  final appDebugManifest = File(
+    p.join(
+      termworld,
+      'example',
+      'android',
+      'app',
+      'src',
+      'debug',
+      'AndroidManifest.xml',
+    ),
+  );
+  if (appDebugManifest.existsSync() &&
+      appDebugManifest.readAsStringSync().contains('<service')) {
+    violations.add(
+      'termworld: the example app must not embed the Android test IME',
+    );
+  }
+
+  final releaseVerifier = File(
+    p.join(root, 'tool', 'verify_release_hooks.dart'),
+  );
+  if (!releaseVerifier.existsSync() ||
+      !const <String>[
+        'termworld-android-input-connection-driver',
+        'termworld-android-input-connection-ime-harness',
+        'termworld.testing.INPUT_CONNECTION',
+        'TermworldTestInputMethodService',
+        'com.example.termworld_ime_harness',
+      ].every(releaseVerifier.readAsStringSync().contains)) {
+    violations.add(
+      'termworld: release-hook verification must reject Android test drivers',
+    );
+  }
+
+  final inputRunner = File(
+    p.join(root, 'tool', 'run_android_input_connection_e2e.dart'),
+  );
+  if (inputRunner.existsSync()) {
+    final source = inputRunner.readAsStringSync();
+    for (final marker in const <String>[
+      'integration_test/android_input_connection_test.dart',
+      "'build', 'apk', '--debug'",
+      ':ime_harness:assembleDebug',
+      'ime_harness-debug.apk',
+      "'install', '-r'",
+      'get-current-user',
+      "Android 7.0's `ime` shell command has no `--user` option",
+      'default_input_method',
+      'com.example.termworld_ime_harness/.TermworldTestInputMethodService',
+      'final installedImes',
+      "'enable'",
+      "'set'",
+      "'dumpsys', 'input_method'",
+      'TERMWORLD_ANDROID_IME_ISOLATION=active',
+      'TERMWORLD_ANDROID_IME_ISOLATION=restored',
+    ]) {
+      if (!source.contains(marker)) {
+        violations.add(
+          'termworld: Android input runner is missing "$marker"',
+        );
+      }
+    }
+  }
+
+  final ciRunner = File(
+    p.join(root, 'tool', 'run_android_termworld_input_ci.sh'),
+  );
+  if (ciRunner.existsSync()) {
+    final source = ciRunner.readAsStringSync();
+    for (final marker in const <String>[
+      r'flutter test integration_test/conformance_test.dart -d "$device"',
+      r'dart run tool/run_android_input_connection_e2e.dart --device "$device"',
+      r'${PIPESTATUS[0]}',
+      r'adb -s "$device" logcat -d',
+      r'adb -s "$device" shell dumpsys input_method',
+      'TERMWORLD_ANDROID_FIXTURE=',
+      r'${RUNNER_TEMP:-$repository_root/build}',
+    ]) {
+      if (!source.contains(marker)) {
+        violations.add(
+          'termworld: Android CI runner is missing "$marker"',
+        );
+      }
+    }
+  }
+
+  final document = loadYaml(workflow.readAsStringSync());
+  final jobs = document is YamlMap ? document['jobs'] : null;
+  final androidJob = jobs is YamlMap ? jobs['android-termworld'] : null;
+  if (androidJob is! YamlMap) {
+    return <String>[
+      ...violations,
+      'termworld: CI has no android-termworld job',
+    ];
+  }
+
+  final strategy = androidJob['strategy'];
+  final matrix = strategy is YamlMap ? strategy['matrix'] : null;
+  final apiLevels = matrix is YamlMap ? matrix['api-level'] : null;
+  final configuredApiLevels = apiLevels is YamlList
+      ? apiLevels.whereType<int>().toSet()
+      : const <int>{};
+  for (final apiLevel in const <int>[24, 35]) {
+    if (!configuredApiLevels.contains(apiLevel)) {
+      violations.add(
+        'termworld: Android native-boundary CI is missing API $apiLevel',
+      );
+    }
+  }
+
+  final steps = androidJob['steps'];
+  if (steps is! YamlList) {
+    return <String>[...violations, 'termworld: android-termworld has no steps'];
+  }
+  final jobSteps = steps.whereType<YamlMap>().toList(growable: false);
+  final l3Steps = jobSteps
+      .where(
+        (step) => step['name'] == 'L3 android termworld input boundary tests',
+      )
+      .toList(growable: false);
+  final l3Script = '${l3Steps.singleOrNull?['run'] ?? ''}';
+  if (l3Steps.length != 1 ||
+      !l3Script.contains(
+        ':app:testDebugUnitTest :ime_harness:testDebugUnitTest',
+      )) {
+    violations.add(
+      'termworld: Android L3 must run the app and IME harness unit tests',
+    );
+  }
+
+  final l4Steps = jobSteps
+      .where(
+        (step) => step['name'] == 'L4 android termworld conformance suite',
+      )
+      .toList(growable: false);
+  final l4Inputs = l4Steps.singleOrNull?['with'];
+  final l4Script = l4Inputs is YamlMap ? '${l4Inputs['script'] ?? ''}' : '';
+  const expectedL4Script =
+      'bash ../../../tool/run_android_termworld_input_ci.sh emulator-5554';
+  if (l4Script != expectedL4Script || l4Script.contains('\n')) {
+    violations.add(
+      'termworld: Android L4 must invoke the checked-in CI runner '
+      'as one command',
+    );
+  }
+
+  final artifactSteps = jobSteps.where(
+    (step) => '${step['uses'] ?? ''}'.startsWith('actions/upload-artifact@'),
+  );
+  final hasFailureArtifact = artifactSteps.any((step) {
+    final inputs = step['with'];
+    return '${step['if'] ?? ''}' == 'failure()' &&
+        inputs is YamlMap &&
+        '${inputs['name'] ?? ''}' ==
+            r'termworld-android-input-api-${{ matrix.api-level }}' &&
+        '${inputs['path'] ?? ''}'.contains('termworld-android-input');
+  });
+  if (!hasFailureArtifact) {
+    violations.add(
+      'termworld: Android L4 failures must upload per-API input diagnostics',
+    );
   }
   return violations;
 }
