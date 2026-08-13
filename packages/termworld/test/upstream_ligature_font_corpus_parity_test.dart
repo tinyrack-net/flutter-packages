@@ -2881,9 +2881,9 @@ final class _Case {
 }
 
 List<_Case> _loadCases() {
-  final decoded =
-      jsonDecode(File(_fixturePath('index_cases.json')).readAsStringSync())
-          as Map<String, Object?>;
+  final decoded = jsonDecode(
+    File(_fixturePath('index_cases.json')).readAsStringSync(),
+  ) as Map<String, Object?>;
   return (decoded['cases']! as List<Object?>).map((value) {
     final item = value! as Map<String, Object?>;
     return _Case(

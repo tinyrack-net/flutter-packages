@@ -33,13 +33,11 @@ void main() {
 }
 
 void _verifyPubspec(Directory package, List<String> failures) {
-  final pubspec =
-      loadYaml(
-            File('${package.path}/pubspec.yaml').readAsStringSync(),
-          )
-          as YamlMap;
-  if (pubspec['version'] != '0.4.2') {
-    failures.add('termworld must use the approved patch version 0.4.2');
+  final pubspec = loadYaml(
+    File('${package.path}/pubspec.yaml').readAsStringSync(),
+  ) as YamlMap;
+  if (pubspec['version'] != '0.5.0') {
+    failures.add('termworld must use the approved minor version 0.5.0');
   }
   final dependencies = (pubspec['dependencies'] as YamlMap).keys
       .cast<String>()

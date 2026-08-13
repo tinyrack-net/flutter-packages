@@ -1,1 +1,13 @@
+analyzer:
+  exclude:
+    # Flutter 3.47's project migration requires generated build output and
+    # native runner sources to be excluded from Dart analysis.
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
+    - windows/**
+    - macos/**
+    - linux/**
+
 include: package:very_good_analysis/analysis_options.yaml

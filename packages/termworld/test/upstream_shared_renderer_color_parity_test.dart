@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:termworld/src/flutter/cell_color_resolver.dart';
 import 'package:termworld/src/flutter/terminal_theme.dart';
 import 'package:termworld/termworld_headless.dart';
@@ -670,9 +670,10 @@ List<Color> _backgroundColors(_CellFrame frame) =>
 
 List<Color> _sampledColors(_CellFrame frame) => <Color>[
   for (var index = 0; index < frame.cells.length; index++)
-    frame.cells[index].isInvisible
-        ? frame.colors[index].background
-        : frame.colors[index].foreground,
+    if (frame.cells[index].isInvisible)
+      frame.colors[index].background
+    else
+      frame.colors[index].foreground,
 ];
 
 TerminalTheme _baseTheme() => _themeWithFixtureColors(0);

@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:termworld/src/flutter/css_color_parser.dart';
 import 'package:vtworld/vtworld.dart';
 

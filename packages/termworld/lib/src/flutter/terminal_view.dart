@@ -4,8 +4,8 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:termworld/addon_image.dart';
 import 'package:termworld/src/addons/qoi_decoder.dart';
 import 'package:termworld/src/flutter/cell_color_resolver.dart';
