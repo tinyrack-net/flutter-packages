@@ -1,6 +1,6 @@
 # termworld
 
-`termworld` 0.4.0 is an independent Flutter and pure-Dart port of xterm.js
+`termworld` 0.5.0 is an independent Flutter and pure-Dart port of xterm.js
 6.0.0, pinned to revision `904ae935269eef5ec6a1415b64463c3d02eff1eb`.
 It does not depend on, export, wrap, or delegate to `xterm.dart`. The headless terminal owns
 VT parsing, normal and alternate buffers, Unicode width, selection, modes,
@@ -26,6 +26,17 @@ terminal.write(processOutput);
 Import `package:termworld/termworld_headless.dart` in command-line and server
 programs. It does not import Flutter UI. Flutter applications normally import
 `package:termworld/termworld.dart`.
+
+Version 0.5.0 requires Flutter 3.47 or newer and Dart 3.13 or newer. Its public
+renderer types continue to come from Flutter's core widget and painting APIs;
+applications can choose the standalone `material_ui` or another design system.
+
+## Migration to 0.5.0
+
+Upgrade the consuming application to Flutter 3.47 and Dart 3.13. No termworld
+Dart API changes are required. Applications adopting Flutter's standalone
+Material library should import `package:material_ui/material_ui.dart` instead
+of the legacy `package:flutter/material.dart` entrypoint.
 
 ## Input methods
 

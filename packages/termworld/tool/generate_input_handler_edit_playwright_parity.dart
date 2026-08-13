@@ -24,13 +24,11 @@ void main() {
   final package = Directory.current.path.endsWith('packages/termworld')
       ? Directory.current
       : Directory('packages/termworld');
-  final reference =
-      jsonDecode(
-            File(
-              '${package.path}/tool/xterm_reference.json',
-            ).readAsStringSync(),
-          )
-          as Map<String, Object?>;
+  final reference = jsonDecode(
+    File(
+      '${package.path}/tool/xterm_reference.json',
+    ).readAsStringSync(),
+  ) as Map<String, Object?>;
   final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final mappings =
       jsonDecode(mappingsFile.readAsStringSync()) as Map<String, Object?>;

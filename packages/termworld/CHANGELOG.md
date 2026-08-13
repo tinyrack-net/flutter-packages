@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Requires Flutter 3.47 and Dart 3.13.
+- Keeps the public renderer API on Flutter core widget and painting types while
+  migrating the example and test harnesses to the standalone `material_ui`
+  package.
+
 ## 0.4.2
 
 - Preserves physical-key spaces when Microsoft's Korean IME omits their

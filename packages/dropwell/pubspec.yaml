@@ -2,14 +2,14 @@ name: dropwell
 description: >-
   Native file drag-and-drop and clipboard file reading for Flutter on Windows,
   macOS, Linux, Web, Android, and iOS.
-version: 0.1.0
+version: 0.2.0
 repository: https://github.com/tinyrack-net/flutter-packages
 publish_to: none
 resolution: workspace
 
 environment:
-  sdk: ^3.12.2
-  flutter: ">=3.44.0"
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:

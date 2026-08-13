@@ -627,7 +627,10 @@ List<TerminalGlyphSelector> terminalClassGlyphs(
 ) => <TerminalGlyphSelector>[
   for (final range in table.ranges)
     if (range.classId == classId)
-      range.start == range.end ? range.start : (range.start, range.end + 1),
+      if (range.start == range.end)
+        range.start
+      else
+        (range.start, range.end + 1),
 ];
 
 /// Maps a selector to its class, retaining xterm's selector partitioning.

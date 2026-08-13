@@ -485,9 +485,10 @@ final class _OpenTypeParser {
       coverage: coverage,
       chainRuleSets: <List<TerminalChainingGlyphRule>?>[
         for (var index = 0; index < count; index++)
-          _u16(base + 6 + index * 2) == 0
-              ? null
-              : _parseGlyphRuleSet(base + _u16(base + 6 + index * 2)),
+          if (_u16(base + 6 + index * 2) == 0)
+            null
+          else
+            _parseGlyphRuleSet(base + _u16(base + 6 + index * 2)),
       ],
     );
   }
@@ -533,9 +534,10 @@ final class _OpenTypeParser {
       backtrackClassDefinition: backtrack,
       chainClassSets: <List<TerminalChainingClassRule>?>[
         for (var index = 0; index < count; index++)
-          _u16(base + 12 + index * 2) == 0
-              ? null
-              : _parseClassRuleSet(base + _u16(base + 12 + index * 2)),
+          if (_u16(base + 12 + index * 2) == 0)
+            null
+          else
+            _parseClassRuleSet(base + _u16(base + 12 + index * 2)),
       ],
     );
   }

@@ -3,7 +3,7 @@ library;
 
 import 'dart:js_interop';
 
-import 'package:flutter/material.dart' show Color;
+import 'package:flutter/widgets.dart' show Color;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:termworld/addon_web_fonts.dart';
 import 'package:termworld/addon_webgl.dart';

@@ -21,9 +21,9 @@ void main() {
   final p = Directory.current.path.endsWith('packages/termworld')
       ? Directory.current
       : Directory('packages/termworld');
-  final reference =
-      jsonDecode(File('${p.path}/tool/xterm_reference.json').readAsStringSync())
-          as Map<String, Object?>;
+  final reference = jsonDecode(
+    File('${p.path}/tool/xterm_reference.json').readAsStringSync(),
+  ) as Map<String, Object?>;
   final mf = File('${p.path}/tool/xterm_parity_mappings.json');
   final mappings = jsonDecode(mf.readAsStringSync()) as Map<String, Object?>;
   final mapped = mappings['tests']! as Map<String, Object?>;

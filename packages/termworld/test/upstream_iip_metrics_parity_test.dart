@@ -10,11 +10,9 @@ void main() {
     final fixtureRoot = Directory.current.path.endsWith('termworld')
         ? 'test/fixtures/xterm_image'
         : 'packages/termworld/test/fixtures/xterm_image';
-    final document =
-        jsonDecode(
-              File('$fixtureRoot/image_metrics_cases.json').readAsStringSync(),
-            )
-            as Map<String, Object?>;
+    final document = jsonDecode(
+      File('$fixtureRoot/image_metrics_cases.json').readAsStringSync(),
+    ) as Map<String, Object?>;
     if (document['revision'] != '904ae935269eef5ec6a1415b64463c3d02eff1eb') {
       throw StateError('IIP metrics fixture revision changed');
     }

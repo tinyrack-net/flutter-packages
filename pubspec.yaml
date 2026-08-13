@@ -3,7 +3,7 @@ description: Tinyrack Flutter packages monorepo.
 publish_to: none
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.0
 
 # The example app is deliberately not a workspace member. Flutter writes a
 # workspace member's native_assets/ under the workspace root, while the
