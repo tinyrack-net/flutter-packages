@@ -23,9 +23,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["mainActivityClass"] = ".MainActivity"
     }
 
     buildTypes {
+        debug {
+            manifestPlaceholders["mainActivityClass"] = ".DebugMainActivity"
+        }
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.

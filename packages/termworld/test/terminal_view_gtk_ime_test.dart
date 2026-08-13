@@ -288,8 +288,16 @@ Future<void> _typeHangul(
   }
 }
 
+void _linuxTestWidgets(String description, WidgetTesterCallback callback) {
+  testWidgets(
+    description,
+    callback,
+    variant: TargetPlatformVariant.only(TargetPlatform.linux),
+  );
+}
+
 void main() {
-  testWidgets('writes a multi-syllable Hangul word in typed order', (
+  _linuxTestWidgets('writes a multi-syllable Hangul word in typed order', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -345,7 +353,7 @@ void main() {
     );
   });
 
-  testWidgets('writes repeated bare jamo one keystroke at a time', (
+  _linuxTestWidgets('writes repeated bare jamo one keystroke at a time', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -374,7 +382,7 @@ void main() {
     );
   });
 
-  testWidgets('writes a Space that the input method never echoes once', (
+  _linuxTestWidgets('writes a Space that the input method never echoes once', (
     tester,
   ) async {
     final terminal = Terminal();
@@ -403,7 +411,7 @@ void main() {
     expect(output.join(), '한 ');
   });
 
-  testWidgets('resets the hidden buffer for input that never composes', (
+  _linuxTestWidgets('resets the hidden buffer for input that never composes', (
     tester,
   ) async {
     final terminal = Terminal();

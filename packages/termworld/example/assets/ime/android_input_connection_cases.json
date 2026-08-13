@@ -1,0 +1,422 @@
+{
+  "version": 1,
+  "guard": "  ",
+  "cases": [
+    {
+      "name": "gboard_style_rapid_ascii_space_enter",
+      "family": "Gboard-style",
+      "description": "Rapid committed characters, Space, and an editor action are forwarded in order.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "a", "newCursorPosition": 1},
+        {"op": "commitText", "text": "b", "newCursorPosition": 1},
+        {"op": "commitText", "text": "c", "newCursorPosition": 1},
+        {"op": "commitText", "text": " ", "newCursorPosition": 1},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "abc \r"
+    },
+    {
+      "name": "aosp_style_batched_repeat_input",
+      "family": "AOSP-style",
+      "description": "A batch containing repeated committed characters loses and duplicates nothing.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "beginBatchEdit"},
+        {"op": "commitText", "text": "x", "newCursorPosition": 1},
+        {"op": "commitText", "text": "y", "newCursorPosition": 1},
+        {"op": "commitText", "text": "y", "newCursorPosition": 1},
+        {"op": "endBatchEdit"}
+      ],
+      "expectedPty": "xyy"
+    },
+    {
+      "name": "aosp_style_batched_composition_local_delete",
+      "family": "AOSP-style",
+      "description": "Composition opened and edited inside one batch remains preedit-local until its final commit.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "beginBatchEdit"},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "setComposingText", "text": "하", "newCursorPosition": 1},
+        {"op": "commitText", "text": "하", "newCursorPosition": 1},
+        {"op": "endBatchEdit"}
+      ],
+      "expectedPty": "하"
+    },
+    {
+      "name": "gboard_style_multisyllable_hangul",
+      "family": "Gboard-style",
+      "description": "Several Hangul syllables compose in place and commit exactly once.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "setComposingText", "text": "ㅎ", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "하", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "commitText", "text": "한", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "ㄱ", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "그", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "글", "newCursorPosition": 1},
+        {"op": "commitText", "text": "글", "newCursorPosition": 1}
+      ],
+      "expectedPty": "한글"
+    },
+    {
+      "name": "samsung_style_final_consonant_redistribution",
+      "family": "Samsung-style",
+      "description": "A final consonant is redistributed into a fresh composing syllable without leaking preedit.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "commitText", "text": "하", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "느", "newCursorPosition": 1},
+        {"op": "commitText", "text": "느", "newCursorPosition": 1}
+      ],
+      "expectedPty": "하느"
+    },
+    {
+      "name": "aosp_style_repeated_noop_finish",
+      "family": "AOSP-style",
+      "description": "Repeated composition-finish notifications do not duplicate the committed syllable.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "commitText", "text": "한", "newCursorPosition": 1},
+        {"op": "finishComposingText"},
+        {"op": "finishComposingText"},
+        {"op": "finishComposingText"}
+      ],
+      "expectedPty": "한"
+    },
+    {
+      "name": "gboard_style_backspace_inside_composition",
+      "family": "Gboard-style",
+      "description": "Deleting a live preedit changes only composition state and emits no PTY byte.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "setComposingText", "text": "하", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "setComposingText", "text": "ㅎ", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "setComposingText", "text": "", "newCursorPosition": 1},
+        {"op": "finishComposingText"}
+      ],
+      "expectedPty": ""
+    },
+    {
+      "name": "gboard_style_backspace_with_committed_prefix",
+      "family": "Gboard-style",
+      "description": "A surrounding-text deletion while composing remains preedit-local even with committed text before it.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "a", "newCursorPosition": 1},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "setComposingText", "text": "하", "newCursorPosition": 1},
+        {"op": "commitText", "text": "하", "newCursorPosition": 1}
+      ],
+      "expectedPty": "a하"
+    },
+    {
+      "name": "aosp_style_key_backspace_inside_composition",
+      "family": "AOSP-style",
+      "description": "A KEYCODE_DEL report during live composition stays local and the shortened preedit commits once.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "setComposingText", "text": "한", "newCursorPosition": 1},
+        {"op": "sendKeyEvent", "action": 0, "keyCode": 67},
+        {"op": "sendKeyEvent", "action": 1, "keyCode": 67},
+        {"op": "setComposingText", "text": "하", "newCursorPosition": 1},
+        {"op": "commitText", "text": "하", "newCursorPosition": 1}
+      ],
+      "expectedPty": "하"
+    },
+    {
+      "name": "samsung_style_backspace_after_commit",
+      "family": "Samsung-style",
+      "description": "Deleting one settled grapheme emits exactly one terminal DEL.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "한", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0}
+      ],
+      "expectedPty": "한\u007f"
+    },
+    {
+      "name": "aosp_style_repeated_empty_backspace",
+      "family": "AOSP-style",
+      "description": "Backspace remains observable after the platform editing buffer is empty.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0}
+      ],
+      "expectedPty": "\u007f\u007f\u007f\u007f"
+    },
+    {
+      "name": "aosp_style_unbarriered_empty_backspace_repeat",
+      "family": "AOSP-style",
+      "description": "Repeated native deletion before a Dart repair reaches InputConnection emits one DEL per press.",
+      "steps": [
+        {"op": "resetConnection"},
+        {
+          "op": "repeat",
+          "count": 2,
+          "command": {
+            "op": "deleteSurroundingText",
+            "beforeLength": 1,
+            "afterLength": 0
+          }
+        }
+      ],
+      "expectedPty": "\u007f\u007f"
+    },
+    {
+      "name": "gboard_style_code_point_emoji_backspace",
+      "family": "Gboard-style",
+      "description": "Code-point deletion removes a surrogate-pair emoji as one terminal grapheme.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "😀", "newCursorPosition": 1},
+        {"op": "deleteSurroundingTextInCodePoints", "beforeLength": 1, "afterLength": 0}
+      ],
+      "expectedPty": "😀\u007f"
+    },
+    {
+      "name": "samsung_style_grapheme_cluster_backspace",
+      "family": "Samsung-style",
+      "description": "Deleting all UTF-16 units of a joined emoji produces one DEL for one grapheme.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "👩🏽‍💻", "newCursorPosition": 1},
+        {"op": "deleteSurroundingText", "beforeLength": 7, "afterLength": 0}
+      ],
+      "expectedPty": "👩🏽‍💻\u007f"
+    },
+    {
+      "name": "aosp_style_key_and_delete_deduplication",
+      "family": "AOSP-style",
+      "description": "Companion deletion immediately before or after key-up is deduplicated once per gesture.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "sendKeyEvent", "action": 0, "keyCode": 67},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "sendKeyEvent", "action": 1, "keyCode": 67},
+        {"op": "sendKeyEvent", "action": 0, "keyCode": 67},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "sendKeyEvent", "action": 1, "keyCode": 67},
+        {"op": "sendKeyEvent", "action": 0, "keyCode": 67},
+        {"op": "sendKeyEvent", "action": 1, "keyCode": 67},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0}
+      ],
+      "expectedPty": "\u007f\u007f\u007f"
+    },
+    {
+      "name": "gboard_style_key_and_action_enter_deduplication",
+      "family": "Gboard-style",
+      "description": "Companion editor action before key-up is deduplicated, while an action after key-up is independent.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "pumpFrame", "milliseconds": 250},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "\r\r\r"
+    },
+    {
+      "name": "aosp_style_grouped_action_then_delta_repeats",
+      "family": "AOSP-style",
+      "description": "Grouped companion reports preserve the occurrence count when editor actions precede committed newlines.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "commitText", "text": "\n", "newCursorPosition": 1},
+        {"op": "commitText", "text": "\n", "newCursorPosition": 1}
+      ],
+      "expectedPty": "\r\r"
+    },
+    {
+      "name": "samsung_style_grouped_delta_then_action_repeats",
+      "family": "Samsung-style",
+      "description": "Grouped companion reports preserve the occurrence count when committed newlines precede editor actions.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "\n", "newCursorPosition": 1},
+        {"op": "commitText", "text": "\n", "newCursorPosition": 1},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "\r\r"
+    },
+    {
+      "name": "gboard_style_keyup_ends_enter_control_burst",
+      "family": "Gboard-style",
+      "description": "An editor action arriving after physical key-up is a new Enter, not an indefinitely delayed duplicate.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "pumpFrame", "milliseconds": 250},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "\r\r"
+    },
+    {
+      "name": "gboard_style_action_only_then_physical_enter",
+      "family": "Gboard-style",
+      "description": "An action-only Enter burst expires, so a later physical-only Enter remains an independent gesture.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "pumpFrame", "milliseconds": 250},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10}
+      ],
+      "expectedPty": "\r\r"
+    },
+    {
+      "name": "aosp_style_numpad_enter_keyup_ends_control_burst",
+      "family": "AOSP-style",
+      "description": "Numpad Enter key-up closes its physical-control burst so a later action-only Enter remains independent.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 160},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 160},
+        {"op": "pumpFrame", "milliseconds": 250},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "\r\r"
+    },
+    {
+      "name": "aosp_style_delta_only_then_physical_backspace",
+      "family": "AOSP-style",
+      "description": "A delta-only Backspace burst expires, so a later physical-only Backspace remains an independent gesture.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0},
+        {"op": "pumpFrame", "milliseconds": 250},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 67},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 67}
+      ],
+      "expectedPty": "\u007f\u007f"
+    },
+    {
+      "name": "samsung_style_interleaved_delayed_control_deduplication",
+      "family": "Samsung-style",
+      "description": "Enter and Backspace companions arriving after their physical key-up boundaries remain independent inputs.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 67},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 67},
+        {"op": "performEditorAction", "actionId": 6},
+        {"op": "deleteSurroundingText", "beforeLength": 1, "afterLength": 0}
+      ],
+      "expectedPty": "\r\u007f"
+    },
+    {
+      "name": "gboard_style_space_ends_enter_control_burst",
+      "family": "Gboard-style",
+      "description": "An ordinary Space separates a physical Enter from a later editor action.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 62, "unicodeChar": 32},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 62, "unicodeChar": 32},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "\r \r"
+    },
+    {
+      "name": "aosp_style_input_connection_enter_action",
+      "family": "AOSP-style",
+      "description": "InputConnection KEYCODE_ENTER is converted by the Android adaptor to one editor action.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "sendKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "sendKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10}
+      ],
+      "expectedPty": "\r"
+    },
+    {
+      "name": "gboard_style_control_dedupe_ends_at_ordinary_text",
+      "family": "Gboard-style",
+      "description": "Ordinary committed text ends a prior control burst so a later editor action remains distinct.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "dispatchKeyEvent", "action": 0, "keyCode": 66, "unicodeChar": 10},
+        {"op": "dispatchKeyEvent", "action": 1, "keyCode": 66, "unicodeChar": 10},
+        {"op": "commitText", "text": "a", "newCursorPosition": 1},
+        {"op": "performEditorAction", "actionId": 6}
+      ],
+      "expectedPty": "\ra\r"
+    },
+    {
+      "name": "aosp_style_committed_newline_normalization",
+      "family": "AOSP-style",
+      "description": "A keyboard that commits LF for Enter still produces the terminal CR contract.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "\n", "newCursorPosition": 1}
+      ],
+      "expectedPty": "\r"
+    },
+    {
+      "name": "gboard_style_hide_show_resume",
+      "family": "Gboard-style",
+      "description": "Hiding and showing the keyboard leaves the active input connection usable.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "a", "newCursorPosition": 1},
+        {"op": "hide"},
+        {"op": "show"},
+        {"op": "commitText", "text": "b", "newCursorPosition": 1}
+      ],
+      "expectedPty": "ab"
+    },
+    {
+      "name": "samsung_style_focus_reacquire",
+      "family": "Samsung-style",
+      "description": "Focus loss resets only the closed input model and focus reacquisition accepts fresh text.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "a", "newCursorPosition": 1},
+        {"op": "focus", "value": false},
+        {"op": "focus", "value": true},
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "b", "newCursorPosition": 1}
+      ],
+      "expectedPty": "ab",
+      "expectedReconnections": 1
+    },
+    {
+      "name": "aosp_style_connection_close_recovery",
+      "family": "AOSP-style",
+      "description": "A native connection close while focused opens a fresh guarded model and resumes input.",
+      "steps": [
+        {"op": "resetConnection"},
+        {"op": "commitText", "text": "a", "newCursorPosition": 1},
+        {"op": "closeConnection"},
+        {"op": "pumpFrame"},
+        {"op": "commitText", "text": "b", "newCursorPosition": 1}
+      ],
+      "expectedPty": "ab",
+      "expectedReconnections": 1
+    }
+  ]
+}

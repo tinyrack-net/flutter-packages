@@ -81,6 +81,8 @@ jobs:
       - run: flutter pub get
       - run: dart format --output=none --set-exit-if-changed .
       - run: flutter analyze --fatal-infos
+      - name: Test repository tooling
+        run: dart test test/tool
       - name: Resolve the example app
         run: flutter pub get
         working-directory: packages/dropwell/example
@@ -682,7 +684,7 @@ jobs:
       - name: L3 android termworld input boundary tests
         run: |
           flutter build apk --debug --config-only
-          android/gradlew -p android testDebugUnitTest
+          android/gradlew -p android :app:testDebugUnitTest :ime_harness:testDebugUnitTest
         working-directory: packages/termworld/example
       - name: Enable KVM for the emulator
         run: |
@@ -697,7 +699,13 @@ jobs:
           arch: x86_64
           disable-animations: true
           working-directory: packages/termworld/example
-          script: flutter test integration_test/conformance_test.dart
+          script: bash ../../../tool/run_android_termworld_input_ci.sh emulator-5554
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: termworld-android-input-api-${{ matrix.api-level }}
+          path: ${{ runner.temp }}/termworld-android-input/**
+          if-no-files-found: error
       - name: L5 android termworld release build
         run: flutter build apk --release
         working-directory: packages/termworld/example

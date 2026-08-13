@@ -1,12 +1,34 @@
 # Changelog
 
+## 0.5.1
+
+- Keeps Android software-keyboard input responsive across fast ASCII, Hangul
+  commit/recompose transitions, keyboard hide/show, focus reacquisition, and a
+  platform-closed input connection. Android delta connections now retain their
+  native editing model between committed syllables instead of racing a fresh
+  composition with `setEditingState`/`restartInput`.
+- Makes soft Backspace observable at an empty editing buffer with a private
+  two-character guard. The guard is removed from terminal, preedit, and
+  semantics state; composition deletion stays local, while committed and emoji
+  grapheme deletion emits one DEL per grapheme.
+- Normalizes Android soft Enter to CR and coalesces duplicate key-event,
+  editing-delta, and editor-action reports from one action while preserving
+  legacy modifier, Kitty, and Win32 protocol sequences.
+- Shares Gboard-style, Samsung-style, and AOSP-style transaction fixtures
+  between a Dart closed-loop model and the real Android `InputConnection`
+  boundary on API 24 and 35. These deterministic families model call shapes
+  without claiming execution of vendor keyboard APKs. A separately installed
+  Debug IME harness executes commands against its system-provided
+  `currentInputConnection`; the application does not create a competing
+  connection. Cross-package replies use the platform `Messenger`/`Message`
+  protocol, and release APK inspection rejects both harness and driver markers.
+
 ## 0.5.0
 
 - Requires Flutter 3.47 and Dart 3.13.
 - Keeps the public renderer API on Flutter core widget and painting types while
   migrating the example and test harnesses to the standalone `material_ui`
   package.
-
 ## 0.4.2
 
 - Preserves physical-key spaces when Microsoft's Korean IME omits their

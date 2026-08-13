@@ -1193,6 +1193,19 @@ final class _TerminalViewState extends State<TerminalView> {
     }
     final kittyFlags = widget.terminal.kittyKeyboardFlags;
     final useWin32 = widget.terminal.modes.win32InputMode;
+    final androidPhysicalControl =
+        defaultTargetPlatform == TargetPlatform.android
+        ? switch (event.logicalKey) {
+            LogicalKeyboardKey.enter || LogicalKeyboardKey.numpadEnter => '\r',
+            LogicalKeyboardKey.backspace => '\u007f',
+            _ => null,
+          }
+        : null;
+    if (event is KeyUpEvent && androidPhysicalControl != null) {
+      _inputKey.currentState?.endAndroidPhysicalControl(
+        androidPhysicalControl,
+      );
+    }
     if (event is KeyUpEvent &&
         !useWin32 &&
         !KittyKeyboard.shouldUseProtocol(kittyFlags)) {
@@ -1209,6 +1222,11 @@ final class _TerminalViewState extends State<TerminalView> {
     );
     if (!allowed) return KeyEventResult.handled;
     if (event is! KeyUpEvent &&
+        androidPhysicalControl == '\u007f' &&
+        (_inputKey.currentState?._isComposing ?? false)) {
+      return KeyEventResult.handled;
+    }
+    if (event is! KeyUpEvent &&
         event.logicalKey == LogicalKeyboardKey.space &&
         !keyboard.isAltPressed &&
         !keyboard.isControlPressed &&
@@ -1217,6 +1235,9 @@ final class _TerminalViewState extends State<TerminalView> {
       // Browsers deliver an unmodified space through xterm's hidden textarea.
       // Linux IBus can omit that TextInput delta while still sending the key
       // event, so bridge it here and absorb a delayed platform echo elsewhere.
+      if (defaultTargetPlatform == TargetPlatform.android) {
+        _inputKey.currentState?.clearAndroidControlBurst();
+      }
       _inputKey.currentState?._suppressPhysicalCommitEcho(' ');
       widget.terminal.input(' ');
       return KeyEventResult.handled;
@@ -1239,7 +1260,13 @@ final class _TerminalViewState extends State<TerminalView> {
         isKeyDown: event is! KeyUpEvent,
       );
       final sequence = result.key;
-      if (sequence != null) widget.terminal.input(sequence);
+      if (sequence != null) {
+        _writeKeySequence(
+          sequence,
+          androidPhysicalControl: androidPhysicalControl,
+          androidPhysicalKeyDown: event is! KeyUpEvent,
+        );
+      }
       return result.cancel || sequence != null
           ? KeyEventResult.handled
           : KeyEventResult.ignored;
@@ -1254,7 +1281,13 @@ final class _TerminalViewState extends State<TerminalView> {
             : KittyKeyboardEventType.press,
       );
       final sequence = result.key;
-      if (sequence != null) widget.terminal.input(sequence);
+      if (sequence != null) {
+        _writeKeySequence(
+          sequence,
+          androidPhysicalControl: androidPhysicalControl,
+          androidPhysicalKeyDown: event is! KeyUpEvent,
+        );
+      }
       if (result.cancel || sequence != null) return KeyEventResult.handled;
       if (event is KeyUpEvent) return KeyEventResult.ignored;
     }
@@ -1292,9 +1325,43 @@ final class _TerminalViewState extends State<TerminalView> {
       case KittyKeyboardResultType.sendKey:
         final sequence = legacy.key;
         if (sequence == null) return KeyEventResult.ignored;
-        widget.terminal.input(sequence);
+        _writeKeySequence(
+          sequence,
+          androidPhysicalControl: androidPhysicalControl,
+          androidPhysicalKeyDown: true,
+        );
         return KeyEventResult.handled;
     }
+  }
+
+  void _writeKeySequence(
+    String sequence, {
+    String? androidPhysicalControl,
+    bool androidPhysicalKeyDown = false,
+  }) {
+    if (defaultTargetPlatform == TargetPlatform.android &&
+        androidPhysicalControl != null) {
+      if (!androidPhysicalKeyDown) {
+        widget.terminal.input(sequence);
+        return;
+      }
+      if (sequence != androidPhysicalControl &&
+          !(sequence == '\n' && androidPhysicalControl == '\r')) {
+        _inputKey.currentState?.recordAndroidPhysicalControl(
+          androidPhysicalControl,
+        );
+        widget.terminal.input(sequence);
+        return;
+      }
+      _inputKey.currentState?.emitAndroidPhysicalControl(
+        sequence == '\n' ? '\r' : sequence,
+      );
+      return;
+    }
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      _inputKey.currentState?.clearAndroidControlBurst();
+    }
+    widget.terminal.input(sequence);
   }
 
   int _legacyKeyCode(
@@ -1326,6 +1393,11 @@ final class _TerminalViewState extends State<TerminalView> {
     final physicalCode = physicalCodes[usage];
     if (physicalCode != null) return physicalCode;
     final named = <LogicalKeyboardKey, int>{
+      LogicalKeyboardKey.backspace: 8,
+      LogicalKeyboardKey.tab: 9,
+      LogicalKeyboardKey.enter: 13,
+      LogicalKeyboardKey.numpadEnter: 13,
+      LogicalKeyboardKey.escape: 27,
       LogicalKeyboardKey.pageUp: 33,
       LogicalKeyboardKey.pageDown: 34,
       LogicalKeyboardKey.end: 35,
@@ -1874,6 +1946,13 @@ final class _TerminalPainter extends CustomPainter {
   bool shouldRepaint(_TerminalPainter oldDelegate) => true;
 }
 
+enum _AndroidControlSource { physicalKey, editingDelta, editorAction }
+
+final class _AndroidControlBurst {
+  final Map<_AndroidControlSource, int> counts = <_AndroidControlSource, int>{};
+  int emitted = 0;
+}
+
 final class _TerminalTextInput extends StatefulWidget {
   const _TerminalTextInput({
     required this.focusNode,
@@ -1902,6 +1981,8 @@ final class _TerminalTextInput extends StatefulWidget {
 
 final class _TerminalTextInputState extends State<_TerminalTextInput>
     with DeltaTextInputClient {
+  static const _androidGuard = '  ';
+
   TextInputConnection? _connection;
   TextEditingValue _editingValue = TextEditingValue.empty;
   TextEditingValue _platformEditingValue = TextEditingValue.empty;
@@ -1953,6 +2034,23 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   /// distinction [_finishCommittedInput] needs.
   bool _platformSendsDeltas = false;
 
+  /// Coalesces one Android soft-key action that the embedder reports through
+  /// more than one boundary (key event, editing delta, or editor action).
+  /// Repeats from the same boundary remain independent user actions.
+  final Map<String, _AndroidControlBurst> _androidControlBursts =
+      <String, _AndroidControlBurst>{};
+  final Map<String, Timer> _androidControlExpiry = <String, Timer>{};
+  final Set<String> _androidPhysicalControlsDown = <String>{};
+
+  bool get _usesAndroidGuard => defaultTargetPlatform == TargetPlatform.android;
+
+  TextEditingValue get _emptyPlatformEditingValue => _usesAndroidGuard
+      ? const TextEditingValue(
+          text: _androidGuard,
+          selection: TextSelection.collapsed(offset: _androidGuard.length),
+        )
+      : TextEditingValue.empty;
+
   bool get _isComposing =>
       _editingValue.composing.isValid && !_editingValue.composing.isCollapsed;
 
@@ -1964,6 +2062,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   @override
   void initState() {
     super.initState();
+    _platformEditingValue = _emptyPlatformEditingValue;
     widget.focusNode.addListener(_focusChanged);
   }
 
@@ -1974,13 +2073,23 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
       oldWidget.focusNode.removeListener(_focusChanged);
       widget.focusNode.addListener(_focusChanged);
     }
-    if (oldWidget.terminal != widget.terminal) _resetEditingState();
-    if (widget.readOnly && !oldWidget.readOnly) _closeConnection();
+    if (oldWidget.terminal != widget.terminal) {
+      // A terminal replacement is a closed input boundary. Reopen from a
+      // fresh platform model so committed text cannot leak between PTYs.
+      _closeConnection();
+      _resetEditingState(syncPlatform: false);
+      if (widget.focusNode.hasFocus && !widget.readOnly) _openConnection();
+    }
+    if (widget.readOnly && !oldWidget.readOnly) {
+      _closeConnection();
+      _resetEditingState(syncPlatform: false);
+    }
   }
 
   @override
   void dispose() {
     widget.focusNode.removeListener(_focusChanged);
+    _clearAndroidControlBurst();
     _closeConnection();
     super.dispose();
   }
@@ -2004,21 +2113,22 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     if (widget.focusNode.hasFocus) {
       _openConnection();
     } else {
-      _commitComposition();
+      _commitComposition(syncPlatform: !_usesAndroidGuard);
       _closeConnection();
+      if (_usesAndroidGuard) _resetEditingState(syncPlatform: false);
     }
   }
 
-  void _commitComposition() {
+  void _commitComposition({bool syncPlatform = true}) {
     if (!_isComposing) return;
     _reconcileCommitted(_textWithoutCompositionSuffix(_editingValue.text));
-    _resetEditingState();
+    _resetEditingState(syncPlatform: syncPlatform);
     widget.onComposingChanged();
   }
 
-  void _resetEditingState() {
+  void _resetEditingState({bool syncPlatform = true}) {
     _editingValue = TextEditingValue.empty;
-    _platformEditingValue = TextEditingValue.empty;
+    _platformEditingValue = _emptyPlatformEditingValue;
     _committedPrefix = '';
     _resetEchoPrefix = '';
     _compositionSuffix = '';
@@ -2027,7 +2137,11 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     _reorderedCommitStart = 0;
     _platformComposing = false;
     _previousDeltaComposing = false;
-    _connection?.setEditingState(_editingValue);
+    _platformSendsDeltas = false;
+    _clearAndroidControlBurst();
+    if (syncPlatform) {
+      _connection?.setEditingState(_platformEditingValue);
+    }
   }
 
   void _openConnection() {
@@ -2046,7 +2160,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
         enableIMEPersonalizedLearning: false,
         enableDeltaModel: true,
       ),
-    )..setEditingState(_editingValue);
+    )..setEditingState(_platformEditingValue);
     _connection?.show();
     updateInputGeometry();
   }
@@ -2089,17 +2203,23 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    _platformEditingValue = value;
+    final normalized = _normalizeAndroidWholeValue(value);
+    _platformEditingValue = normalized.$1;
     _platformComposing =
-        value.composing.isValid && !value.composing.isCollapsed;
+        normalized.$2.composing.isValid && !normalized.$2.composing.isCollapsed;
     _previousDeltaComposing = _platformComposing;
-    _accept(value);
+    _accept(normalized.$2);
     _finishCommittedInput();
   }
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     _platformSendsDeltas = true;
+    if (_usesAndroidGuard) {
+      _updateAndroidEditingValueWithDeltas(deltas);
+      _finishCommittedInput();
+      return;
+    }
     for (final delta in deltas) {
       _trackPlatformComposition(delta);
       _followReorderedCommit(delta);
@@ -2108,6 +2228,222 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
       _accept(_platformEditingValue);
     }
     _finishCommittedInput();
+  }
+
+  /// Applies Android deltas to the guarded platform model while presenting
+  /// the ordinary, guard-free editing value to the terminal reconciler.
+  ///
+  /// Android's `BaseInputConnection` does not report a deletion when its
+  /// editable is empty. Two private leading spaces keep Backspace observable;
+  /// when an IME consumes either space outside a live composition, one DEL is
+  /// emitted and the guard is replenished without clearing the accumulated
+  /// committed model.
+  void _updateAndroidEditingValueWithDeltas(List<TextEditingDelta> deltas) {
+    if (deltas.isEmpty) return;
+    var sawComposingSurroundingDeletion = false;
+    var externalBefore = _editingValue;
+    var platformComposing = _platformComposing;
+    var guardLength = _androidGuardLengthIn(
+      deltas.first.oldText,
+      externalText: externalBefore.text,
+    );
+    var needsGuardRepair = guardLength < _androidGuard.length;
+    for (final delta in deltas) {
+      // `setEditingState` repairs cross the platform channel asynchronously.
+      // A fast next transaction may still use the one-space native model, so
+      // the incoming oldText, rather than the already-repaired Dart model, is
+      // authoritative for the guard count and text this delta edits.
+      if (delta.oldText != _platformEditingValue.text) {
+        guardLength = _androidGuardLengthIn(
+          delta.oldText,
+          externalText: externalBefore.text,
+        );
+        _platformEditingValue = _prependAndroidGuardUnits(
+          externalBefore,
+          guardLength,
+        );
+        if (_platformEditingValue.text != delta.oldText) {
+          _platformEditingValue = TextEditingValue(
+            text: delta.oldText,
+            selection: TextSelection.collapsed(offset: delta.oldText.length),
+          );
+          externalBefore = _withoutAndroidGuard(
+            _platformEditingValue,
+            guardLength: guardLength,
+          );
+        }
+      } else {
+        externalBefore = _withoutAndroidGuard(
+          _platformEditingValue,
+          guardLength: guardLength,
+        );
+      }
+      needsGuardRepair |= guardLength < _androidGuard.length;
+      final wasDeltaComposing = platformComposing;
+      if (wasDeltaComposing &&
+          delta is TextEditingDeltaDeletion &&
+          externalBefore.composing.isValid &&
+          delta.deletedRange.end <=
+              guardLength + externalBefore.composing.start) {
+        // BaseInputConnection expands deleteSurroundingText around the live
+        // composing span. Its deletion can therefore consume either a guard
+        // unit or committed text immediately before the preedit. That change
+        // belongs to the IME's private composition model, not the PTY.
+        sawComposingSurroundingDeletion = true;
+      }
+      if (delta.oldText == externalBefore.text) {
+        // Widget tests and embedders that ignore the requested delta model can
+        // still deliver an external value. Rebase it onto the private guard.
+        final externalAfter = delta.apply(externalBefore);
+        _platformEditingValue = _withAndroidGuard(externalAfter);
+        guardLength = _androidGuard.length;
+        externalBefore = externalAfter;
+        platformComposing =
+            externalAfter.composing.isValid &&
+            !externalAfter.composing.isCollapsed;
+        continue;
+      }
+
+      final guardRemoved = _androidGuardUnitsRemoved(delta, guardLength);
+      _platformEditingValue = delta.apply(_platformEditingValue);
+      guardLength -= guardRemoved;
+      if (guardRemoved > 0) {
+        needsGuardRepair = true;
+        // BaseInputConnection expands surrounding-delete bounds around the
+        // composing span. Backspace at the end of a live preedit therefore
+        // consumes a guard unit immediately before that span, not committed
+        // terminal text. Repair the private model without emitting DEL; the
+        // IME follows with the shortened composing value.
+        if (!wasDeltaComposing) _emitAndroidDeletes(guardRemoved);
+      }
+      externalBefore = _withoutAndroidGuard(
+        _platformEditingValue,
+        guardLength: guardLength,
+      );
+      platformComposing =
+          externalBefore.composing.isValid &&
+          !externalBefore.composing.isCollapsed;
+    }
+    final externalAfter = externalBefore;
+    _platformComposing = platformComposing;
+    _previousDeltaComposing = _platformComposing;
+    // Android's BaseInputConnection mutates text, selection, and composing
+    // spans as separate deltas inside one batch. Reconciling an intermediate
+    // text replacement before its following composing-span delta would leak
+    // every Hangul preedit shape (ㄱ, 그, 글) into the PTY. Only the stable
+    // value at the end of the framework callback is observable input.
+    if (sawComposingSurroundingDeletion && externalAfter.composing.isValid) {
+      // Align before reconciliation so removing committed text immediately
+      // before a live preedit never generates a terminal DEL. Do not apply
+      // this to ordinary commit/finish callbacks: they must still reconcile
+      // the newly committed text exactly once.
+      _committedPrefix = externalAfter.text.substring(
+        0,
+        externalAfter.composing.start,
+      );
+    }
+    _accept(externalAfter);
+    if (!needsGuardRepair) return;
+    _platformEditingValue = _prependAndroidGuardUnits(
+      _platformEditingValue,
+      _androidGuard.length - guardLength,
+    );
+    _connection?.setEditingState(_platformEditingValue);
+  }
+
+  int _androidGuardLengthIn(String text, {required String externalText}) {
+    for (
+      var count = math.min(_androidGuard.length, text.length);
+      count > 0;
+      count--
+    ) {
+      if (text.startsWith(_androidGuard.substring(0, count)) &&
+          text.substring(count) == externalText) {
+        return count;
+      }
+    }
+    return 0;
+  }
+
+  (TextEditingValue, TextEditingValue) _normalizeAndroidWholeValue(
+    TextEditingValue value,
+  ) {
+    if (!_usesAndroidGuard) return (value, value);
+    if (_platformSendsDeltas && value.text.startsWith(_androidGuard)) {
+      return (value, _withoutAndroidGuard(value));
+    }
+    // A whole-value client has no delta from which to identify guard deletion,
+    // and its external text may legitimately begin with two spaces. Production
+    // Android connections honor `enableDeltaModel`; keep full-value injection
+    // guard-free until a delta connection has positively established otherwise.
+    return (_withAndroidGuard(value), value);
+  }
+
+  TextEditingValue _withAndroidGuard(TextEditingValue value) =>
+      _prependAndroidGuardUnits(value, _androidGuard.length);
+
+  TextEditingValue _prependAndroidGuardUnits(
+    TextEditingValue value,
+    int count,
+  ) {
+    if (count == 0) return value;
+    int adjusted(int position) => position < 0 ? position : position + count;
+    return TextEditingValue(
+      text: _androidGuard.substring(0, count) + value.text,
+      selection: TextSelection(
+        baseOffset: adjusted(value.selection.baseOffset),
+        extentOffset: adjusted(value.selection.extentOffset),
+        affinity: value.selection.affinity,
+        isDirectional: value.selection.isDirectional,
+      ),
+      composing: value.composing.isValid
+          ? TextRange(
+              start: adjusted(value.composing.start),
+              end: adjusted(value.composing.end),
+            )
+          : TextRange.empty,
+    );
+  }
+
+  TextEditingValue _withoutAndroidGuard(
+    TextEditingValue value, {
+    int guardLength = _androidGuard.length,
+  }) {
+    if (guardLength == 0) return value;
+    int adjusted(int position) => position < 0
+        ? position
+        : (position - guardLength).clamp(
+            0,
+            value.text.length - guardLength,
+          );
+    return TextEditingValue(
+      text: value.text.substring(guardLength),
+      selection: TextSelection(
+        baseOffset: adjusted(value.selection.baseOffset),
+        extentOffset: adjusted(value.selection.extentOffset),
+        affinity: value.selection.affinity,
+        isDirectional: value.selection.isDirectional,
+      ),
+      composing: value.composing.isValid
+          ? TextRange(
+              start: adjusted(value.composing.start),
+              end: adjusted(value.composing.end),
+            )
+          : TextRange.empty,
+    );
+  }
+
+  int _androidGuardUnitsRemoved(TextEditingDelta delta, int guardLength) {
+    final range = switch (delta) {
+      TextEditingDeltaDeletion(:final deletedRange) => deletedRange,
+      TextEditingDeltaReplacement(:final replacedRange) => replacedRange,
+      _ => TextRange.empty,
+    };
+    if (!range.isValid || range.isCollapsed) return 0;
+    return (math.min(range.end, guardLength) -
+                math.min(range.start, guardLength))
+            .clamp(0, guardLength)
+        as int;
   }
 
   /// Follows the platform composition across deltas.
@@ -2349,20 +2685,17 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
       return;
     }
     if (_platformSendsDeltas &&
-        defaultTargetPlatform == TargetPlatform.windows) {
-      // The Win32 embedder applies `setEditingState` directly to its
-      // engine-side TextInputModel instead of echoing it back as a delta, and
-      // Microsoft's Korean IME closes its composition after every settled
-      // syllable and reopens one on the next keystroke. A post-commit reset
-      // that lands after that reopen strips the model's composing state while
-      // the IME keeps sending composition updates; the model then re-inserts
-      // the preedit over a stale selection and corrupts irrecoverably,
-      // duplicating in-progress syllables into the terminal. Windows deltas
-      // are computed against that same authoritative model, so skipping the
-      // reset keeps them consistent: committed text simply accumulates in
-      // [_committedPrefix] and [_reconcileCommitted] writes only the tail.
-      // The full-value path keeps the reset: an embedder that reports whole
-      // values maintains no cumulative model for a reset to corrupt.
+        (defaultTargetPlatform == TargetPlatform.windows ||
+            defaultTargetPlatform == TargetPlatform.android)) {
+      // The Windows and Android embedders compute deltas against an
+      // authoritative native editing model. Resetting it after every settled
+      // syllable can race the next composition: Windows loses the composing
+      // range, while Android calls restartInput and can drop the new preedit.
+      // Accumulating committed text keeps the models aligned and lets
+      // [_reconcileCommitted] emit only the newly committed tail. Android's
+      // private guard additionally keeps empty-buffer Backspace observable.
+      // Full-value embedders retain the reset because they do not maintain a
+      // cumulative delta baseline.
       return;
     }
     // xterm clears its hidden textarea after committed input. Keeping the
@@ -2372,14 +2705,16 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     // while the platform buffer still holds the forwarded pile; the reset
     // must fire for it too, and arming the echo prefix with the verbatim
     // platform text absorbs the region — the two are never live at once.
-    _resetEchoPrefix = _platformEditingValue.text;
+    _resetEchoPrefix = _usesAndroidGuard
+        ? _editingValue.text
+        : _platformEditingValue.text;
     _editingValue = TextEditingValue.empty;
-    _platformEditingValue = TextEditingValue.empty;
+    _platformEditingValue = _emptyPlatformEditingValue;
     _committedPrefix = '';
     _pendingPhysicalCommitEcho = '';
     _reorderedCommitText = '';
     _reorderedCommitStart = 0;
-    _connection?.setEditingState(_editingValue);
+    _connection?.setEditingState(_platformEditingValue);
     widget.onComposingChanged();
   }
 
@@ -2469,17 +2804,141 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
       common++;
     }
     final removed = previousClusters.length - common;
-    if (removed > 0) widget.terminal.input('\u007f' * removed);
+    if (removed > 0) {
+      if (_usesAndroidGuard) {
+        _emitAndroidDeletes(removed);
+      } else {
+        widget.terminal.input('\u007f' * removed);
+      }
+    }
     if (common < nextClusters.length) {
-      widget.terminal.input(nextClusters.skip(common).join());
+      final added = nextClusters.skip(common).join();
+      if (_usesAndroidGuard) {
+        _emitAndroidCommittedText(added);
+      } else {
+        widget.terminal.input(added);
+      }
     }
     _committedPrefix = next;
+  }
+
+  void _emitAndroidDeletes(int count) {
+    for (var index = 0; index < count; index++) {
+      _emitAndroidControl('\u007f', _AndroidControlSource.editingDelta);
+    }
+  }
+
+  void _emitAndroidCommittedText(String text) {
+    final ordinary = StringBuffer();
+    void flushOrdinary() {
+      if (ordinary.isEmpty) return;
+      _clearAndroidControlBurst();
+      widget.terminal.input(ordinary.toString());
+      ordinary.clear();
+    }
+
+    for (final cluster in text.characters) {
+      if (cluster == '\n' || cluster == '\r' || cluster == '\r\n') {
+        flushOrdinary();
+        _emitAndroidControl('\r', _AndroidControlSource.editingDelta);
+      } else {
+        ordinary.write(cluster);
+      }
+    }
+    flushOrdinary();
+  }
+
+  void _emitAndroidControl(String control, _AndroidControlSource source) {
+    final burst = _androidControlBursts.putIfAbsent(
+      control,
+      _AndroidControlBurst.new,
+    );
+    final sourceCount = (burst.counts[source] ?? 0) + 1;
+    burst.counts[source] = sourceCount;
+    if (source == _AndroidControlSource.physicalKey) {
+      _extendAndroidPhysicalControlBursts();
+      _androidControlExpiry.remove(control)?.cancel();
+      _androidPhysicalControlsDown.add(control);
+    } else if (!_androidPhysicalControlsDown.contains(control)) {
+      _armAndroidControlExpiry(control);
+    }
+    if (sourceCount <= burst.emitted) return;
+    widget.terminal.input(control);
+    burst.emitted = sourceCount;
+  }
+
+  void _armAndroidControlExpiry(String control) {
+    _androidControlExpiry.remove(control)?.cancel();
+    _androidControlExpiry[control] = Timer(
+      const Duration(milliseconds: 100),
+      () {
+        _androidControlExpiry.remove(control);
+        _androidControlBursts.remove(control);
+      },
+    );
+  }
+
+  void _extendAndroidPhysicalControlBursts() {
+    for (final entry in _androidControlBursts.entries) {
+      if (entry.value.counts.containsKey(_AndroidControlSource.physicalKey) &&
+          !_androidPhysicalControlsDown.contains(entry.key)) {
+        _armAndroidControlExpiry(entry.key);
+      }
+    }
+  }
+
+  void _clearAndroidControlBurst() {
+    for (final timer in _androidControlExpiry.values) {
+      timer.cancel();
+    }
+    _androidControlExpiry.clear();
+    _androidControlBursts.clear();
+    _androidPhysicalControlsDown.clear();
+  }
+
+  /// Ends Android control-key duplicate suppression after ordinary input.
+  void clearAndroidControlBurst() {
+    _clearAndroidControlBurst();
+  }
+
+  /// Emits a physical Android control key and arms duplicate suppression for
+  /// a matching editing delta or editor action from the same soft-key burst.
+  void emitAndroidPhysicalControl(String control) {
+    if (control == '\u007f' && _isComposing) return;
+    _emitAndroidControl(control, _AndroidControlSource.physicalKey);
+  }
+
+  /// Records an encoded Android control key so a companion text-input report
+  /// is suppressed without replacing the terminal protocol sequence.
+  void recordAndroidPhysicalControl(String control) {
+    if (control == '\u007f' && _isComposing) return;
+    final burst = _androidControlBursts.putIfAbsent(
+      control,
+      _AndroidControlBurst.new,
+    );
+    final sourceCount =
+        (burst.counts[_AndroidControlSource.physicalKey] ?? 0) + 1;
+    burst.counts[_AndroidControlSource.physicalKey] = sourceCount;
+    _extendAndroidPhysicalControlBursts();
+    _androidControlExpiry.remove(control)?.cancel();
+    _androidPhysicalControlsDown.add(control);
+    if (sourceCount > burst.emitted) burst.emitted = sourceCount;
+  }
+
+  /// Closes physical-key duplicate matching after immediate companion reports.
+  void endAndroidPhysicalControl(String control) {
+    _androidPhysicalControlsDown.remove(control);
+    _extendAndroidPhysicalControlBursts();
   }
 
   @override
   void performAction(TextInputAction action) {
     if (action == TextInputAction.newline || action == TextInputAction.done) {
-      widget.terminal.input('\r');
+      if (_usesAndroidGuard) {
+        _emitAndroidControl('\r', _AndroidControlSource.editorAction);
+      } else {
+        widget.terminal.input('\r');
+      }
     }
   }
 
@@ -2487,6 +2946,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
   void connectionClosed() {
     _connection?.connectionClosedReceived();
     _connection = null;
+    if (_usesAndroidGuard) _resetEditingState(syncPlatform: false);
     if (!mounted || widget.readOnly || !widget.focusNode.hasFocus) return;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && !widget.readOnly && widget.focusNode.hasFocus) {
