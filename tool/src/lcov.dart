@@ -5,7 +5,7 @@ import 'package:path/path.dart' as p;
 /// Coverage totals for one package.
 final class CoverageTotals {
   /// Creates totals.
-  const CoverageTotals({
+  const new({
     required this.linesFound,
     required this.linesHit,
     required this.branchesFound,
@@ -42,10 +42,7 @@ final class CoverageTotals {
 /// way a coverage gate can reward the wrong thing.
 final class CoverageVerifier {
   /// Creates a verifier.
-  const CoverageVerifier({
-    this.minimumLineRate = 0.9,
-    this.minimumBranchRate = 0.8,
-  });
+  const new({this.minimumLineRate = 0.9, this.minimumBranchRate = 0.8});
 
   /// Minimum accepted line-coverage fraction.
   final double minimumLineRate;
@@ -184,10 +181,7 @@ final class CoverageVerifier {
         .readAsStringSync()
         .replaceAll(RegExp(r'/\*[\s\S]*?\*/'), '')
         .replaceAll(RegExp(r'//[^\n]*'), '')
-        .replaceAll(
-          RegExp(r'\b(?:library|import|export|part)\b[\s\S]*?;'),
-          '',
-        )
+        .replaceAll(RegExp(r'\b(?:library|import|export|part)\b[\s\S]*?;'), '')
         .trim();
     if (sourceWithoutDirectives.isEmpty) return 0;
     final executable = file
@@ -217,7 +211,7 @@ final class CoverageVerifier {
 }
 
 final class _CoverageRecord {
-  const _CoverageRecord({
+  const new({
     required this.linesFound,
     required this.linesHit,
     required this.branchesFound,

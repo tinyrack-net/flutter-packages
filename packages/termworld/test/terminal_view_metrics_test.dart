@@ -5,9 +5,7 @@ import 'package:termworld/termworld.dart';
 /// The FlutterTest font advances exactly one em per glyph, so the measured
 /// cell width equals the font size and every expectation below is exact.
 void main() {
-  testWidgets('reports exactly the columns the width can draw', (
-    tester,
-  ) async {
+  testWidgets('reports exactly the columns the width can draw', (tester) async {
     final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 2));
     addTearDown(terminal.dispose);
 
@@ -34,9 +32,7 @@ void main() {
     expect(terminal.rows, 10, reason: '300px / 30px per cell');
   });
 
-  testWidgets('wraps a long line at the reported column count', (
-    tester,
-  ) async {
+  testWidgets('wraps a long line at the reported column count', (tester) async {
     final terminal = Terminal(options: TerminalOptions(cols: 10, rows: 2));
     addTearDown(terminal.dispose);
 
@@ -68,10 +64,7 @@ void main() {
       'x' * 20,
       reason: 'the first row fills every reported column before wrapping',
     );
-    expect(
-      buffer.getLine(1)!.translateToString(trimRight: true),
-      'x' * 5,
-    );
+    expect(buffer.getLine(1)!.translateToString(trimRight: true), 'x' * 5);
     expect(
       buffer.getLine(1)!.isWrapped,
       isTrue,

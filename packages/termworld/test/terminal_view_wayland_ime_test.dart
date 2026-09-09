@@ -37,7 +37,7 @@ Future<void> _pumpTerminal(WidgetTester tester, Terminal terminal) async {
 }
 
 final class _ReplayCase {
-  _ReplayCase({
+  new({
     required this.name,
     required this.typed,
     required this.expectedPty,
@@ -99,9 +99,7 @@ TextEditingDeltaReplacement _replace(
   oldText: oldText,
   replacementText: replacement,
   replacedRange: range,
-  selection: TextSelection.collapsed(
-    offset: range.start + replacement.length,
-  ),
+  selection: TextSelection.collapsed(offset: range.start + replacement.length),
   composing: composing,
 );
 
@@ -142,9 +140,7 @@ void main() {
     for (final replay in _loadCases(fixture)) {
       _linuxTestWidgets(
         '$label: ${replay.name} reaches the pty in typed order',
-        (
-          tester,
-        ) async {
+        (tester) async {
           final terminal = Terminal();
           addTearDown(terminal.dispose);
           final output = <String>[];
@@ -348,9 +344,7 @@ void main() {
 
   _linuxTestWidgets(
     'hides the stale buffer under a fresh preedit after a reset',
-    (
-      tester,
-    ) async {
+    (tester) async {
       final terminal = Terminal();
       addTearDown(terminal.dispose);
       final output = <String>[];

@@ -40,10 +40,7 @@ void main() {
           continue;
         }
         if (operation == 'focus') {
-          await _setTerminalFocus(
-            tester,
-            focused: step['value']! as bool,
-          );
+          await _setTerminalFocus(tester, focused: step['value']! as bool);
           continue;
         }
 
@@ -98,9 +95,7 @@ Future<void> _setTerminalFocus(
   required bool focused,
 }) async {
   await tester.tap(
-    find.byKey(
-      ValueKey<String>(focused ? 'terminal' : 'focus-target'),
-    ),
+    find.byKey(ValueKey<String>(focused ? 'terminal' : 'focus-target')),
   );
   await tester.pumpAndSettle();
 }
@@ -158,11 +153,7 @@ Future<Map<String, Object?>> _nativeStatus() async {
 }
 
 final class _AndroidInputFixture {
-  const _AndroidInputFixture({
-    required this.version,
-    required this.guard,
-    required this.cases,
-  });
+  const new({required this.version, required this.guard, required this.cases});
 
   final int version;
   final String guard;
@@ -185,7 +176,7 @@ final class _AndroidInputFixture {
 }
 
 final class _AndroidInputFixtureCase {
-  const _AndroidInputFixtureCase({
+  const new({
     required this.name,
     required this.family,
     required this.steps,
@@ -193,17 +184,16 @@ final class _AndroidInputFixtureCase {
     required this.expectedReconnections,
   });
 
-  factory _AndroidInputFixtureCase.fromJson(Map<String, dynamic> json) =>
-      _AndroidInputFixtureCase(
-        name: json['name']! as String,
-        family: json['family']! as String,
-        steps: <Map<String, Object?>>[
-          for (final value in json['steps']! as List<dynamic>)
-            Map<String, Object?>.from(value as Map<dynamic, dynamic>),
-        ],
-        expectedPty: json['expectedPty']! as String,
-        expectedReconnections: json['expectedReconnections'] as int?,
-      );
+  factory fromJson(Map<String, dynamic> json) => _AndroidInputFixtureCase(
+    name: json['name']! as String,
+    family: json['family']! as String,
+    steps: <Map<String, Object?>>[
+      for (final value in json['steps']! as List<dynamic>)
+        Map<String, Object?>.from(value as Map<dynamic, dynamic>),
+    ],
+    expectedPty: json['expectedPty']! as String,
+    expectedReconnections: json['expectedReconnections'] as int?,
+  );
 
   final String name;
   final String family;

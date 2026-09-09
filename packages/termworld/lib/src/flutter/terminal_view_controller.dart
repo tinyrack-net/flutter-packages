@@ -4,7 +4,7 @@ import 'package:vtworld/vtworld.dart';
 /// Controls selection, scrolling and keyboard focus for a terminal view.
 final class TerminalViewController extends ChangeNotifier {
   /// Creates a detached terminal view controller.
-  TerminalViewController();
+  new();
 
   Terminal? _terminal;
   VoidCallback? _requestKeyboard;

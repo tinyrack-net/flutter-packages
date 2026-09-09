@@ -16,10 +16,7 @@ void main() {
       expect(
         _resolveDom(
           decorations: const [
-            TerminalCellDecorationColors(
-              foreground: _red,
-              background: _blue,
-            ),
+            TerminalCellDecorationColors(foreground: _red, background: _blue),
           ],
         ).foreground,
         _red,
@@ -31,39 +28,28 @@ void main() {
         _resolveDom(
           inverse: true,
           decorations: const [
-            TerminalCellDecorationColors(
-              foreground: _red,
-              background: _blue,
-            ),
+            TerminalCellDecorationColors(foreground: _red, background: _blue),
           ],
         ).foreground,
         _red,
       );
     });
 
-    test(
-      'DOM Renderer only foreground decoration ignores inverse',
-      () {
-        final decorated = _resolveDom(
-          inverse: true,
-          decorations: const [
-            TerminalCellDecorationColors(foreground: _red),
-          ],
-        );
-        final undecorated = _resolveDom(inverse: true);
-        expect(decorated.foreground, _red);
-        expect(undecorated.background, _white);
-      },
-    );
+    test('DOM Renderer only foreground decoration ignores inverse', () {
+      final decorated = _resolveDom(
+        inverse: true,
+        decorations: const [TerminalCellDecorationColors(foreground: _red)],
+      );
+      final undecorated = _resolveDom(inverse: true);
+      expect(decorated.foreground, _red);
+      expect(undecorated.background, _white);
+    });
 
     test('DOM Renderer decoration backgroundColor', () {
       expect(
         _resolveDom(
           decorations: const [
-            TerminalCellDecorationColors(
-              foreground: _red,
-              background: _blue,
-            ),
+            TerminalCellDecorationColors(foreground: _red, background: _blue),
           ],
         ).background,
         _blue,
@@ -75,31 +61,23 @@ void main() {
         _resolveDom(
           inverse: true,
           decorations: const [
-            TerminalCellDecorationColors(
-              foreground: _red,
-              background: _blue,
-            ),
+            TerminalCellDecorationColors(foreground: _red, background: _blue),
           ],
         ).background,
         _blue,
       );
     });
 
-    test(
-      'DOM Renderer only background decoration ignores inverse',
-      () {
-        final decorated = _resolveDom(
-          inverse: true,
-          decorations: const [
-            TerminalCellDecorationColors(background: _blue),
-          ],
-        );
-        final undecorated = _resolveDom(inverse: true);
-        expect(decorated.background, _blue);
-        expect(decorated.foreground, _black);
-        expect(undecorated.background, _white);
-      },
-    );
+    test('DOM Renderer only background decoration ignores inverse', () {
+      final decorated = _resolveDom(
+        inverse: true,
+        decorations: const [TerminalCellDecorationColors(background: _blue)],
+      );
+      final undecorated = _resolveDom(inverse: true);
+      expect(decorated.background, _blue);
+      expect(decorated.foreground, _black);
+      expect(undecorated.background, _white);
+    });
 
     test('WebGL Renderer decoration foregroundColor', () {
       expect(
@@ -131,20 +109,17 @@ void main() {
       expect(result.foreground & TerminalWebglAttributes.inverse, 0);
     });
 
-    test(
-      'WebGL Renderer only foreground decoration ignores inverse',
-      () {
-        final result = _resolveWebgl(
-          inverse: true,
-          decorations: const [
-            TerminalWebglDecorationColors(foregroundRgba: 0xff0000ff),
-          ],
-        );
-        expect(_webglRgb(result.foreground), 0xff0000);
-        expect(_webglRgb(result.background), 0xffffff);
-        expect(result.foreground & TerminalWebglAttributes.inverse, 0);
-      },
-    );
+    test('WebGL Renderer only foreground decoration ignores inverse', () {
+      final result = _resolveWebgl(
+        inverse: true,
+        decorations: const [
+          TerminalWebglDecorationColors(foregroundRgba: 0xff0000ff),
+        ],
+      );
+      expect(_webglRgb(result.foreground), 0xff0000);
+      expect(_webglRgb(result.background), 0xffffff);
+      expect(result.foreground & TerminalWebglAttributes.inverse, 0);
+    });
 
     test('WebGL Renderer decoration backgroundColor', () {
       expect(
@@ -179,20 +154,17 @@ void main() {
       );
     });
 
-    test(
-      'WebGL Renderer only background decoration ignores inverse',
-      () {
-        final result = _resolveWebgl(
-          inverse: true,
-          decorations: const [
-            TerminalWebglDecorationColors(backgroundRgba: 0x0000ffff),
-          ],
-        );
-        expect(_webglRgb(result.background), 0x0000ff);
-        expect(_webglRgb(result.foreground), 0x000000);
-        expect(result.foreground & TerminalWebglAttributes.inverse, 0);
-      },
-    );
+    test('WebGL Renderer only background decoration ignores inverse', () {
+      final result = _resolveWebgl(
+        inverse: true,
+        decorations: const [
+          TerminalWebglDecorationColors(backgroundRgba: 0x0000ffff),
+        ],
+      );
+      expect(_webglRgb(result.background), 0x0000ff);
+      expect(_webglRgb(result.foreground), 0x000000);
+      expect(result.foreground & TerminalWebglAttributes.inverse, 0);
+    });
   });
 }
 
@@ -201,22 +173,13 @@ TerminalResolvedCellColors _resolveDom({
   List<TerminalCellDecorationColors> decorations = const [],
 }) {
   final line = TerminalBufferLine(1)
-    ..setCell(
-      0,
-      '■',
-      1,
-      TerminalCellAttributes(inverse: inverse),
-    );
+    ..setCell(0, '■', 1, TerminalCellAttributes(inverse: inverse));
   return const TerminalCellColorResolver(
     theme: _theme,
     focused: true,
     drawBoldTextInBrightColors: true,
     minimumContrastRatio: 1,
-  ).resolve(
-    line.getCell(0)!,
-    selected: false,
-    bottomDecorations: decorations,
-  );
+  ).resolve(line.getCell(0)!, selected: false, bottomDecorations: decorations);
 }
 
 TerminalWebglCellColorResult _resolveWebgl({

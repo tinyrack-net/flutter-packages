@@ -232,58 +232,49 @@ void main() {
     });
 
     test('DOM minimum contrast adjusts 0-15 on black background', () async {
-      expect(
-        await _contrastColors(_black),
-        const <Color>[
-          Color(0xffb0b4b4),
-          Color(0xffee9e9e),
-          Color(0xff98c66e),
-          Color(0xffd0b331),
-          Color(0xffa1b7d7),
-          Color(0xffbfaec2),
-          Color(0xff6ec5c6),
-          Color(0xffd3d7cf),
-          Color(0xffb7b9b7),
-          Color(0xfff99c9c),
-          Color(0xff8ae234),
-          Color(0xfffce94f),
-          Color(0xff9abadd),
-          Color(0xffcbadc7),
-          Color(0xff34e2e2),
-          Color(0xffeeeeec),
-        ],
-      );
+      expect(await _contrastColors(_black), const <Color>[
+        Color(0xffb0b4b4),
+        Color(0xffee9e9e),
+        Color(0xff98c66e),
+        Color(0xffd0b331),
+        Color(0xffa1b7d7),
+        Color(0xffbfaec2),
+        Color(0xff6ec5c6),
+        Color(0xffd3d7cf),
+        Color(0xffb7b9b7),
+        Color(0xfff99c9c),
+        Color(0xff8ae234),
+        Color(0xfffce94f),
+        Color(0xff9abadd),
+        Color(0xffcbadc7),
+        Color(0xff34e2e2),
+        Color(0xffeeeeec),
+      ]);
     });
 
     test('DOM minimum contrast adjusts 0-15 on white background', () async {
-      expect(
-        await _contrastColors(const Color(0xffffffff)),
-        const <Color>[
-          Color(0xff2e3436),
-          Color(0xff840000),
-          Color(0xff244800),
-          Color(0xff483b00),
-          Color(0xff20406a),
-          Color(0xff4b3350),
-          Color(0xff004748),
-          Color(0xff40403f),
-          Color(0xff3d3f3b),
-          Color(0xff7d1313),
-          Color(0xff28430d),
-          Color(0xff433f13),
-          Color(0xff2d4157),
-          Color(0xff51394e),
-          Color(0xff0d4343),
-          Color(0xff404040),
-        ],
-      );
+      expect(await _contrastColors(const Color(0xffffffff)), const <Color>[
+        Color(0xff2e3436),
+        Color(0xff840000),
+        Color(0xff244800),
+        Color(0xff483b00),
+        Color(0xff20406a),
+        Color(0xff4b3350),
+        Color(0xff004748),
+        Color(0xff40403f),
+        Color(0xff3d3f3b),
+        Color(0xff7d1313),
+        Color(0xff28430d),
+        Color(0xff433f13),
+        Color(0xff2d4157),
+        Color(0xff51394e),
+        Color(0xff0d4343),
+        Color(0xff404040),
+      ]);
     });
 
     test('DOM minimum contrast enforces half ratio for dim cells', () async {
-      final actual = await _contrastColors(
-        const Color(0xffffffff),
-        dim: true,
-      );
+      final actual = await _contrastColors(const Color(0xffffffff), dim: true);
       const expected = <Color>[
         Color(0xff96999a),
         Color(0xffe57f7f),
@@ -451,7 +442,7 @@ const _fixtureColors = <Color>[
 ];
 
 final class _CellFrame {
-  const _CellFrame(this.cells, this.colors);
+  const new(this.cells, this.colors);
 
   final List<TerminalCell> cells;
   final List<TerminalResolvedCellColors> colors;
@@ -518,9 +509,7 @@ Future<void> _verifyPalette256({
   bool invisible = false,
   bool dim = false,
 }) async {
-  final terminal = Terminal(
-    options: TerminalOptions(cols: 16, scrollback: 0),
-  );
+  final terminal = Terminal(options: TerminalOptions(cols: 16, scrollback: 0));
   try {
     final output = StringBuffer();
     for (var index = 16; index < 256; index++) {
@@ -581,9 +570,7 @@ Future<void> _verifyTrueColor(
   bool inverse = false,
   bool invisible = false,
 }) async {
-  final terminal = Terminal(
-    options: TerminalOptions(cols: 16, scrollback: 0),
-  );
+  final terminal = Terminal(options: TerminalOptions(cols: 16, scrollback: 0));
   try {
     final output = StringBuffer();
     for (var index = 0; index < 256; index++) {

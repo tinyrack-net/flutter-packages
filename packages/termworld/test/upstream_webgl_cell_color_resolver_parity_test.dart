@@ -92,11 +92,8 @@ void main() {
   });
 
   test('inactive selection uses inactive colors and explicit foreground', () {
-    final result =
-        _resolver(
-          isFocused: false,
-          isCellSelected: (_, _) => true,
-        ).resolve(
+    final result = _resolver(isFocused: false, isCellSelected: (_, _) => true)
+        .resolve(
           const TerminalWebglPackedCell(
             code: 0x61,
             foreground: 0,

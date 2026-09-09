@@ -19,7 +19,7 @@ enum _PointerSelectionMode { normal, word, line, column }
 /// Flutter renderer and input surface for a headless [Terminal].
 class TerminalView extends StatefulWidget {
   /// Creates a terminal view. The caller retains ownership of [terminal].
-  const TerminalView({
+  const new({
     required this.terminal,
     super.key,
     this.controller,
@@ -532,10 +532,7 @@ final class _TerminalViewState extends State<TerminalView> {
             onTapDown: (details) {
               if (widget.terminal.modes.mouseTrackingMode != 'none') return;
               unawaited(
-                _recordPointerDownLink(
-                  details,
-                  _cellAt(details.localPosition),
-                ),
+                _recordPointerDownLink(details, _cellAt(details.localPosition)),
               );
             },
             onTapUp: (details) {
@@ -593,9 +590,7 @@ final class _TerminalViewState extends State<TerminalView> {
                           child: Text(
                             composingText,
                             key: const ValueKey<String>('termworld-preedit'),
-                            style: style.toTextStyle(
-                              color: theme.foreground,
-                            ),
+                            style: style.toTextStyle(color: theme.foreground),
                           ),
                         ),
                       ),
@@ -834,10 +829,7 @@ final class _TerminalViewState extends State<TerminalView> {
   TerminalBufferRange? _wrappedLineRange(int row) =>
       TerminalSelectionService(widget.terminal).wrappedLineRange(row);
 
-  void _selectRange(
-    TerminalBufferRange range, {
-    bool columnMode = false,
-  }) {
+  void _selectRange(TerminalBufferRange range, {bool columnMode = false}) {
     if (columnMode) {
       widget.terminal.selectColumns(
         range.start.x,
@@ -859,12 +851,7 @@ final class _TerminalViewState extends State<TerminalView> {
 
   void _onPointerUp(PointerUpEvent event) {
     final cell = _cellAt(event.localPosition);
-    _reportPointer(
-      event,
-      cell,
-      _pressedMouseButton,
-      TerminalMouseAction.up,
-    );
+    _reportPointer(event, cell, _pressedMouseButton, TerminalMouseAction.up);
     _pressedMouseButton = TerminalMouseButton.none;
     _stopDragScroll();
     _selectionAnchor = null;
@@ -1202,9 +1189,7 @@ final class _TerminalViewState extends State<TerminalView> {
           }
         : null;
     if (event is KeyUpEvent && androidPhysicalControl != null) {
-      _inputKey.currentState?.endAndroidPhysicalControl(
-        androidPhysicalControl,
-      );
+      _inputKey.currentState?.endAndroidPhysicalControl(androidPhysicalControl);
     }
     if (event is KeyUpEvent &&
         !useWin32 &&
@@ -1364,10 +1349,7 @@ final class _TerminalViewState extends State<TerminalView> {
     widget.terminal.input(sequence);
   }
 
-  int _legacyKeyCode(
-    LogicalKeyboardKey logical,
-    PhysicalKeyboardKey physical,
-  ) {
+  int _legacyKeyCode(LogicalKeyboardKey logical, PhysicalKeyboardKey physical) {
     final usage = physical.usbHidUsage & 0xffff;
     if (usage >= 0x04 && usage <= 0x1d) return 65 + usage - 0x04;
     if (usage >= 0x1e && usage <= 0x26) return 49 + usage - 0x1e;
@@ -1582,7 +1564,7 @@ final class _TerminalViewState extends State<TerminalView> {
 }
 
 final class _TerminalPainter extends CustomPainter {
-  const _TerminalPainter({
+  const new({
     required this.terminal,
     required this.theme,
     required this.style,
@@ -1671,9 +1653,7 @@ final class _TerminalPainter extends CustomPainter {
               text: TextSpan(
                 text: cell.chars,
                 style: style
-                    .toTextStyle(
-                      color: foreground,
-                    )
+                    .toTextStyle(color: foreground)
                     .copyWith(
                       fontWeight: cell.isBold
                           ? style.fontWeightBold
@@ -1741,10 +1721,7 @@ final class _TerminalPainter extends CustomPainter {
     canvas.drawImageRect(decoded.raster, source, destination, Paint());
   }
 
-  void _paintHoveredLink(
-    Canvas canvas,
-    TerminalRenderDimensions dimensions,
-  ) {
+  void _paintHoveredLink(Canvas canvas, TerminalRenderDimensions dimensions) {
     final link = hoveredLink;
     if (link == null || !(link.decorations?.underline ?? true)) return;
     final underline = TerminalLinkUnderlineEvent.fromLink(
@@ -1911,9 +1888,7 @@ final class _TerminalPainter extends CustomPainter {
     );
     if (cursorType == TerminalCursorType.block &&
         paint.style == PaintingStyle.fill) {
-      final line = terminal.buffer.active.getLine(
-        terminal.viewportY + row,
-      );
+      final line = terminal.buffer.active.getLine(terminal.viewportY + row);
       final cell = line?.getCell(column);
       if (cell != null &&
           cell.width > 0 &&
@@ -1954,7 +1929,7 @@ final class _AndroidControlBurst {
 }
 
 final class _TerminalTextInput extends StatefulWidget {
-  const _TerminalTextInput({
+  const new({
     required this.focusNode,
     required this.autofocus,
     required this.readOnly,
@@ -2412,10 +2387,7 @@ final class _TerminalTextInputState extends State<_TerminalTextInput>
     if (guardLength == 0) return value;
     int adjusted(int position) => position < 0
         ? position
-        : (position - guardLength).clamp(
-            0,
-            value.text.length - guardLength,
-          );
+        : (position - guardLength).clamp(0, value.text.length - guardLength);
     return TextEditingValue(
       text: value.text.substring(guardLength),
       selection: TextSelection(

@@ -114,12 +114,7 @@ void main() {
         ),
       )
       ..fillBottomLineAtCells(1, 0, width: 2)
-      ..fillCharacterTrueColor(
-        characters: 'A',
-        width: 1,
-        x: 1,
-        y: 0,
-      )
+      ..fillCharacterTrueColor(characters: 'A', width: 1, x: 1, y: 0)
       ..handleThemeChanged('#abcdef');
     expect(layer.font(isBold: false, isItalic: false), ' 400 30.0px Fira Code');
     expect(
@@ -137,7 +132,7 @@ void main() {
 }
 
 final class _Layer extends TerminalWebglBaseRenderLayer {
-  _Layer({
+  new({
     required super.terminal,
     required _Canvas super.canvas,
     required super.alpha,
@@ -158,7 +153,7 @@ final class _Layer extends TerminalWebglBaseRenderLayer {
 }
 
 final class _Canvas implements TerminalWebglLayerCanvas {
-  _Canvas();
+  new();
 
   final _Context context = _Context();
 

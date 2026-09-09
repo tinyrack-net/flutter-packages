@@ -41,11 +41,12 @@ Future<void> main(List<String> arguments) async {
     ),
     // A browser test compiles against its own package root, so it must run
     // from the package directory rather than the workspace root.
-    'web' => await _run(
-      _flutter,
-      <String>['test', 'test/dropwell_web_test.dart', '--platform', 'chrome'],
-      package,
-    ),
+    'web' => await _run(_flutter, <String>[
+      'test',
+      'test/dropwell_web_test.dart',
+      '--platform',
+      'chrome',
+    ], package),
     _ => _unknown(platform),
   };
   exitCode = code;
@@ -65,11 +66,7 @@ String get _flutter => Platform.isWindows ? 'flutter.bat' : 'flutter';
 /// native tests; there is no second CMake project to keep in sync. The binary
 /// is run directly rather than through `ctest`, which is not on `PATH` in a
 /// Visual Studio install.
-Future<int> _gtest(
-  String example,
-  String platform,
-  String binaryPath,
-) async {
+Future<int> _gtest(String example, String platform, String binaryPath) async {
   final build = await _run(_flutter, <String>[
     'build',
     platform,
@@ -81,7 +78,7 @@ Future<int> _gtest(
     stderr.writeln('Native test binary not built: $binary');
     return 1;
   }
-  return _run(binary, const <String>[], example);
+  return await _run(binary, const <String>[], example);
 }
 
 Future<int> _gradle(String example) async {
@@ -94,11 +91,9 @@ Future<int> _gradle(String example) async {
     '--debug',
   ], example);
   if (configure != 0) return configure;
-  return _run(
-    Platform.isWindows ? 'gradlew.bat' : './gradlew',
-    <String>[':dropwell:testDebugUnitTest'],
-    p.join(example, 'android'),
-  );
+  return await _run(Platform.isWindows ? 'gradlew.bat' : './gradlew', <String>[
+    ':dropwell:testDebugUnitTest',
+  ], p.join(example, 'android'));
 }
 
 /// Runs the example project's XCTest target for an Apple platform.
@@ -126,7 +121,7 @@ Future<int> _xcodebuild(
   if (precache != 0) return precache;
   final destination =
       Platform.environment['DROPWELL_XCODE_DESTINATION'] ?? defaultDestination;
-  return _run('xcodebuild', <String>[
+  return await _run('xcodebuild', <String>[
     'test',
     '-workspace',
     'Runner.xcworkspace',
@@ -152,5 +147,5 @@ Future<int> _run(
     mode: ProcessStartMode.inheritStdio,
     runInShell: Platform.isWindows,
   );
-  return process.exitCode;
+  return await process.exitCode;
 }

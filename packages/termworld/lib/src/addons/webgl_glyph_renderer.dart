@@ -9,7 +9,7 @@ const int terminalWebglGlyphFloatCount = 11;
 /// Two-dimensional glyph metric.
 final class TerminalWebglGlyphVector {
   /// Creates a vector.
-  const TerminalWebglGlyphVector(this.x, this.y);
+  const new(this.x, this.y);
 
   /// Horizontal component.
   final double x;
@@ -21,7 +21,7 @@ final class TerminalWebglGlyphVector {
 /// One rasterized glyph entry in the terminal texture atlas.
 final class TerminalWebglRasterizedGlyph {
   /// Creates a rasterized glyph snapshot.
-  const TerminalWebglRasterizedGlyph({
+  const new({
     required this.offset,
     required this.size,
     required this.texturePage,
@@ -48,11 +48,7 @@ final class TerminalWebglRasterizedGlyph {
 /// Texture atlas page dimensions and monotonic content version.
 final class TerminalWebglGlyphAtlasPage {
   /// Creates an atlas page snapshot.
-  const TerminalWebglGlyphAtlasPage({
-    required this.width,
-    required this.height,
-    required this.version,
-  });
+  const new({required this.width, required this.height, required this.version});
 
   /// Texture width in device pixels.
   final double width;
@@ -92,7 +88,7 @@ abstract interface class TerminalWebglGlyphAtlas {
 /// Character and canvas metrics needed by the glyph renderer.
 final class TerminalWebglGlyphDimensions {
   /// Creates a dimensions snapshot.
-  const TerminalWebglGlyphDimensions({
+  const new({
     required this.device,
     required this.characterWidth,
     required this.characterLeft,
@@ -115,7 +111,7 @@ final class TerminalWebglGlyphDimensions {
 /// CPU-side glyph instance buffers, including xterm's double buffering.
 final class TerminalWebglGlyphRendererModel {
   /// Creates and clears a glyph renderer model.
-  TerminalWebglGlyphRendererModel({
+  new({
     required this.columns,
     required this.rows,
     required this.dimensions,
@@ -223,12 +219,7 @@ final class TerminalWebglGlyphRendererModel {
     final atlas = _atlas;
     if (atlas == null) return;
     final glyph = characters.length > 1
-        ? atlas.getCombinedGlyph(
-            characters,
-            background,
-            foreground,
-            extended,
-          )
+        ? atlas.getCombinedGlyph(characters, background, foreground, extended)
         : atlas.getGlyph(code, background, foreground, extended);
     final cell = dimensions.device;
     final leftCellPadding = ((cell.cellWidth - dimensions.characterWidth) / 2)

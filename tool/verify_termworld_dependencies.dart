@@ -93,9 +93,7 @@ void _verifyPackageGraph(Directory root, List<String> failures) {
     if (!reachable.add(name)) continue;
     final package = byName[name];
     if (package == null) continue;
-    pending.addAll(
-      (package['dependencies']! as List<Object?>).cast<String>(),
-    );
+    pending.addAll((package['dependencies']! as List<Object?>).cast<String>());
   }
   if (reachable.contains('xterm')) {
     failures.add('xterm is transitively reachable from termworld');

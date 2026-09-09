@@ -11,7 +11,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 final class AttachAddon extends ManagedTerminalAddon {
   /// Creates an attachment. Input is sent to the socket when [bidirectional]
   /// is true.
-  AttachAddon(this.socket, {this.bidirectional = true});
+  new(this.socket, {this.bidirectional = true});
 
   /// Connected socket.
   final WebSocketChannel socket;

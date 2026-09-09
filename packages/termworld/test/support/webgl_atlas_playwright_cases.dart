@@ -123,10 +123,7 @@ void _verifySharedAtlasMerge() {
 }
 
 void _verifySharedAtlasClear() {
-  final atlas = TerminalWebglTextureAtlas(
-    textureSize: 32,
-    maxTextureSize: 64,
-  );
+  final atlas = TerminalWebglTextureAtlas(textureSize: 32, maxTextureSize: 64);
   addTearDown(atlas.dispose);
   final rendererA = _renderer()..setAtlas(atlas);
   final rendererB = _renderer()..setAtlas(atlas);

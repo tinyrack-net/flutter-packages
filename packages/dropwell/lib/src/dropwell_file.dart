@@ -12,14 +12,14 @@ import 'package:meta/meta.dart';
 @immutable
 final class DropwellFile {
   /// Creates a file backed by an on-disk [path].
-  const DropwellFile.path({
+  const new path({
     required this.fileName,
     required String this.path,
     this.mimeType,
   }) : bytes = null;
 
   /// Creates a file backed by in-memory [bytes].
-  const DropwellFile.bytes({
+  const new bytes({
     required this.fileName,
     required Uint8List this.bytes,
     this.mimeType,

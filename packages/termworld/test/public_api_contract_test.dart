@@ -18,10 +18,7 @@ void main() {
       final terminal = Terminal();
       addTearDown(terminal.dispose);
       terminal.loadAddon(AttachAddon(socket));
-      await _waitForWriteParsed(
-        terminal,
-        () => socket.addIncoming('foo'),
-      );
+      await _waitForWriteParsed(terminal, () => socket.addIncoming('foo'));
 
       expect(
         terminal.buffer.active.getLine(0)!.translateToString(trimRight: true),
@@ -473,10 +470,7 @@ void main() {
   }, testOn: '!browser');
 
   test('Flutter buffer element providers expose a widget subtree', () {
-    expect(
-      _BufferElementProvider().provideBufferElements(),
-      isA<SizedBox>(),
-    );
+    expect(_BufferElementProvider().provideBufferElements(), isA<SizedBox>());
   });
 }
 
@@ -492,7 +486,7 @@ Future<void> _waitForWriteParsed(Terminal terminal, void Function() action) {
 }
 
 final class _UnicodeProvider implements TerminalUnicodeProvider {
-  const _UnicodeProvider();
+  const new();
 
   @override
   String get version => 'test';

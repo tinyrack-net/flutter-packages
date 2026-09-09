@@ -30,7 +30,7 @@ enum TerminalImageProtocol {
 /// Stored image payload anchored to a buffer cell.
 final class TerminalImage {
   /// xterm-compatible `TerminalImage` API.
-  const TerminalImage({
+  const new({
     required this.protocol,
     required this.data,
     required this.column,
@@ -101,7 +101,7 @@ final class TerminalImage {
 /// Image protocol limits and feature flags.
 final class ImageAddonOptions {
   /// xterm-compatible `ImageAddonOptions` API.
-  const ImageAddonOptions({
+  const new({
     this.enableSizeReports = true,
     this.pixelLimit = 16777216,
     this.storageLimit = 128,
@@ -156,7 +156,7 @@ final class ImageAddonOptions {
 /// Parses and stores images emitted by terminal applications.
 final class ImageAddon extends ManagedTerminalAddon {
   /// Creates an image addon.
-  ImageAddon({this.options = const ImageAddonOptions()})
+  new({this.options = const ImageAddonOptions()})
     : _configuredStorageLimit = options.storageLimit,
       showPlaceholder = options.showPlaceholder;
 
@@ -330,9 +330,7 @@ final class ImageAddon extends ManagedTerminalAddon {
       );
     }
     if (options.iipSupport) {
-      add(
-        terminal.parser.registerOscHandler(1337, _handleIip),
-      );
+      add(terminal.parser.registerOscHandler(1337, _handleIip));
     }
     if (options.kittySupport) {
       add(
@@ -430,11 +428,7 @@ final class ImageAddon extends ManagedTerminalAddon {
     return _executeKitty(effective, bytes ?? Uint8List(0), decodeError);
   }
 
-  bool _executeKitty(
-    _KittyCommand command,
-    Uint8List bytes,
-    bool decodeError,
-  ) {
+  bool _executeKitty(_KittyCommand command, Uint8List bytes, bool decodeError) {
     final action = command.action ?? 't';
     if (action == 'q') {
       if (command.transmission != null && command.transmission != 'd') {
@@ -444,17 +438,9 @@ final class ImageAddon extends ManagedTerminalAddon {
           command,
         );
       } else if (decodeError) {
-        _kittyResponse(
-          command.id ?? 0,
-          'EINVAL:invalid base64 data',
-          command,
-        );
+        _kittyResponse(command.id ?? 0, 'EINVAL:invalid base64 data', command);
       } else if (_kittyPixelError(command, bytes) case final error?) {
-        _kittyResponse(
-          command.id ?? 0,
-          'EINVAL:$error',
-          command,
-        );
+        _kittyResponse(command.id ?? 0, 'EINVAL:$error', command);
       } else {
         _kittyResponse(command.id ?? 0, 'OK', command);
       }
@@ -1122,7 +1108,7 @@ final class ImageAddon extends ManagedTerminalAddon {
 }
 
 final class _IipHeader {
-  const _IipHeader({
+  const new({
     required this.inline,
     required this.size,
     required this.name,
@@ -1140,7 +1126,7 @@ final class _IipHeader {
 }
 
 final class _KittyCommand {
-  const _KittyCommand({
+  const new({
     this.action,
     this.format,
     this.id,
@@ -1158,7 +1144,7 @@ final class _KittyCommand {
     this.placementId,
   });
 
-  factory _KittyCommand.from(KittyCommand source) => _KittyCommand(
+  factory from(KittyCommand source) => _KittyCommand(
     action: source.action,
     format: _validKittyInteger(source.format),
     id: _validKittyInteger(source.id),
@@ -1237,14 +1223,14 @@ int? _validKittyInteger(num? value) =>
     value == null || value is double && !value.isFinite ? null : value.toInt();
 
 final class _KittyPending {
-  const _KittyPending(this.command, this.payload);
+  const new(this.command, this.payload);
 
   final _KittyCommand command;
   final StringBuffer payload;
 }
 
 final class _KittyImageData {
-  const _KittyImageData({
+  const new({
     required this.id,
     required this.bytes,
     required this.width,

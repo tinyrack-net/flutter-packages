@@ -20,7 +20,7 @@ enum TerminalCursorType {
 @immutable
 final class TerminalCellOffset {
   /// Creates a cell coordinate from its zero-based column and row.
-  const TerminalCellOffset(this.x, this.y);
+  const new(this.x, this.y);
 
   /// Zero-based column.
   final int x;
@@ -40,7 +40,7 @@ final class TerminalCellOffset {
 @immutable
 final class TerminalStyle {
   /// Creates terminal renderer font and cursor settings.
-  const TerminalStyle({
+  const new({
     this.fontFamily = 'monospace',
     this.fontSize = 14,
     this.height = 1.2,
@@ -96,7 +96,7 @@ final class TerminalStyle {
 @immutable
 final class TerminalTheme {
   /// Creates a complete terminal renderer theme.
-  const TerminalTheme({
+  const new({
     required this.foreground,
     required this.background,
     required this.cursor,
@@ -190,9 +190,7 @@ abstract final class TerminalThemes {
       backgroundLuminance,
       _relativeLuminance(secondary),
     );
-    return _fromChannels(
-      primaryRatio > secondaryRatio ? primary : secondary,
-    );
+    return _fromChannels(primaryRatio > secondaryRatio ? primary : secondary);
   }
 
   /// Resolves xterm's partial public theme against its browser defaults.
@@ -328,12 +326,8 @@ abstract final class TerminalThemes {
     (color.b * 255).round(),
   );
 
-  static Color _fromChannels((int, int, int) channels) => Color.fromARGB(
-    255,
-    channels.$1,
-    channels.$2,
-    channels.$3,
-  );
+  static Color _fromChannels((int, int, int) channels) =>
+      Color.fromARGB(255, channels.$1, channels.$2, channels.$3);
 
   static double _relativeLuminance((int, int, int) channels) {
     double channel(int value) {

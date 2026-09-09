@@ -163,10 +163,7 @@ void main() {
   test('xterm SearchEngine 24', () async {
     final h = _harness();
     await h.terminal.writeAndWait('Hello WORLD wonderful');
-    const options = SearchEngineOptions(
-      wholeWord: true,
-      caseSensitive: true,
-    );
+    const options = SearchEngineOptions(wholeWord: true, caseSensitive: true);
     _expectResult(
       h.engine.find('WORLD', 0, 0, options: options),
       'WORLD',
@@ -334,13 +331,7 @@ void main() {
   test('xterm SearchEngine 48', () async {
     final h = _harness();
     await h.terminal.writeAndWait('Hello World');
-    _expectResult(
-      h.engine.find('Hello', 0, 0),
-      'Hello',
-      0,
-      0,
-      5,
-    );
+    _expectResult(h.engine.find('Hello', 0, 0), 'Hello', 0, 0, 5);
   });
   test('xterm SearchEngine 49', () async {
     final h = _harness();

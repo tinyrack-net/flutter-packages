@@ -15,9 +15,9 @@
     "addons/addon-image/typings/addon-image.d.ts:85": {"implementation":"lib/addon_image.dart","symbol":"this.kittySupport = true"},
     "addons/addon-image/typings/addon-image.d.ts:87": {"implementation":"lib/addon_image.dart","symbol":"this.kittySizeLimit = 33554432"},
     "addons/addon-image/typings/addon-image.d.ts:90": {"implementation":"lib/addon_image.dart","symbol":"class ImageAddon extends"},
-    "addons/addon-image/typings/addon-image.d.ts:91": {"implementation":"lib/addon_image.dart","symbol":"ImageAddon({this.options"},
+    "addons/addon-image/typings/addon-image.d.ts:91": {"implementation":"lib/addon_image.dart","symbol":"new({this.options"},
     "addons/addon-ligatures/typings/addon-ligatures.d.ts:17": {"implementation":"lib/addon_ligatures.dart","symbol":"class LigaturesAddon extends"},
-    "addons/addon-ligatures/typings/addon-ligatures.d.ts:23": {"implementation":"lib/addon_ligatures.dart","symbol":"LigaturesAddon({"},
+    "addons/addon-ligatures/typings/addon-ligatures.d.ts:23": {"implementation":"lib/addon_ligatures.dart","symbol":"new({"},
     "addons/addon-ligatures/typings/addon-ligatures.d.ts:44": {"implementation":"lib/addon_ligatures.dart","symbol":"fallbackLigatures"},
     "addons/addon-ligatures/typings/addon-ligatures.d.ts:68": {"implementation":"lib/addon_ligatures.dart","symbol":"fontFeatureSettings = '\"calt\" on'"},
     "addons/addon-serialize/typings/addon-serialize.d.ts:12": {"implementation":"lib/src/addons/serialize.dart","symbol":"class SerializeAddon extends"},
@@ -40,15 +40,15 @@
     "addons/addon-serialize/typings/addon-serialize.d.ts:110": {"implementation":"lib/src/addons/serialize.dart","symbol":"final Object start"},
     "addons/addon-serialize/typings/addon-serialize.d.ts:114": {"implementation":"lib/src/addons/serialize.dart","symbol":"final Object end"},
     "addons/addon-web-fonts/typings/addon-web-fonts.d.ts:14": {"implementation":"lib/src/addons/web_fonts_web.dart","symbol":"class WebFontsAddon extends"},
-    "addons/addon-web-fonts/typings/addon-web-fonts.d.ts:18": {"implementation":"lib/src/addons/web_fonts_web.dart","symbol":"WebFontsAddon({this.initialRelayout = true})"},
+    "addons/addon-web-fonts/typings/addon-web-fonts.d.ts:18": {"implementation":"lib/src/addons/web_fonts_web.dart","symbol":"new({this.initialRelayout = true})"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:13": {"implementation":"lib/addon_web_links.dart","symbol":"class WebLinksAddon extends"},
-    "addons/addon-web-links/typings/addon-web-links.d.ts:23": {"implementation":"lib/addon_web_links.dart","symbol":"WebLinksAddon({"},
+    "addons/addon-web-links/typings/addon-web-links.d.ts:23": {"implementation":"lib/addon_web_links.dart","symbol":"new({"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:40": {"implementation":"lib/addon_web_links.dart","symbol":"class WebLinkProviderOptions"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:44": {"implementation":"lib/addon_web_links.dart","symbol":"hover;"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:50": {"implementation":"lib/addon_web_links.dart","symbol":"leave;"},
     "addons/addon-web-links/typings/addon-web-links.d.ts:55": {"implementation":"lib/addon_web_links.dart","symbol":"RegExp? urlPattern"},
     "addons/addon-webgl/typings/addon-webgl.d.ts:12": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"class WebglAddon extends"},
-    "addons/addon-webgl/typings/addon-webgl.d.ts:35": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"WebglAddon({"},
+    "addons/addon-webgl/typings/addon-webgl.d.ts:35": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"new({"},
     "addons/addon-webgl/typings/addon-webgl.d.ts:75": {"implementation":"lib/src/addons/webgl_web.dart","symbol":"final bool customGlyphs"},
     "typings/xterm-headless.d.ts:14": {"implementation":"lib/src/core/options.dart","symbol":"enum TerminalLogLevel"},
     "typings/xterm-headless.d.ts:19": {"implementation":"lib/src/core/options.dart","symbol":"class TerminalOptions"},
@@ -523,7 +523,7 @@
     },
     "addons/addon-attach/typings/addon-attach.d.ts:17": {
       "implementation": "lib/addon_attach.dart",
-      "symbol": "AttachAddon(this.socket"
+      "symbol": "new(this.socket"
     },
     "addons/addon-clipboard/typings/addon-clipboard.d.ts:13": {
       "implementation": "lib/addon_clipboard.dart",
@@ -531,7 +531,7 @@
     },
     "addons/addon-clipboard/typings/addon-clipboard.d.ts:19": {
       "implementation": "lib/addon_clipboard.dart",
-      "symbol": "ClipboardAddon({"
+      "symbol": "new({"
     },
     "addons/addon-clipboard/typings/addon-clipboard.d.ts:33": {
       "implementation": "lib/addon_clipboard.dart",
@@ -623,7 +623,7 @@
     "addons/addon-search/typings/addon-search.d.ts:90": {"implementation": "lib/addon_search.dart", "symbol": "required this.resultCount"},
     "addons/addon-search/typings/addon-search.d.ts:96": {"implementation": "lib/addon_search.dart", "symbol": "final int highlightLimit"},
     "addons/addon-search/typings/addon-search.d.ts:107": {"implementation": "lib/addon_search.dart", "symbol": "class SearchAddon"},
-    "addons/addon-search/typings/addon-search.d.ts:113": {"implementation": "lib/addon_search.dart", "symbol": "SearchAddon({this.highlightLimit = 1000})"},
+    "addons/addon-search/typings/addon-search.d.ts:113": {"implementation": "lib/addon_search.dart", "symbol": "new({this.highlightLimit = 1000})"},
     "addons/addon-search/typings/addon-search.d.ts:157": {"implementation": "lib/addon_search.dart", "symbol": "get onAfterSearch"},
     "addons/addon-search/typings/addon-search.d.ts:162": {"implementation": "lib/addon_search.dart", "symbol": "get onBeforeSearch"},
     "addons/addon-search/typings/addon-search.d.ts:167": {"implementation": "lib/addon_search.dart", "symbol": "get onDidChangeResults"},

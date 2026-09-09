@@ -4,7 +4,7 @@ import 'package:vtworld/vtworld.dart';
 /// Search flags consumed by the standalone search engine.
 final class SearchEngineOptions {
   /// Creates xterm-compatible search flags.
-  const SearchEngineOptions({
+  const new({
     this.regex = false,
     this.wholeWord = false,
     this.caseSensitive = false,
@@ -23,7 +23,7 @@ final class SearchEngineOptions {
 /// Position and buffer-cell size of a search match.
 final class SearchEngineResult {
   /// Creates a match result.
-  const SearchEngineResult({
+  const new({
     required this.term,
     required this.column,
     required this.row,
@@ -59,7 +59,7 @@ final class SearchEngineResult {
 }
 
 final class _SearchPosition {
-  _SearchPosition(this.row, this.column);
+  new(this.row, this.column);
 
   int row;
   int column;
@@ -68,7 +68,7 @@ final class _SearchPosition {
 /// Core search algorithm ported from xterm.js' addon-search.
 final class SearchEngine {
   /// Creates an engine over [terminal] using [lineCache].
-  const SearchEngine(this.terminal, this.lineCache);
+  const new(this.terminal, this.lineCache);
 
   static const String _nonWordCharacters =
       ' ~!@#\$%^&*()+`-=[]{}|\\;:"\',./<>?';
@@ -267,10 +267,7 @@ final class SearchEngine {
     if (options.regex) {
       final expression = RegExp(term, caseSensitive: options.caseSensitive);
       if (reverse) {
-        final prefix = searchableLine.substring(
-          0,
-          searchOffset,
-        );
+        final prefix = searchableLine.substring(0, searchOffset);
         for (final match in _overlappingMatches(expression, prefix)) {
           if (match.end > searchOffset) break;
           if (match.start == match.end ||
@@ -340,10 +337,7 @@ final class SearchEngine {
       row + startRowOffset,
       startOffset,
     );
-    final endColumn = _stringLengthToBufferSize(
-      row + endRowOffset,
-      endOffset,
-    );
+    final endColumn = _stringLengthToBufferSize(row + endRowOffset, endOffset);
     return SearchEngineResult(
       term: matchedTerm,
       column: startColumn,
@@ -365,11 +359,7 @@ final class SearchEngine {
       if (match == null) return;
       final absoluteStart = start + match.start;
       final absoluteEnd = start + match.end;
-      yield (
-        start: absoluteStart,
-        end: absoluteEnd,
-        value: match.group(0)!,
-      );
+      yield (start: absoluteStart, end: absoluteEnd, value: match.group(0)!);
       start = absoluteStart + 1;
     }
   }

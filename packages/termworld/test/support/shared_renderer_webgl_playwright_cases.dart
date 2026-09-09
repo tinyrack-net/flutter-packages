@@ -455,19 +455,15 @@ Future<void> _verifyTransparentInverse() async {
   try {
     await terminal.writeAndWait('\x1b[7m■');
     final base = TerminalThemes.defaultTheme;
-    final result =
-        _resolver(
-          TerminalTheme(
-            foreground: base.foreground,
-            background: const Color(0x80ff0000),
-            cursor: base.cursor,
-            selection: base.selection,
-            palette: base.palette,
-          ),
-        ).resolve(
-          terminal.buffer.active.getLine(0)!.getCell(0)!,
-          selected: false,
-        );
+    final result = _resolver(
+      TerminalTheme(
+        foreground: base.foreground,
+        background: const Color(0x80ff0000),
+        cursor: base.cursor,
+        selection: base.selection,
+        palette: base.palette,
+      ),
+    ).resolve(terminal.buffer.active.getLine(0)!.getCell(0)!, selected: false);
     expect(result.foreground, _red);
     expect(result.foreground.a, 1);
   } finally {
@@ -531,9 +527,7 @@ Future<void> _verifyRenderedRegression(
     return;
   }
   if (behavior.contains('cursorAccent')) {
-    await tester.runAsync(
-      () => fixture.terminal.writeAndWait('■\x1b[1D'),
-    );
+    await tester.runAsync(() => fixture.terminal.writeAndWait('■\x1b[1D'));
   }
   fixture.focusNode.requestFocus();
   await tester.pumpAndSettle();
@@ -576,7 +570,7 @@ const _fixture = <Color>[
 ];
 
 final class _RenderFixture {
-  const _RenderFixture(this.terminal, this.focusNode, this.boundaryKey);
+  const new(this.terminal, this.focusNode, this.boundaryKey);
 
   final Terminal terminal;
   final FocusNode focusNode;
@@ -635,7 +629,7 @@ Future<_RenderFixture> _mount(
 }
 
 final class _Pixels {
-  const _Pixels(this.width, this.height, this.bytes);
+  const new(this.width, this.height, this.bytes);
 
   final int width;
   final int height;

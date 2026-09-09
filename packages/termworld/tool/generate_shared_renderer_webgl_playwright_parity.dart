@@ -10,9 +10,7 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final reference = jsonDecode(
-    File(
-      '${package.path}/tool/xterm_reference.json',
-    ).readAsStringSync(),
+    File('${package.path}/tool/xterm_reference.json').readAsStringSync(),
   ) as Map<String, Object?>;
   final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final mappings =

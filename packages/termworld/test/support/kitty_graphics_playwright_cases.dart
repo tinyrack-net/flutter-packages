@@ -9,51 +9,51 @@ Future<void> verifyKittyGraphicsPlaywrightCase(String name) async {
   final fixture = _KittyFixture();
   addTearDown(fixture.dispose);
   if (name.startsWith('Transmission medium rejection')) {
-    return fixture.verifyTransmission(name);
+    return await fixture.verifyTransmission(name);
   }
-  if (name.startsWith('Query support')) return fixture.verifyQuery(name);
+  if (name.startsWith('Query support')) return await fixture.verifyQuery(name);
   if (name.startsWith('Raw RGB pixel format')) {
-    return fixture.verifyRaw(name, rgba: false);
+    return await fixture.verifyRaw(name, rgba: false);
   }
   if (name.startsWith('Raw RGBA pixel format')) {
-    return fixture.verifyRaw(name, rgba: true);
+    return await fixture.verifyRaw(name, rgba: true);
   }
   if (name.startsWith('Basic transmission and storage')) {
-    return fixture.verifyBasic(name);
+    return await fixture.verifyBasic(name);
   }
   if (name.startsWith('Placement action')) {
-    return fixture.verifyPlacement(name);
+    return await fixture.verifyPlacement(name);
   }
   if (name.startsWith('Delete commands')) {
-    return fixture.verifyDelete(name);
+    return await fixture.verifyDelete(name);
   }
   if (name.startsWith('Chunked transmission')) {
-    return fixture.verifyChunked(name);
+    return await fixture.verifyChunked(name);
   }
   if (name.startsWith('Cursor positioning')) {
-    return fixture.verifyCursor(name);
+    return await fixture.verifyCursor(name);
   }
   if (name.startsWith('Z-index layer placement')) {
-    return fixture.verifyZIndex(name);
+    return await fixture.verifyZIndex(name);
   }
   if (name.startsWith('Error responses')) {
-    return fixture.verifyErrors(name);
+    return await fixture.verifyErrors(name);
   }
-  if (name.startsWith('Larger image')) return fixture.verifyLarge(name);
+  if (name.startsWith('Larger image')) return await fixture.verifyLarge(name);
   if (name.startsWith('Eviction and memory leak prevention')) {
-    return fixture.verifyEviction(name);
+    return await fixture.verifyEviction(name);
   }
   if (name.startsWith('Pixel verification')) {
-    return fixture.verifyPngPixels(name);
+    return await fixture.verifyPngPixels(name);
   }
   if (name.startsWith('onImageAdded callback')) {
-    return fixture.verifyCallback();
+    return await fixture.verifyCallback();
   }
   throw StateError('unhandled Kitty graphics case: $name');
 }
 
 final class _KittyFixture {
-  _KittyFixture({ImageAddonOptions options = const ImageAddonOptions()})
+  new({ImageAddonOptions options = const ImageAddonOptions()})
     : addon = ImageAddon(options: options) {
     terminal.loadAddon(addon);
     terminal.onData.listen(responses.add);
@@ -237,10 +237,7 @@ final class _KittyFixture {
         : name.contains('r specified')
         ? ',r=2'
         : '';
-    await _send(
-      'a=T,f=100,i=5$movement$size',
-      _png(20, 20),
-    );
+    await _send('a=T,f=100,i=5$movement$size', _png(20, 20));
     if (name.contains('C=1') || name.contains('NOT move')) {
       return expect(terminal.buffer.active.cursorX, 0);
     }

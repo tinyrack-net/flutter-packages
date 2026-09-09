@@ -139,12 +139,8 @@ void main() {
       expect(() => addon.storageLimit = 1000.1, throwsRangeError);
 
       final payload = base64.encode(_fakePng(300, 250, 300000));
-      await terminal.writeAndWait(
-        '\u001b]1337;File=inline=1:$payload\u0007',
-      );
-      await terminal.writeAndWait(
-        '\u001b]1337;File=inline=1:$payload\u0007',
-      );
+      await terminal.writeAndWait('\u001b]1337;File=inline=1:$payload\u0007');
+      await terminal.writeAndWait('\u001b]1337;File=inline=1:$payload\u0007');
       expect(addon.images, hasLength(1));
       expect(addon.storageUsage, closeTo(0.3, 0.000001));
       addon.storageLimit = 0.5;
@@ -211,21 +207,18 @@ void main() {
         '\u001b[?2;3S'
         '\u001b[?3;1S',
       );
-      expect(
-        data,
-        <String>[
-          '\u001b[?62;4;9;22c',
-          '\u001b[?1;0;4096S',
-          '\u001b[?1;0;256S',
-          '\u001b[?1;0;256S',
-          '\u001b[?1;2S',
-          '\u001b[?1;0;4096S',
-          '\u001b[?2;0;100;50S',
-          '\u001b[?2;0;4096;4096S',
-          '\u001b[?2;2S',
-          '\u001b[?3;1S',
-        ],
-      );
+      expect(data, <String>[
+        '\u001b[?62;4;9;22c',
+        '\u001b[?1;0;4096S',
+        '\u001b[?1;0;256S',
+        '\u001b[?1;0;256S',
+        '\u001b[?1;2S',
+        '\u001b[?1;0;4096S',
+        '\u001b[?2;0;100;50S',
+        '\u001b[?2;0;4096;4096S',
+        '\u001b[?2;2S',
+        '\u001b[?3;1S',
+      ]);
       expect(terminal.options.windowOptions.getWinSizePixels, isTrue);
       expect(terminal.options.windowOptions.getCellSizePixels, isTrue);
       expect(terminal.options.windowOptions.getWinSizeChars, isTrue);
@@ -301,17 +294,13 @@ void main() {
         '\u001b]1337;FileEnd\u0007',
       );
 
-      expect(
-        reports,
-        <String>['\u001b]1337;ReportCellSize=20.000;10.000;2.000\u001b\\'],
-      );
+      expect(reports, <String>[
+        '\u001b]1337;ReportCellSize=20.000;10.000;2.000\u001b\\',
+      ]);
       expect(addon.images, hasLength(1));
       expect(
         (addon.images.single.pixelWidth, addon.images.single.pixelHeight),
-        (
-          2,
-          3,
-        ),
+        (2, 3),
       );
     });
 
@@ -336,13 +325,10 @@ void main() {
       expect(addon.images.single.rows, 2);
       expect(addon.images.single.zIndex, -1);
       expect(terminal.buffer.active.cursorX, 0);
-      expect(
-        responses,
-        <String>[
-          '\u001b_Gi=42;OK\u001b\\',
-          '\u001b_Gi=42,p=9;OK\u001b\\',
-        ],
-      );
+      expect(responses, <String>[
+        '\u001b_Gi=42;OK\u001b\\',
+        '\u001b_Gi=42,p=9;OK\u001b\\',
+      ]);
 
       responses.clear();
       await terminal.writeAndWait(
@@ -380,18 +366,15 @@ void main() {
         '\u001b_Ga=p,i=404\u001b\\',
       );
 
-      expect(
-        responses,
-        <String>[
-          '\u001b_Gi=1;OK\u001b\\',
-          '\u001b_Gi=2;EINVAL:unsupported transmission medium\u001b\\',
-          '\u001b_Gi=3;EINVAL:width and height required for raw pixel data\u001b\\',
-          '\u001b_Gi=4;OK\u001b\\',
-          '\u001b_Gi=5;EINVAL:invalid base64 data\u001b\\',
-          '\u001b_Gi=6;EINVAL:cannot specify both i and I keys\u001b\\',
-          '\u001b_Gi=404;ENOENT:image not found\u001b\\',
-        ],
-      );
+      expect(responses, <String>[
+        '\u001b_Gi=1;OK\u001b\\',
+        '\u001b_Gi=2;EINVAL:unsupported transmission medium\u001b\\',
+        '\u001b_Gi=3;EINVAL:width and height required for raw pixel data\u001b\\',
+        '\u001b_Gi=4;OK\u001b\\',
+        '\u001b_Gi=5;EINVAL:invalid base64 data\u001b\\',
+        '\u001b_Gi=6;EINVAL:cannot specify both i and I keys\u001b\\',
+        '\u001b_Gi=404;ENOENT:image not found\u001b\\',
+      ]);
     });
   });
 
@@ -528,9 +511,7 @@ void main() {
     expect(addon.serialize(), 'normal\u001b[?1049h\u001b[Halt');
     expect(
       addon.serialize(
-        options: const TerminalSerializeOptions(
-          excludeAltBuffer: true,
-        ),
+        options: const TerminalSerializeOptions(excludeAltBuffer: true),
       ),
       'normal',
     );
@@ -564,10 +545,7 @@ void main() {
         "font-style: italic;'>styled</span>",
       ),
     );
-    expect(
-      html,
-      endsWith('</div></pre><!--EndFragment--></body></html>'),
-    );
+    expect(html, endsWith('</div></pre><!--EndFragment--></body></html>'));
   });
 
   test('Marker and decoration lifecycle follows tracked line changes', () {

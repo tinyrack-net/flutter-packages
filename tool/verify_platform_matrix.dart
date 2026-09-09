@@ -18,9 +18,7 @@ import 'package:yaml/yaml.dart';
 /// * **L5** a CI step building the example app for that platform.
 void main() {
   final root = File.fromUri(Platform.script).parent.parent.absolute.path;
-  final violations = <String>[
-    ...verifyPackages(root),
-  ];
+  final violations = <String>[...verifyPackages(root)];
   if (violations.isEmpty) {
     stdout.writeln('Platform matrix verification passed.');
     return;
@@ -105,9 +103,10 @@ List<String> verifyPackages(String root) {
     );
   }
   final packages =
-      Directory(
-          p.join(root, 'packages'),
-        ).listSync().whereType<Directory>().toList(growable: false)
+      Directory(p.join(root, 'packages'))
+          .listSync()
+          .whereType<Directory>()
+          .toList(growable: false)
         ..sort((left, right) => left.path.compareTo(right.path));
 
   for (final package in packages) {
@@ -202,13 +201,8 @@ List<String> verifyTermworldAndroidInputBoundary(String root, File workflow) {
       'termworld_example',
       'DebugMainActivity.kt',
     ): 'Debug-only Android InputConnection driver',
-    p.join(
-      termworld,
-      'example',
-      'android',
-      'ime_harness',
-      'build.gradle.kts',
-    ): 'separate Android IME harness application module',
+    p.join(termworld, 'example', 'android', 'ime_harness', 'build.gradle.kts'):
+        'separate Android IME harness application module',
     p.join(
       termworld,
       'example',
@@ -491,7 +485,10 @@ List<String> verifyTermworldAndroidInputBoundary(String root, File workflow) {
     p.join(root, 'tool', 'run_android_input_connection_e2e.dart'),
   );
   if (inputRunner.existsSync()) {
-    final source = inputRunner.readAsStringSync();
+    final source = inputRunner.readAsStringSync().replaceAll(
+      RegExp(r'\s+'),
+      ' ',
+    );
     for (final marker in const <String>[
       'integration_test/android_input_connection_test.dart',
       "'build', 'apk', '--debug'",
@@ -510,9 +507,7 @@ List<String> verifyTermworldAndroidInputBoundary(String root, File workflow) {
       'TERMWORLD_ANDROID_IME_ISOLATION=restored',
     ]) {
       if (!source.contains(marker)) {
-        violations.add(
-          'termworld: Android input runner is missing "$marker"',
-        );
+        violations.add('termworld: Android input runner is missing "$marker"');
       }
     }
   }
@@ -532,9 +527,7 @@ List<String> verifyTermworldAndroidInputBoundary(String root, File workflow) {
       r'${RUNNER_TEMP:-$repository_root/build}',
     ]) {
       if (!source.contains(marker)) {
-        violations.add(
-          'termworld: Android CI runner is missing "$marker"',
-        );
+        violations.add('termworld: Android CI runner is missing "$marker"');
       }
     }
   }
@@ -584,9 +577,7 @@ List<String> verifyTermworldAndroidInputBoundary(String root, File workflow) {
   }
 
   final l4Steps = jobSteps
-      .where(
-        (step) => step['name'] == 'L4 android termworld conformance suite',
-      )
+      .where((step) => step['name'] == 'L4 android termworld conformance suite')
       .toList(growable: false);
   final l4Inputs = l4Steps.singleOrNull?['with'];
   final l4Script = l4Inputs is YamlMap ? '${l4Inputs['script'] ?? ''}' : '';

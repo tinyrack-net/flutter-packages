@@ -32,9 +32,7 @@ abstract interface class TerminalWebglRenderLayer implements Disposable {
 /// Optional character-joiner operations implemented by text render layers.
 abstract interface class TerminalWebglCharacterJoinerLayer {
   /// Registers a character joining callback and returns its identity.
-  int registerCharacterJoiner(
-    List<(int, int)> Function(String text) handler,
-  );
+  int registerCharacterJoiner(List<(int, int)> Function(String text) handler);
 
   /// Removes a registered character joiner.
   bool deregisterCharacterJoiner(int joinerId);

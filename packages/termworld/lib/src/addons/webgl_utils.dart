@@ -64,7 +64,7 @@ enum TerminalCustomGlyphScaleType {
 @immutable
 final class TerminalCustomGlyphSolidOctant {
   /// Creates an octant fragment in normalized eighth-cell units.
-  const TerminalCustomGlyphSolidOctant({
+  const new({
     required this.x,
     required this.y,
     required this.width,
@@ -88,7 +88,7 @@ final class TerminalCustomGlyphSolidOctant {
 @immutable
 final class TerminalCustomGlyphVectorShape {
   /// Creates a custom vector shape.
-  const TerminalCustomGlyphVectorShape({
+  const new({
     required this.path,
     required this.type,
     this.leftPadding,
@@ -112,7 +112,7 @@ final class TerminalCustomGlyphVectorShape {
 @immutable
 final class TerminalCustomGlyphPart {
   /// Creates a custom glyph part.
-  const TerminalCustomGlyphPart({
+  const new({
     required this.type,
     required this.data,
     this.clipPath,
@@ -139,7 +139,7 @@ final class TerminalCustomGlyphPart {
 /// Cursor information captured for a WebGL render frame.
 final class TerminalWebglCursorModel {
   /// Creates a cursor snapshot.
-  const TerminalWebglCursorModel({
+  const new({
     required this.x,
     required this.y,
     required this.width,
@@ -170,7 +170,7 @@ final class TerminalWebglCursorModel {
 /// Packed WebGL cell, line-length, selection and cursor render state.
 final class TerminalWebglRenderModel {
   /// Creates an empty render model.
-  TerminalWebglRenderModel();
+  new();
 
   /// Four packed words per terminal cell.
   Uint32List cells = Uint32List(0);
@@ -203,7 +203,7 @@ final class TerminalWebglRenderModel {
 @immutable
 final class TerminalWebglCellRectangle {
   /// Creates a cell rectangle.
-  const TerminalWebglCellRectangle({
+  const new({
     required this.x,
     required this.y,
     required this.width,
@@ -278,32 +278,27 @@ List<TerminalWebglCellRectangle> terminalWebglLinkClearRectangles({
 }
 
 /// Matrix translating normalized top-left coordinates into WebGL clip space.
-final Float32List terminalWebglProjectionMatrix = Float32List.fromList(
-  <double>[
-    2,
-    0,
-    0,
-    0,
-    0,
-    -2,
-    0,
-    0,
-    0,
-    0,
-    1,
-    0,
-    -1,
-    1,
-    0,
-    1,
-  ],
-);
+final Float32List terminalWebglProjectionMatrix = Float32List.fromList(<double>[
+  2,
+  0,
+  0,
+  0,
+  0,
+  -2,
+  0,
+  0,
+  0,
+  0,
+  1,
+  0,
+  -1,
+  1,
+  0,
+  1,
+]);
 
 /// Doubles a WebGL float buffer without exceeding [maximumLength].
-Float32List expandTerminalFloat32List(
-  Float32List source,
-  int maximumLength,
-) {
+Float32List expandTerminalFloat32List(Float32List source, int maximumLength) {
   final newLength = (source.length * 2).clamp(0, maximumLength);
   final copyLength = source.length < newLength ? source.length : newLength;
   return Float32List(newLength)..setRange(0, copyLength, source);
@@ -398,7 +393,7 @@ bool isTerminalWebglImageTransparent(Uint8ClampedList pixels) {
 /// Inputs that determine WebGL texture-atlas compatibility.
 final class TerminalCharAtlasConfig {
   /// Creates a texture-atlas configuration snapshot.
-  const TerminalCharAtlasConfig({
+  const new({
     required this.ansi,
     this.customGlyphs = true,
     this.devicePixelRatio = 1,
@@ -490,7 +485,7 @@ abstract interface class TerminalDisposableCharAtlas {
 final class _TerminalCharAtlasCacheEntry<
   T extends TerminalDisposableCharAtlas
 > {
-  _TerminalCharAtlasCacheEntry(this.atlas, this.config, this.owners);
+  new(this.atlas, this.config, this.owners);
 
   final T atlas;
   final TerminalCharAtlasConfig config;
@@ -506,11 +501,7 @@ final class TerminalCharAtlasCache<T extends TerminalDisposableCharAtlas> {
   int get length => _entries.length;
 
   /// Reuses an owner's atlas, shares a compatible atlas, or creates one.
-  T acquire(
-    Object owner,
-    TerminalCharAtlasConfig config,
-    T Function() create,
-  ) {
+  T acquire(Object owner, TerminalCharAtlasConfig config, T Function() create) {
     for (var index = 0; index < _entries.length; index++) {
       final entry = _entries[index];
       final ownerIndex = entry.owners.indexWhere(

@@ -28,31 +28,23 @@ Future<void> main(List<String> arguments) async {
   try {
     final source =
         '${xterm.path}/addons/addon-unicode-graphemes/src/third-party';
-    await _run(
-      '${xterm.path}/node_modules/.bin/tsc',
-      <String>[
-        '--target',
-        'ES2020',
-        '--module',
-        'commonjs',
-        '--outDir',
-        temporary.path,
-        '--skipLibCheck',
-        '$source/UnicodeProperties.ts',
-        '$source/unicode-trie.ts',
-        '$source/tiny-inflate.ts',
-      ],
-      xterm,
-    );
+    await _run('${xterm.path}/node_modules/.bin/tsc', <String>[
+      '--target',
+      'ES2020',
+      '--module',
+      'commonjs',
+      '--outDir',
+      temporary.path,
+      '--skipLibCheck',
+      '$source/UnicodeProperties.ts',
+      '$source/unicode-trie.ts',
+      '$source/tiny-inflate.ts',
+    ], xterm);
     final modulePath = jsonEncode('${temporary.path}/UnicodeProperties.js');
-    final encoded = await _run(
-      'node',
-      <String>[
-        '-e',
-        '''const u=require($modulePath);const r=[];let s=0,v=u.getInfo(0);for(let c=1;c<=0x10ffff;c++){const n=u.getInfo(c);if(n!==v){r.push([s,c-1,v]);s=c;v=n;}}r.push([s,0x10ffff,v]);process.stdout.write(JSON.stringify(r));''',
-      ],
-      xterm,
-    );
+    final encoded = await _run('node', <String>[
+      '-e',
+      '''const u=require($modulePath);const r=[];let s=0,v=u.getInfo(0);for(let c=1;c<=0x10ffff;c++){const n=u.getInfo(c);if(n!==v){r.push([s,c-1,v]);s=c;v=n;}}r.push([s,0x10ffff,v]);process.stdout.write(JSON.stringify(r));''',
+    ], xterm);
     final ranges = jsonDecode(encoded) as List<Object?>;
     final output = StringBuffer()
       ..writeln("part of 'addon_unicode_graphemes.dart';")

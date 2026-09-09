@@ -41,7 +41,7 @@ abstract final class TerminalWebglAttributes {
 /// One packed xterm cell as consumed by the WebGL color resolver.
 final class TerminalWebglPackedCell {
   /// Creates a packed cell snapshot.
-  const TerminalWebglPackedCell({
+  const new({
     required this.code,
     required this.foreground,
     required this.background,
@@ -68,10 +68,7 @@ final class TerminalWebglPackedCell {
 /// Foreground/background override supplied by a terminal decoration.
 final class TerminalWebglDecorationColors {
   /// Creates a decoration override.
-  const TerminalWebglDecorationColors({
-    this.backgroundRgba,
-    this.foregroundRgba,
-  });
+  const new({this.backgroundRgba, this.foregroundRgba});
 
   /// Optional RGBA32 background override.
   final int? backgroundRgba;
@@ -83,7 +80,7 @@ final class TerminalWebglDecorationColors {
 /// Theme colors needed to resolve a packed WebGL cell.
 final class TerminalWebglCellColorSet {
   /// Creates a color set.
-  const TerminalWebglCellColorSet({
+  const new({
     required this.ansi,
     required this.foregroundRgba,
     required this.backgroundRgba,
@@ -114,7 +111,7 @@ final class TerminalWebglCellColorSet {
 /// Resolved packed colors and extended attributes for one WebGL cell.
 final class TerminalWebglCellColorResult {
   /// Creates a result.
-  const TerminalWebglCellColorResult({
+  const new({
     required this.foreground,
     required this.background,
     required this.extended,
@@ -133,7 +130,7 @@ final class TerminalWebglCellColorResult {
 /// Resolves decoration, selection and inverse overrides exactly like xterm.
 final class TerminalWebglCellColorResolver {
   /// Creates a resolver for a renderer frame.
-  const TerminalWebglCellColorResolver({
+  const new({
     required this.colors,
     required this.isFocused,
     required this.fontSize,
@@ -188,10 +185,7 @@ final class TerminalWebglCellColorResolver {
 
     var variantOffset = 0;
     if (cell.code != 0 && cell.underlineStyle == 4) {
-      final lineWidth = math.max(
-        1,
-        (fontSize * devicePixelRatio / 15).floor(),
-      );
+      final lineWidth = math.max(1, (fontSize * devicePixelRatio / 15).floor());
       variantOffset = (x * deviceCellWidth).toInt() % (lineWidth * 2);
     }
     if (variantOffset == 0 &&
@@ -225,11 +219,7 @@ final class TerminalWebglCellColorResolver {
             ? _resolvePackedForegroundColor(resultForeground)
             : _resolvePackedBackgroundColor(resultBackground);
         background =
-            _blendRgba(
-                  background,
-                  selectionRgba & 0xffffff00 | 0x80,
-                ) >>
-                8 &
+            _blendRgba(background, selectionRgba & 0xffffff00 | 0x80) >> 8 &
             TerminalWebglAttributes.rgbMask;
       } else {
         background = selectionRgba >> 8 & TerminalWebglAttributes.rgbMask;
@@ -252,11 +242,7 @@ final class TerminalWebglCellColorResolver {
               ? _resolvePackedBackgroundColor(resultBackground)
               : _resolvePackedForegroundColor(resultForeground);
           foreground =
-              _blendRgba(
-                    foreground,
-                    selectionRgba & 0xffffff00 | 0x80,
-                  ) >>
-                  8 &
+              _blendRgba(foreground, selectionRgba & 0xffffff00 | 0x80) >> 8 &
               TerminalWebglAttributes.rgbMask;
         }
         hasForeground = true;

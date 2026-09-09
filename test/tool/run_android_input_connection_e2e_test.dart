@@ -124,15 +124,12 @@ void main() {
         throwsA(isA<StateError>()),
       );
 
-      expect(
-        commands.takeLast(4),
-        <String>[
-          'adb -s emulator-5554 shell ime set ime.beta/.Ime',
-          'adb -s emulator-5554 shell dumpsys input_method',
-          'adb -s emulator-5554 shell ime disable $_harnessIme',
-          'adb -s emulator-5554 shell ime list -s',
-        ],
-      );
+      expect(commands.takeLast(4), <String>[
+        'adb -s emulator-5554 shell ime set ime.beta/.Ime',
+        'adb -s emulator-5554 shell dumpsys input_method',
+        'adb -s emulator-5554 shell ime disable $_harnessIme',
+        'adb -s emulator-5554 shell ime list -s',
+      ]);
     },
   );
 
@@ -159,14 +156,11 @@ void main() {
       commands.where((command) => command.contains('shell ime disable')),
       isEmpty,
     );
-    expect(
-      commands.takeLast(3),
-      <String>[
-        'adb -s emulator-5554 shell ime set ime.beta/.Ime',
-        'adb -s emulator-5554 shell dumpsys input_method',
-        'adb -s emulator-5554 shell ime list -s',
-      ],
-    );
+    expect(commands.takeLast(3), <String>[
+      'adb -s emulator-5554 shell ime set ime.beta/.Ime',
+      'adb -s emulator-5554 shell dumpsys input_method',
+      'adb -s emulator-5554 shell ime list -s',
+    ]);
   });
 
   test(
@@ -270,14 +264,11 @@ void main() {
         ),
       );
 
-      expect(
-        commands.takeLast(3),
-        <String>[
-          'adb -s emulator-5554 shell ime set ime.beta/.Ime',
-          'adb -s emulator-5554 shell dumpsys input_method',
-          'adb -s emulator-5554 shell ime disable $_harnessIme',
-        ],
-      );
+      expect(commands.takeLast(3), <String>[
+        'adb -s emulator-5554 shell ime set ime.beta/.Ime',
+        'adb -s emulator-5554 shell dumpsys input_method',
+        'adb -s emulator-5554 shell ime disable $_harnessIme',
+      ]);
       expect(messages, isNot(contains(contains('ISOLATION=restored'))));
     },
   );
@@ -312,13 +303,10 @@ void main() {
         ),
       );
 
-      expect(
-        commands.takeLast(2),
-        <String>[
-          'adb -s emulator-5554 shell ime disable $_harnessIme',
-          'adb -s emulator-5554 shell ime list -s',
-        ],
-      );
+      expect(commands.takeLast(2), <String>[
+        'adb -s emulator-5554 shell ime disable $_harnessIme',
+        'adb -s emulator-5554 shell ime list -s',
+      ]);
       expect(messages, isNot(contains(contains('ISOLATION=restored'))));
     },
   );
@@ -459,13 +447,10 @@ void main() {
     );
 
     expect(result, 18);
-    expect(
-      commands,
-      <String>[
-        'flutter build apk --debug',
-        '$gradleWrapper :ime_harness:assembleDebug',
-      ],
-    );
+    expect(commands, <String>[
+      'flutter build apk --debug',
+      '$gradleWrapper :ime_harness:assembleDebug',
+    ]);
   });
 
   test('rejects a device value that could be interpreted by a shell', () async {
@@ -490,7 +475,7 @@ extension<T> on Iterable<T> {
 }
 
 final class _FakeAndroidCommandExecutor implements AndroidCommandExecutor {
-  _FakeAndroidCommandExecutor({
+  new({
     required this.commands,
     this.buildExitCode = 0,
     this.harnessBuildExitCode = 0,
@@ -543,10 +528,7 @@ final class _FakeAndroidCommandExecutor implements AndroidCommandExecutor {
       );
     }
     if (command.contains('shell settings --user')) {
-      return const AndroidCommandResult(
-        exitCode: 0,
-        stdout: 'ime.beta/.Ime\n',
-      );
+      return const AndroidCommandResult(exitCode: 0, stdout: 'ime.beta/.Ime\n');
     }
     if (command.contains('shell dumpsys input_method')) {
       return AndroidCommandResult(

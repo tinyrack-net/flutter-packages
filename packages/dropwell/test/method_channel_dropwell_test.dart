@@ -19,18 +19,16 @@ void main() {
     });
   }
 
-  MethodChannelDropwell build({
-    bool drop = true,
-    bool clipboard = true,
-  }) => MethodChannelDropwell(
-    channel: channel,
-    dropPlatforms: drop
-        ? <TargetPlatform>{defaultTargetPlatform}
-        : <TargetPlatform>{},
-    clipboardPlatforms: clipboard
-        ? <TargetPlatform>{defaultTargetPlatform}
-        : <TargetPlatform>{},
-  );
+  MethodChannelDropwell build({bool drop = true, bool clipboard = true}) =>
+      MethodChannelDropwell(
+        channel: channel,
+        dropPlatforms: drop
+            ? <TargetPlatform>{defaultTargetPlatform}
+            : <TargetPlatform>{},
+        clipboardPlatforms: clipboard
+            ? <TargetPlatform>{defaultTargetPlatform}
+            : <TargetPlatform>{},
+      );
 
   setUp(calls.clear);
 
@@ -126,10 +124,7 @@ void main() {
 
     // A null reply is the channel's "not implemented" signal, so platform code
     // learns the call went nowhere instead of assuming Dart handled it.
-    final reply = await _sendNativeCall(
-      messenger,
-      const MethodCall('mystery'),
-    );
+    final reply = await _sendNativeCall(messenger, const MethodCall('mystery'));
     await pumpEventQueue();
 
     expect(reply, isNull);

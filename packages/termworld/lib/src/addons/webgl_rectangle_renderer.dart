@@ -9,7 +9,7 @@ const int terminalWebglRectangleFloatCount = 8;
 /// Device-pixel dimensions used by the rectangle renderer.
 final class TerminalWebglDeviceDimensions {
   /// Creates a dimensions snapshot.
-  const TerminalWebglDeviceDimensions({
+  const new({
     required this.cellWidth,
     required this.cellHeight,
     required this.canvasWidth,
@@ -32,8 +32,7 @@ final class TerminalWebglDeviceDimensions {
 /// Mutable instanced rectangle attribute batch.
 final class TerminalWebglRectangleBatch {
   /// Creates an empty batch with xterm's initial 20-rectangle capacity.
-  TerminalWebglRectangleBatch()
-    : attributes = Float32List(20 * terminalWebglRectangleFloatCount);
+  new() : attributes = Float32List(20 * terminalWebglRectangleFloatCount);
 
   /// Normalized position, size and RGBA attributes.
   Float32List attributes;
@@ -45,7 +44,7 @@ final class TerminalWebglRectangleBatch {
 /// CPU side of xterm's WebGL rectangle renderer.
 final class TerminalWebglRectangleRendererModel {
   /// Creates the renderer model and its viewport-clear rectangle.
-  factory TerminalWebglRectangleRendererModel({
+  factory({
     required int columns,
     required int rows,
     required TerminalWebglDeviceDimensions dimensions,
@@ -59,7 +58,7 @@ final class TerminalWebglRectangleRendererModel {
     cursorRgba,
   );
 
-  TerminalWebglRectangleRendererModel._(
+  new _(
     this.columns,
     this.rows,
     this.dimensions,

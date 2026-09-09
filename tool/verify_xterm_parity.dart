@@ -102,9 +102,8 @@ void main() {
   }
   final terminalSource = terminalFile.readAsStringSync();
   for (final api in manifest['required_terminal_api'] as YamlList) {
-    if (!RegExp(
-      '\\b${RegExp.escape(api as String)}\\b',
-    ).hasMatch(terminalSource)) {
+    if (!RegExp('\\b${RegExp.escape(api as String)}\\b')
+        .hasMatch(terminalSource)) {
       failures.add('Terminal API $api is missing');
     }
   }
@@ -128,10 +127,7 @@ void main() {
   _finish(failures);
 }
 
-void _checkPinnedIipMetricsCases(
-  Directory package,
-  List<String> failures,
-) {
+void _checkPinnedIipMetricsCases(Directory package, List<String> failures) {
   final manifest = File(
     '${package.path}/test/fixtures/xterm_image/image_metrics_cases.json',
   );
@@ -211,10 +207,7 @@ void _checkPinnedKeyboardCases(Directory package, List<String> failures) {
   }
 }
 
-void _checkPinnedWin32InputModeCases(
-  Directory package,
-  List<String> failures,
-) {
+void _checkPinnedWin32InputModeCases(Directory package, List<String> failures) {
   final fixture = File(
     '${package.path}/test/fixtures/xterm/win32_input_mode_cases.json',
   );
@@ -241,10 +234,7 @@ void _checkPinnedWin32InputModeCases(
   }
 }
 
-void _checkPinnedKittyKeyboardCases(
-  Directory package,
-  List<String> failures,
-) {
+void _checkPinnedKittyKeyboardCases(Directory package, List<String> failures) {
   final fixture = File(
     '${package.path}/test/fixtures/xterm/kitty_keyboard_cases.json',
   );
@@ -278,9 +268,7 @@ void _checkPinnedLigatureFonts(Directory package, List<String> failures) {
     'UbuntuMono-Regular.ttf.gz.b64': 'fdd309d716629f4e5339d5e5508225ed857a3ede',
     'iosevka-regular.ttf.gz.b64': '963cbe2a654a8e5ab284a622575c57464e8f1b35',
   };
-  final directory = Directory(
-    '${package.path}/test/fixtures/xterm_ligatures',
-  );
+  final directory = Directory('${package.path}/test/fixtures/xterm_ligatures');
   final temporary = Directory.systemTemp.createTempSync(
     'termworld-ligature-hash-',
   );
@@ -605,9 +593,7 @@ Directory? _vtworldRoot(Directory package) {
       .cast<Map<String, Object?>>();
   for (final entry in packages) {
     if (entry['name'] != 'vtworld') continue;
-    return Directory.fromUri(
-      config.uri.resolve(entry['rootUri']! as String),
-    );
+    return Directory.fromUri(config.uri.resolve(entry['rootUri']! as String));
   }
   return null;
 }

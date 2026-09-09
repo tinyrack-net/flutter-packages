@@ -90,9 +90,7 @@ void main() {
           tester,
           theme: const TerminalColorTheme(cursorAccent: '#FF000080'),
         );
-        await tester.runAsync(
-          () => fixture.terminal.writeAndWait('■\x1b[1D'),
-        );
+        await tester.runAsync(() => fixture.terminal.writeAndWait('■\x1b[1D'));
         await _focus(tester, fixture);
         final image = await _capture(tester, fixture);
         expect(_cellContains(image, 0, 0, const Color(0xff800000)), isTrue);
@@ -127,7 +125,7 @@ const _cellWidth = 6;
 const _cellHeight = 10;
 
 final class _Fixture {
-  const _Fixture({
+  const new({
     required this.terminal,
     required this.focusNode,
     required this.boundaryKey,
@@ -193,7 +191,7 @@ Future<_Fixture> _mount(
 }
 
 final class _Pixels {
-  const _Pixels(this.width, this.height, this.bytes);
+  const new(this.width, this.height, this.bytes);
 
   final int width;
   final int height;

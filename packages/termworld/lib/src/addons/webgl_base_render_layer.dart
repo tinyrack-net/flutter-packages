@@ -66,7 +66,7 @@ abstract interface class TerminalWebglLayerCanvas {
 abstract class TerminalWebglBaseRenderLayer extends DisposableStore
     implements TerminalWebglRenderLayer {
   /// Creates a base layer around [canvas].
-  TerminalWebglBaseRenderLayer({
+  new({
     required this.terminal,
     required this.canvas,
     required this.alpha,

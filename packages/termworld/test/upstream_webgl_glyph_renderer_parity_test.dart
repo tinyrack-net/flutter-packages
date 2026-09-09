@@ -213,7 +213,7 @@ const TerminalWebglGlyphDimensions _dimensions = TerminalWebglGlyphDimensions(
 );
 
 final class _Atlas implements TerminalWebglGlyphAtlas {
-  _Atlas({
+  new({
     this.glyph = const TerminalWebglRasterizedGlyph(
       offset: TerminalWebglGlyphVector(3, 1),
       size: TerminalWebglGlyphVector(8, 5),

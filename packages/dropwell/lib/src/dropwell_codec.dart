@@ -98,16 +98,15 @@ abstract final class DropwellCodec {
   /// array, and the latter as a generic list of boxed values that no platform
   /// can read as doubles. This message is republished whenever a region moves,
   /// so it is also the one that must stay cheap.
-  static Float64List encodeRegions(List<Rect> regions) => Float64List.fromList(
-    <double>[
-      for (final rect in regions) ...<double>[
-        rect.left,
-        rect.top,
-        rect.right,
-        rect.bottom,
-      ],
-    ],
-  );
+  static Float64List encodeRegions(List<Rect> regions) =>
+      Float64List.fromList(<double>[
+        for (final rect in regions) ...<double>[
+          rect.left,
+          rect.top,
+          rect.right,
+          rect.bottom,
+        ],
+      ]);
 
   static Offset _decodeOffset(
     Map<Object?, Object?> payload,

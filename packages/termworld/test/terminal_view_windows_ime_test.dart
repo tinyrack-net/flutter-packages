@@ -28,10 +28,8 @@ import 'package:termworld/termworld.dart';
 /// the terminal's `setEditingState` messages to the model with a configurable
 /// keystroke lag, reproducing the real race deterministically.
 final class _WindowsEmbedder {
-  _WindowsEmbedder(
-    WidgetTester tester, {
-    required this.resetLagInKeystrokes,
-  }) : _client = tester.allStates.whereType<DeltaTextInputClient>().single {
+  new(WidgetTester tester, {required this.resetLagInKeystrokes})
+    : _client = tester.allStates.whereType<DeltaTextInputClient>().single {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.textInput,
       (call) async {
@@ -197,12 +195,7 @@ final class _WindowsEmbedder {
     final start = _selStart;
     final end = start + _selLength;
     _addText(text);
-    _send(
-      oldText: before,
-      deltaText: text,
-      deltaStart: start,
-      deltaEnd: end,
-    );
+    _send(oldText: before, deltaText: text, deltaStart: start, deltaEnd: end);
   }
 
   /// Runs one keystroke's burst of window messages, then lets queued
@@ -240,34 +233,34 @@ final class _WindowsEmbedder {
 }
 
 sealed class ImmEvent {
-  const ImmEvent();
+  const new();
 }
 
 /// `WM_IME_STARTCOMPOSITION`.
 final class ImmBegin extends ImmEvent {
-  const ImmBegin();
+  const new();
 }
 
 /// `WM_IME_COMPOSITION` with `GCS_COMPSTR`.
 final class ImmCompose extends ImmEvent {
-  const ImmCompose(this.text);
+  const new(this.text);
   final String text;
 }
 
 /// `WM_IME_COMPOSITION` with `GCS_RESULTSTR`.
 final class ImmResult extends ImmEvent {
-  const ImmResult(this.text);
+  const new(this.text);
   final String text;
 }
 
 /// `WM_IME_ENDCOMPOSITION`.
 final class ImmEnd extends ImmEvent {
-  const ImmEnd();
+  const new();
 }
 
 /// A committed character delivered through `WM_CHAR` (`TextHook`).
 final class ImmChar extends ImmEvent {
-  const ImmChar(this.text);
+  const new(this.text);
   final String text;
 }
 
@@ -355,24 +348,22 @@ Future<void> _typeSettledHangul(
 void main() {
   final windows = TargetPlatformVariant.only(TargetPlatform.windows);
 
-  testWidgets(
-    'per-syllable Hangul typing writes each syllable exactly once',
-    (tester) async {
-      final (_, output) = await _pumpTerminal(tester);
-      final embedder = _WindowsEmbedder(tester, resetLagInKeystrokes: 1);
+  testWidgets('per-syllable Hangul typing writes each syllable exactly once', (
+    tester,
+  ) async {
+    final (_, output) = await _pumpTerminal(tester);
+    final embedder = _WindowsEmbedder(tester, resetLagInKeystrokes: 1);
 
-      await _type(tester, embedder, hangulPerSyllableKeystrokes);
+    await _type(tester, embedder, hangulPerSyllableKeystrokes);
 
-      expect(
-        output.join(),
-        '안녕하세요. ',
-        reason:
-            'a reset landing after the next syllable opened its composition '
-            'must not duplicate in-progress syllables',
-      );
-    },
-    variant: windows,
-  );
+    expect(
+      output.join(),
+      '안녕하세요. ',
+      reason:
+          'a reset landing after the next syllable opened its composition '
+          'must not duplicate in-progress syllables',
+    );
+  }, variant: windows);
 
   testWidgets(
     'fast per-syllable typing (reset lagging two keystrokes) stays clean',
@@ -481,41 +472,39 @@ void main() {
     expect(output.join(), '글 ');
   }, variant: windows);
 
-  testWidgets(
-    'a physical-only space survives the next Hangul composition',
-    (tester) async {
-      final (_, output) = await _pumpTerminal(tester);
-      final embedder = _WindowsEmbedder(tester, resetLagInKeystrokes: 1);
+  testWidgets('a physical-only space survives the next Hangul composition', (
+    tester,
+  ) async {
+    final (_, output) = await _pumpTerminal(tester);
+    final embedder = _WindowsEmbedder(tester, resetLagInKeystrokes: 1);
 
-      await _type(
-        tester,
-        embedder,
-        hangulPerSyllableKeystrokes.sublist(
-          0,
-          hangulPerSyllableKeystrokes.length - 1,
-        ),
-      );
-      for (final word in <String>['저는', '박한솔', '입니다.']) {
-        // Microsoft's Korean IME can settle the preceding composition on
-        // Space while omitting the pass-through WM_CHAR/text delta. The
-        // physical-key bridge is then the only source of the space.
-        await tester.sendKeyEvent(LogicalKeyboardKey.space);
-        await tester.pump();
-        await _typeSettledHangul(tester, embedder, word);
-      }
+    await _type(
+      tester,
+      embedder,
+      hangulPerSyllableKeystrokes.sublist(
+        0,
+        hangulPerSyllableKeystrokes.length - 1,
+      ),
+    );
+    for (final word in <String>['저는', '박한솔', '입니다.']) {
+      // Microsoft's Korean IME can settle the preceding composition on
+      // Space while omitting the pass-through WM_CHAR/text delta. The
+      // physical-key bridge is then the only source of the space.
+      await tester.sendKeyEvent(LogicalKeyboardKey.space);
+      await tester.pump();
+      await _typeSettledHangul(tester, embedder, word);
+    }
 
-      expect(
-        output.join(),
-        '안녕하세요. 저는 박한솔 입니다.',
-        reason:
-            'starting the next composition must not reinterpret a '
-            'physical-only space as a deletion from the platform editing '
-            'buffer',
-      );
-      expect(output.join(), isNot(contains('\u007f')));
-    },
-    variant: windows,
-  );
+    expect(
+      output.join(),
+      '안녕하세요. 저는 박한솔 입니다.',
+      reason:
+          'starting the next composition must not reinterpret a '
+          'physical-only space as a deletion from the platform editing '
+          'buffer',
+    );
+    expect(output.join(), isNot(contains('\u007f')));
+  }, variant: windows);
 
   testWidgets('repeated physical-only spaces survive composition', (
     tester,
@@ -532,38 +521,36 @@ void main() {
     expect(output.join(), isNot(contains('\u007f')));
   }, variant: windows);
 
-  testWidgets(
-    'full-value updates on Windows keep the post-commit reset',
-    (tester) async {
-      final (_, output) = await _pumpTerminal(tester);
-      TextInputClient client() =>
-          tester.allStates.whereType<DeltaTextInputClient>().single;
+  testWidgets('full-value updates on Windows keep the post-commit reset', (
+    tester,
+  ) async {
+    final (_, output) = await _pumpTerminal(tester);
+    TextInputClient client() =>
+        tester.allStates.whereType<DeltaTextInputClient>().single;
 
-      // An embedder that reports whole editing values keeps no cumulative
-      // platform-side model: each committed value stands alone, exactly like
-      // the conformance harness drives. The reset must survive here or the
-      // next standalone value diffs against the previous commit and emits
-      // spurious DELs.
-      client().updateEditingValue(
-        const TextEditingValue(
-          text: '한글',
-          selection: TextSelection.collapsed(offset: 2),
-        ),
-      );
-      await tester.pump();
+    // An embedder that reports whole editing values keeps no cumulative
+    // platform-side model: each committed value stands alone, exactly like
+    // the conformance harness drives. The reset must survive here or the
+    // next standalone value diffs against the previous commit and emits
+    // spurious DELs.
+    client().updateEditingValue(
+      const TextEditingValue(
+        text: '한글',
+        selection: TextSelection.collapsed(offset: 2),
+      ),
+    );
+    await tester.pump();
 
-      client().updateEditingValue(
-        const TextEditingValue(
-          text: '가',
-          selection: TextSelection.collapsed(offset: 1),
-        ),
-      );
-      await tester.pump();
+    client().updateEditingValue(
+      const TextEditingValue(
+        text: '가',
+        selection: TextSelection.collapsed(offset: 1),
+      ),
+    );
+    await tester.pump();
 
-      expect(output.join(), '한글가');
-    },
-    variant: windows,
-  );
+    expect(output.join(), '한글가');
+  }, variant: windows);
 
   testWidgets(
     'the terminal does not reset the engine model between syllables',

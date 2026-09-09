@@ -11,7 +11,7 @@ void main() => runApp(const TermworldExampleApp());
 /// production consumer cannot bypass the platform text-input contract.
 final class TermworldExampleController extends ChangeNotifier {
   /// Creates an example controller and its terminal engine.
-  TermworldExampleController() {
+  new() {
     terminal = Terminal();
     if (WebglAddon.isSupported) {
       terminal.loadAddon(WebglAddon());
@@ -61,7 +61,7 @@ final class TermworldExampleController extends ChangeNotifier {
 /// Standalone host for manual IME checks and platform conformance tests.
 class TermworldExampleApp extends StatefulWidget {
   /// Creates the example application.
-  const TermworldExampleApp({this.controller, super.key});
+  const new({this.controller, super.key});
 
   /// Optional externally observed controller for integration tests.
   final TermworldExampleController? controller;

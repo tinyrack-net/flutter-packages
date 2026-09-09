@@ -21,12 +21,12 @@ void main() {
   late Uint8List notesTxt;
 
   setUpAll(() async {
-    pixelPng = (await rootBundle.load(
-      'integration_test/fixtures/pixel.png',
-    )).buffer.asUint8List();
-    notesTxt = (await rootBundle.load(
-      'integration_test/fixtures/notes.txt',
-    )).buffer.asUint8List();
+    pixelPng = (await rootBundle.load('integration_test/fixtures/pixel.png'))
+        .buffer
+        .asUint8List();
+    notesTxt = (await rootBundle.load('integration_test/fixtures/notes.txt'))
+        .buffer
+        .asUint8List();
   });
 
   tearDown(() async {

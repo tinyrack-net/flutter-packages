@@ -42,7 +42,7 @@ const Set<String> _genericFontFamilies = <String>{
 };
 
 final class _FontFamilyParseContext {
-  _FontFamilyParseContext(this.input);
+  new(this.input);
 
   final String input;
   int offset = 0;

@@ -3,7 +3,7 @@ import 'package:vtworld/vtworld.dart';
 /// Renderer-facing projection of an absolute terminal selection.
 final class SelectionRenderModel {
   /// Creates an empty selection model.
-  SelectionRenderModel() {
+  new() {
     clear();
   }
 

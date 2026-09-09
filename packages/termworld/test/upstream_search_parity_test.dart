@@ -103,10 +103,7 @@ void main() {
       );
       expect(terminal.getSelection(), 'ABCD');
       expect(
-        search.findNext(
-          '^',
-          options: const TerminalSearchOptions(regex: true),
-        ),
+        search.findNext('^', options: const TerminalSearchOptions(regex: true)),
         isFalse,
       );
       expect(terminal.hasSelection(), isFalse);
@@ -290,17 +287,14 @@ void main() {
       expect(search.findPrevious('c', options: options), isTrue);
       expect(search.findPrevious('c', options: options), isTrue);
       expect(search.findPrevious('c', options: options), isTrue);
-      expect(
-        _resultTuples(events),
-        <(int, int)>[
-          (1, 0),
-          (2, 1),
-          (0, -1),
-          (3, 2),
-          (3, 1),
-          (3, 0),
-        ],
-      );
+      expect(_resultTuples(events), <(int, int)>[
+        (1, 0),
+        (2, 1),
+        (0, -1),
+        (3, 2),
+        (3, 1),
+        (3, 0),
+      ]);
     });
 
     test('xterm SearchAddon forward incremental results', () async {
@@ -314,17 +308,14 @@ void main() {
       for (final term in <String>['a', 'ab', 'abc', 'abc', 'd', 'abcd']) {
         search.findNext(term, options: options);
       }
-      expect(
-        _resultTuples(events),
-        <(int, int)>[
-          (3, 0),
-          (2, 0),
-          (2, 0),
-          (2, 1),
-          (2, 1),
-          (0, -1),
-        ],
-      );
+      expect(_resultTuples(events), <(int, int)>[
+        (3, 0),
+        (2, 0),
+        (2, 0),
+        (2, 1),
+        (2, 1),
+        (0, -1),
+      ]);
     });
 
     test('xterm SearchAddon reverse incremental results', () async {
@@ -338,17 +329,14 @@ void main() {
       for (final term in <String>['a', 'ab', 'abc', 'abc', 'd', 'abcd']) {
         search.findPrevious(term, options: options);
       }
-      expect(
-        _resultTuples(events),
-        <(int, int)>[
-          (3, 2),
-          (2, 1),
-          (2, 1),
-          (2, 0),
-          (2, 1),
-          (0, -1),
-        ],
-      );
+      expect(_resultTuples(events), <(int, int)>[
+        (3, 2),
+        (2, 1),
+        (2, 1),
+        (2, 0),
+        (2, 1),
+        (0, -1),
+      ]);
     });
 
     test('xterm SearchAddon forward result limit', () async {
@@ -363,10 +351,11 @@ void main() {
       expect(search.findNext('a', options: options), isTrue);
       expect(search.findNext('a', options: options), isTrue);
       expect(search.findNext('bc', options: options), isTrue);
-      expect(
-        _resultTuples(events),
-        <(int, int)>[(1000, 0), (1000, 1), (1000, 1)],
-      );
+      expect(_resultTuples(events), <(int, int)>[
+        (1000, 0),
+        (1000, 1),
+        (1000, 1),
+      ]);
     });
 
     test('xterm SearchAddon reverse result limit', () async {
@@ -381,10 +370,11 @@ void main() {
       expect(search.findPrevious('a', options: options), isTrue);
       expect(search.findPrevious('a', options: options), isTrue);
       expect(search.findPrevious('bc', options: options), isTrue);
-      expect(
-        _resultTuples(events),
-        <(int, int)>[(1000, -1), (1000, -1), (1000, -1)],
-      );
+      expect(_resultTuples(events), <(int, int)>[
+        (1000, -1),
+        (1000, -1),
+        (1000, -1),
+      ]);
     });
 
     test('xterm SearchAddon forward refresh after write', () async {
@@ -451,10 +441,7 @@ void main() {
       search
         ..findNext('abc')
         ..findNext('abc');
-      expect(
-        events,
-        <String>['before', 'after', 'before', 'after'],
-      );
+      expect(events, <String>['before', 'after', 'before', 'after']);
     });
 
     test('empty search and no match clear selection', () async {
@@ -580,10 +567,7 @@ void main() {
       );
       await terminal.writeAndWait('\r\n$content');
       await Future<void>.delayed(const Duration(milliseconds: 250));
-      expect(
-        events.map((event) => event.resultCount),
-        <int>[1, 2],
-      );
+      expect(events.map((event) => event.resultCount), <int>[1, 2]);
     });
   });
 }

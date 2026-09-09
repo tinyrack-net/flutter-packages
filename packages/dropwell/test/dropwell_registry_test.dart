@@ -208,7 +208,7 @@ DropwellFile _file(String name) =>
     DropwellFile.path(fileName: name, path: '/tmp/$name');
 
 final class _StubTarget implements DropwellTarget {
-  _StubTarget(this.bounds);
+  new(this.bounds);
 
   Rect? bounds;
   final List<bool> hoverChanges = <bool>[];

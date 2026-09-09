@@ -12,12 +12,9 @@ enum _LigatureFontLoadingState { unloaded, loading, loaded, failed }
 /// Finds common programming ligatures and joins them for shaping.
 final class LigaturesAddon extends ManagedTerminalAddon {
   /// Creates a ligature addon.
-  LigaturesAddon({
-    List<String>? fallbackLigatures,
-    this.fontFeatureSettings = '"calt" on',
-  }) : fallbackLigatures = List<String>.of(
-         fallbackLigatures ?? _defaults,
-       )..sort((left, right) => right.length.compareTo(left.length));
+  new({List<String>? fallbackLigatures, this.fontFeatureSettings = '"calt" on'})
+    : fallbackLigatures = List<String>.of(fallbackLigatures ?? _defaults)
+        ..sort((left, right) => right.length.compareTo(left.length));
 
   /// Fallback sequences when font metadata is unavailable.
   final List<String> fallbackLigatures;

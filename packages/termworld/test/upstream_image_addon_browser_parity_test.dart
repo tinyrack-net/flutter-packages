@@ -102,10 +102,7 @@ void main() {
   });
 
   test('xterm ImageAddon playwright 7', () async {
-    expect(
-      await _writeIip(_png(640, 80), header: 'width=50%'),
-      (400, 50),
-    );
+    expect(await _writeIip(_png(640, 80), header: 'width=50%'), (400, 50));
   });
 
   test('xterm ImageAddon playwright 8', () async {
@@ -344,10 +341,7 @@ void main() {
   });
 
   test('xterm ImageAddon playwright 30', () async {
-    expect(
-      await _writeIip(_qoi(640, 80), header: 'height=200px'),
-      (1600, 200),
-    );
+    expect(await _writeIip(_qoi(640, 80), header: 'height=200px'), (1600, 200));
   });
 
   test('xterm ImageAddon playwright 31', () async {
@@ -459,18 +453,16 @@ Uint8List _encodeQoi(int width, int height, Uint8List pixels) {
   int scrollback = 1000,
   ImageAddonOptions options = const ImageAddonOptions(sixelPaletteLimit: 512),
 }) {
-  final terminal =
-      Terminal(
-        options: TerminalOptions(scrollback: scrollback),
-      )..updateDimensions(
-        const TerminalRenderDimensions(
-          width: 800,
-          height: 480,
-          cellWidth: 10,
-          cellHeight: 20,
-          devicePixelRatio: 1,
-        ),
-      );
+  final terminal = Terminal(options: TerminalOptions(scrollback: scrollback))
+    ..updateDimensions(
+      const TerminalRenderDimensions(
+        width: 800,
+        height: 480,
+        cellWidth: 10,
+        cellHeight: 20,
+        devicePixelRatio: 1,
+      ),
+    );
   final addon = ImageAddon(options: options);
   terminal.loadAddon(addon);
   addTearDown(terminal.dispose);

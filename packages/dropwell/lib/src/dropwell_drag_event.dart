@@ -22,7 +22,7 @@ enum DropwellDragPhase {
 @immutable
 final class DropwellDragEvent {
   /// Creates a drag event.
-  const DropwellDragEvent({
+  const new({
     required this.phase,
     required this.physicalPosition,
     this.files = const <DropwellFile>[],

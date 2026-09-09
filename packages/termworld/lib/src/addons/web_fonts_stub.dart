@@ -8,7 +8,7 @@ Future<List<Object>> loadFonts([Iterable<Object>? fonts]) {
 /// Coordinates browser font readiness with terminal relayout.
 final class WebFontsAddon extends ManagedTerminalAddon {
   /// Creates a web fonts addon.
-  WebFontsAddon({this.initialRelayout = true});
+  new({this.initialRelayout = true});
 
   /// Whether activation triggers an initial relayout.
   final bool initialRelayout;

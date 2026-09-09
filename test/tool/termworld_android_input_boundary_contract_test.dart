@@ -218,9 +218,8 @@ void main() {
   );
 
   test('API 24 and 35 run the native boundary and retain diagnostics', () {
-    final workflow = File(
-      p.join(repository, '.github', 'workflows', 'ci.yml'),
-    ).readAsStringSync();
+    final workflow = File(p.join(repository, '.github', 'workflows', 'ci.yml'))
+        .readAsStringSync();
     final runner = File(
       p.join(repository, 'tool', 'run_android_termworld_input_ci.sh'),
     ).readAsStringSync();
@@ -234,18 +233,13 @@ void main() {
     );
     expect(
       workflow,
-      contains(
-        ':app:testDebugUnitTest :ime_harness:testDebugUnitTest',
-      ),
+      contains(':app:testDebugUnitTest :ime_harness:testDebugUnitTest'),
       reason: 'both debug APK boundaries retain typed JVM coverage',
     );
     expect(runner, contains('run_android_input_connection_e2e.dart'));
     expect(runner, contains(r'--device "$device"'));
     expect(runner, contains(r'adb -s "$device" logcat -d'));
-    expect(
-      runner,
-      contains(r'adb -s "$device" shell dumpsys input_method'),
-    );
+    expect(runner, contains(r'adb -s "$device" shell dumpsys input_method'));
     expect(runner, contains(r'${PIPESTATUS[0]}'));
     expect(runner, contains('TERMWORLD_ANDROID_FIXTURE'));
     expect(workflow, contains('actions/upload-artifact@'));
@@ -256,23 +250,19 @@ void main() {
   });
 
   test('platform verifier rejects removal of the isolated E2E runner', () {
-    final workflow = File(
-      p.join(repository, '.github', 'workflows', 'ci.yml'),
-    );
+    final workflow = File(p.join(repository, '.github', 'workflows', 'ci.yml'));
     final temporary = Directory.systemTemp.createTempSync(
       'termworld-platform-matrix-',
     );
     addTearDown(() => temporary.deleteSync(recursive: true));
-    final weakenedWorkflow =
-        File(
-          p.join(temporary.path, 'ci.yml'),
-        )..writeAsStringSync(
-          workflow.readAsStringSync().replaceAll(
-            'bash ../../../tool/run_android_termworld_input_ci.sh '
-                'emulator-5554',
-            'flutter test integration_test/conformance_test.dart',
-          ),
-        );
+    final weakenedWorkflow = File(p.join(temporary.path, 'ci.yml'))
+      ..writeAsStringSync(
+        workflow.readAsStringSync().replaceAll(
+          'bash ../../../tool/run_android_termworld_input_ci.sh '
+              'emulator-5554',
+          'flutter test integration_test/conformance_test.dart',
+        ),
+      );
 
     expect(
       verifyTermworldAndroidInputBoundary(repository, weakenedWorkflow),
@@ -284,9 +274,7 @@ void main() {
   });
 
   test('platform verifier rejects a multiline emulator action script', () {
-    final workflow = File(
-      p.join(repository, '.github', 'workflows', 'ci.yml'),
-    );
+    final workflow = File(p.join(repository, '.github', 'workflows', 'ci.yml'));
     final temporary = Directory.systemTemp.createTempSync(
       'termworld-platform-matrix-',
     );
@@ -315,7 +303,7 @@ void main() {
   test('runner installs a separate test IME and restores emulator state', () {
     final runner = File(
       p.join(repository, 'tool', 'run_android_input_connection_e2e.dart'),
-    ).readAsStringSync();
+    ).readAsStringSync().replaceAll(RegExp(r'\s+'), ' ');
 
     expect(runner, contains('default_input_method'));
     expect(

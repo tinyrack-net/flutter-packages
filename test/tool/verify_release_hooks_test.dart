@@ -66,15 +66,11 @@ void main() {
       p.join(example.path, 'build', 'app', 'outputs', 'flutter-apk'),
     )..createSync(recursive: true);
     const marker = 'TermworldTestInputMethodService';
-    _writeApk(
-      File(p.join(output.path, 'app-debug.apk')),
-      <String, String>{'classes.dex': marker},
-    );
+    _writeApk(File(p.join(output.path, 'app-debug.apk')), <String, String>{
+      'classes.dex': marker,
+    });
     final release = File(p.join(output.path, 'app-release.apk'));
-    _writeApk(
-      release,
-      <String, String>{'classes.dex': 'production bytecode'},
-    );
+    _writeApk(release, <String, String>{'classes.dex': 'production bytecode'});
 
     final artifacts = releaseArtifactFiles(example.path, 'android');
 

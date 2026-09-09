@@ -161,7 +161,7 @@ void main() {
 }
 
 final class _ImeHarness {
-  _ImeHarness._(this.tester, this.controller, this.windowId);
+  new _(this.tester, this.controller, this.windowId);
 
   final WidgetTester tester;
   final TermworldExampleController controller;
@@ -193,10 +193,7 @@ final class _ImeHarness {
     var hangulEngineActive = false;
     final engineDeadline = DateTime.now().add(const Duration(seconds: 5));
     while (DateTime.now().isBefore(engineDeadline)) {
-      final selected = await Process.run('ibus', <String>[
-        'engine',
-        'hangul',
-      ]);
+      final selected = await Process.run('ibus', <String>['engine', 'hangul']);
       final current = await Process.run('ibus', <String>['engine']);
       if (selected.exitCode == 0 &&
           current.exitCode == 0 &&

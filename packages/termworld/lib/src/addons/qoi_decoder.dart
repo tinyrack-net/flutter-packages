@@ -3,11 +3,7 @@ import 'dart:typed_data';
 /// Decoded RGBA pixels from a Quite OK Image payload.
 final class QoiDecodedImage {
   /// Creates a decoded image.
-  const QoiDecodedImage({
-    required this.width,
-    required this.height,
-    required this.pixels,
-  });
+  const new({required this.width, required this.height, required this.pixels});
 
   /// Pixel width from the QOI header.
   final int width;

@@ -221,11 +221,7 @@ int _parseBytewise(IipHeaderParser parser, Uint32List input) {
   var result = -2;
   var position = 0;
   while (result == -2 && position < input.length) {
-    result = parser.parse(
-      Uint32List.fromList(<int>[input[position++]]),
-      0,
-      1,
-    );
+    result = parser.parse(Uint32List.fromList(<int>[input[position++]]), 0, 1);
   }
   return result;
 }
@@ -233,7 +229,7 @@ int _parseBytewise(IipHeaderParser parser, Uint32List input) {
 Uint32List _codePoints(String value) => Uint32List.fromList(value.codeUnits);
 
 final class _Case {
-  const _Case(this.source, this.fields);
+  const new(this.source, this.fields);
 
   final String source;
   final Map<String, Object?> fields;

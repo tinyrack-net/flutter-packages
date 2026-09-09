@@ -44,9 +44,7 @@ TextEditingDeltaReplacement _replace(
   oldText: oldText,
   replacementText: replacement,
   replacedRange: range,
-  selection: TextSelection.collapsed(
-    offset: range.start + replacement.length,
-  ),
+  selection: TextSelection.collapsed(offset: range.start + replacement.length),
   composing: composing,
 );
 
@@ -244,9 +242,7 @@ void main() {
     send(<TextEditingDelta>[
       _insert('', 'ㅁ', 0, composing: const TextRange(start: 0, end: 1)),
     ]);
-    send(<TextEditingDelta>[
-      _delete('ㅁ', const TextRange(start: 0, end: 1)),
-    ]);
+    send(<TextEditingDelta>[_delete('ㅁ', const TextRange(start: 0, end: 1))]);
     await tester.pump();
 
     expect(output.join(), isEmpty);
@@ -275,9 +271,7 @@ void main() {
 
     // Switching to Latin: the ASCII key arrives as a plain insertion whose
     // oldText still carries the committed Hangul the terminal already reset.
-    send(<TextEditingDelta>[
-      _insert('한', 'a', 1),
-    ]);
+    send(<TextEditingDelta>[_insert('한', 'a', 1)]);
     await tester.pump();
     expect(output.join(), '한a');
 
@@ -364,9 +358,7 @@ void main() {
     // delta, so the physical key bridge writes it — exactly once, even
     // though the platform text still carries the committed syllable.
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
-    send(<TextEditingDelta>[
-      _insert('글', ' ', 1),
-    ]);
+    send(<TextEditingDelta>[_insert('글', ' ', 1)]);
     await tester.pump();
 
     expect(output.join(), '글 ');

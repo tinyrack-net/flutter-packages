@@ -65,7 +65,7 @@ WebGLProgram _createProgram(WebGL2RenderingContext context) {
 /// Opaque handle identifying the current renderer texture atlas generation.
 final class TerminalTextureAtlas {
   /// Creates an atlas handle.
-  const TerminalTextureAtlas(this.generation, [this.canvas]);
+  const new(this.generation, [this.canvas]);
 
   /// Monotonically increasing atlas generation.
   final int generation;
@@ -77,10 +77,7 @@ final class TerminalTextureAtlas {
 /// Configuration for the browser WebGL renderer.
 final class WebglAddonOptions {
   /// Creates WebGL renderer options with xterm.js defaults.
-  const WebglAddonOptions({
-    this.customGlyphs = true,
-    this.preserveDrawingBuffer = false,
-  });
+  const new({this.customGlyphs = true, this.preserveDrawingBuffer = false});
 
   /// Whether xterm's custom box, block, braille and powerline glyphs are used.
   final bool customGlyphs;
@@ -92,7 +89,7 @@ final class WebglAddonOptions {
 /// Exposes WebGL atlas lifecycle events on Flutter web.
 final class WebglAddon extends ManagedTerminalAddon {
   /// Creates a WebGL addon.
-  WebglAddon({
+  new({
     bool customGlyphs = true,
     bool preserveDrawingBuffer = false,
     WebglAddonOptions? options,
@@ -350,12 +347,7 @@ final class WebglAddon extends ManagedTerminalAddon {
                     ? theme.cursor ?? '#ffffff'
                     : _rgb(overrides.cursor!))
                 .toJS
-        ..fillRect(
-          column * cellWidth,
-          row * cellHeight,
-          cellWidth,
-          cellHeight,
-        );
+        ..fillRect(column * cellWidth, row * cellHeight, cellWidth, cellHeight);
     }
     context.globalAlpha = 1;
   }
@@ -419,16 +411,7 @@ final class WebglAddon extends ManagedTerminalAddon {
       ..bindBuffer(WebGL2RenderingContext.ARRAY_BUFFER, buffer)
       ..bufferData(
         WebGL2RenderingContext.ARRAY_BUFFER,
-        typed.Float32List.fromList(<double>[
-          -1,
-          -1,
-          1,
-          -1,
-          -1,
-          1,
-          1,
-          1,
-        ]).toJS,
+        typed.Float32List.fromList(<double>[-1, -1, 1, -1, -1, 1, 1, 1]).toJS,
         WebGL2RenderingContext.STATIC_DRAW,
       );
     final position = context.getAttribLocation(program, 'a_position');

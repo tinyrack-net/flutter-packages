@@ -20,9 +20,7 @@ void main() {
   outputFile.writeAsStringSync(source);
 
   final referenceFile = File('${package.path}/tool/xterm_reference.json');
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final reference =
       jsonDecode(referenceFile.readAsStringSync()) as Map<String, Object?>;
   final mappings =

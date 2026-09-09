@@ -11,7 +11,7 @@ import 'package:termworld/src/addons/webgl_utils.dart';
 final class TerminalWebglTextureAtlas
     implements TerminalWebglGlyphAtlas, TerminalDisposableCharAtlas {
   /// Creates an atlas with xterm's 512px initial page size.
-  TerminalWebglTextureAtlas({
+  new({
     this.maxAtlasPages,
     this.maxTextureSize = 4096,
     this.textureSize = 512,
@@ -66,9 +66,8 @@ final class TerminalWebglTextureAtlas
   int get pageLayoutVersion => _pageLayoutVersion;
 
   @override
-  List<TerminalWebglGlyphAtlasPage> get pages => List.unmodifiable(
-    _pageStates.map((page) => page.snapshot),
-  );
+  List<TerminalWebglGlyphAtlasPage> get pages =>
+      List.unmodifiable(_pageStates.map((page) => page.snapshot));
 
   /// Whether a glyph wider than a regular page allocated the overflow page.
   bool get overflowPageCreated => _overflowPageCreated;
@@ -82,10 +81,7 @@ final class TerminalWebglTextureAtlas
     int background,
     int foreground,
     int extended,
-  ) => _glyph(
-    '$code;$background;$foreground;$extended',
-    width: cellWidth,
-  );
+  ) => _glyph('$code;$background;$foreground;$extended', width: cellWidth);
 
   @override
   TerminalWebglRasterizedGlyph getCombinedGlyph(
@@ -103,11 +99,7 @@ final class TerminalWebglTextureAtlas
     String key, {
     int? width,
     int? height,
-  }) => _glyph(
-    key,
-    width: width ?? cellWidth,
-    height: height ?? cellHeight,
-  );
+  }) => _glyph(key, width: width ?? cellWidth, height: height ?? cellHeight);
 
   TerminalWebglRasterizedGlyph _glyph(
     String key, {
@@ -235,11 +227,7 @@ final class TerminalWebglTextureAtlas
     bool overflow = false,
     bool notify = true,
   }) {
-    final page = _AtlasPageState(
-      size,
-      ++_nextPageVersion,
-      overflow: overflow,
-    );
+    final page = _AtlasPageState(size, ++_nextPageVersion, overflow: overflow);
     _pageStates.add(page);
     if (notify) onAddPage?.call(page.snapshot);
     return page;
@@ -279,7 +267,7 @@ final class TerminalWebglTextureAtlas
 }
 
 final class _AtlasPageState {
-  _AtlasPageState(this.size, this.version, {required this.overflow});
+  new(this.size, this.version, {required this.overflow});
 
   final int size;
   int version;

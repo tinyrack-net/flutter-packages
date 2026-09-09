@@ -31,7 +31,7 @@ const Set<TargetPlatform> kClipboardCapablePlatforms = <TargetPlatform>{
 /// Method-channel implementation shared by every non-web platform.
 base class MethodChannelDropwell extends DropwellPlatform {
   /// Creates the implementation and starts listening for native drag events.
-  MethodChannelDropwell({
+  new({
     @visibleForTesting MethodChannel? channel,
     @visibleForTesting Set<TargetPlatform>? dropPlatforms,
     @visibleForTesting Set<TargetPlatform>? clipboardPlatforms,

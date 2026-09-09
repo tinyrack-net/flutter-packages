@@ -11,7 +11,7 @@ import 'package:flutter/widgets.dart';
 /// harmless: it renders [child] and never fires.
 class DropwellRegion extends StatefulWidget {
   /// Creates a drop region.
-  const DropwellRegion({
+  const new({
     required this.onDrop,
     required this.child,
     this.onHoverChanged,

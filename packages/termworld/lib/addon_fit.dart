@@ -8,7 +8,7 @@ import 'package:vtworld/vtworld.dart';
 @immutable
 final class TerminalDimensions {
   /// xterm-compatible `TerminalDimensions` API.
-  const TerminalDimensions({required this.rows, required this.cols});
+  const new({required this.rows, required this.cols});
 
   /// Rows that fit the renderer.
   final int rows;

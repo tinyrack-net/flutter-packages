@@ -69,10 +69,7 @@ void main() {
     addTearDown(terminal.dispose);
     cache
       ..initLinesCache()
-      ..setLineInCache(
-        5,
-        const SearchLineCacheEntry('test content', <int>[0]),
-      );
+      ..setLineInCache(5, const SearchLineCacheEntry('test content', <int>[0]));
     _expectEntry(cache.getLineFromCache(5), 'test content', <int>[0]);
   });
 
@@ -147,10 +144,7 @@ void main() {
     addTearDown(terminal.dispose);
     final text = 'A' * 200;
     await terminal.writeAndWait(text);
-    final entry = cache.translateBufferLineToStringWithWrap(
-      0,
-      trimRight: true,
-    );
+    final entry = cache.translateBufferLineToStringWithWrap(0, trimRight: true);
     expect(entry.line, text);
     expect(entry.lineOffsets.length, greaterThan(1));
     expect(entry.lineOffsets.first, 0);
@@ -305,10 +299,7 @@ void main() {
         'This is a very long line that will definitely wrap around '
         'in an 80 column terminal and should be handled correctly by the cache';
     await terminal.writeAndWait(content);
-    final entry = cache.translateBufferLineToStringWithWrap(
-      0,
-      trimRight: true,
-    );
+    final entry = cache.translateBufferLineToStringWithWrap(0, trimRight: true);
     expect(entry.line, content);
     expect(entry.lineOffsets.length, greaterThan(1));
   });
@@ -339,11 +330,7 @@ void _seed(SearchLineCache cache) {
   _expectEntry(cache.getLineFromCache(0), 'test', <int>[0]);
 }
 
-void _expectEntry(
-  SearchLineCacheEntry? entry,
-  String line,
-  List<int> offsets,
-) {
+void _expectEntry(SearchLineCacheEntry? entry, String line, List<int> offsets) {
   expect(entry, isNotNull);
   expect(entry!.line, line);
   expect(entry.lineOffsets, offsets);
