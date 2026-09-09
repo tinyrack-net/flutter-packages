@@ -20,7 +20,7 @@ enum IipImageType {
   /// No image type.
   empty('');
 
-  const IipImageType(this.mime);
+  new(this.mime);
 
   /// xterm.js MIME string.
   final String mime;
@@ -29,11 +29,7 @@ enum IipImageType {
 /// Dimensions and MIME type inferred from an image header.
 final class IipImageMetrics {
   /// Creates image metrics.
-  const IipImageMetrics({
-    required this.type,
-    required this.width,
-    required this.height,
-  });
+  const new({required this.type, required this.width, required this.height});
 
   /// Detected format.
   final IipImageType type;

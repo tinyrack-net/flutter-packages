@@ -27,25 +27,39 @@ void main() {
     _cell(model, 0, background: 0x3ff0000);
     _cell(model, 1, background: 0x3ff0000);
     _cell(model, 2, background: 0x1000002);
-    _cell(
-      model,
-      3,
-      foreground: TerminalWebglAttributes.inverse | 0x300ff00,
-    );
+    _cell(model, 3, foreground: TerminalWebglAttributes.inverse | 0x300ff00);
     renderer.updateBackgrounds(model);
     expect(renderer.backgrounds.count, 4);
-    _expectFloats(
-      renderer.backgrounds.attributes.sublist(8, 16),
-      <double>[0, 0, 1, 0.5, 1, 0, 0, 1],
-    );
-    _expectFloats(
-      renderer.backgrounds.attributes.sublist(16, 24),
-      <double>[0, 0.5, 0.5, 0.5, 2 / 255, 2 / 255, 2 / 255, 1],
-    );
-    _expectFloats(
-      renderer.backgrounds.attributes.sublist(24, 32),
-      <double>[0.5, 0.5, 0.5, 0.5, 0, 1, 0, 1],
-    );
+    _expectFloats(renderer.backgrounds.attributes.sublist(8, 16), <double>[
+      0,
+      0,
+      1,
+      0.5,
+      1,
+      0,
+      0,
+      1,
+    ]);
+    _expectFloats(renderer.backgrounds.attributes.sublist(16, 24), <double>[
+      0,
+      0.5,
+      0.5,
+      0.5,
+      2 / 255,
+      2 / 255,
+      2 / 255,
+      1,
+    ]);
+    _expectFloats(renderer.backgrounds.attributes.sublist(24, 32), <double>[
+      0.5,
+      0.5,
+      0.5,
+      0.5,
+      0,
+      1,
+      0,
+      1,
+    ]);
   });
 
   test('default backgrounds leave only the viewport-clear rectangle', () {
@@ -69,10 +83,12 @@ void main() {
       );
     renderer.updateCursor(model);
     expect(renderer.cursor.count, 1);
-    _expectFloats(
-      renderer.cursor.attributes.take(4),
-      <double>[0.5, 0, 0.2, 0.5],
-    );
+    _expectFloats(renderer.cursor.attributes.take(4), <double>[
+      0.5,
+      0,
+      0.2,
+      0.5,
+    ]);
 
     model.cursor = const TerminalWebglCursorModel(
       x: 0,
@@ -84,10 +100,12 @@ void main() {
     );
     renderer.updateCursor(model);
     expect(renderer.cursor.count, 1);
-    _expectFloats(
-      renderer.cursor.attributes.take(4),
-      <double>[0, 0.95, 1, 0.05],
-    );
+    _expectFloats(renderer.cursor.attributes.take(4), <double>[
+      0,
+      0.95,
+      1,
+      0.05,
+    ]);
 
     model.cursor = const TerminalWebglCursorModel(
       x: 0,
@@ -136,11 +154,7 @@ void main() {
     );
     final model = TerminalWebglRenderModel()..resize(25, 1);
     for (var x = 0; x < 25; x++) {
-      _cell(
-        model,
-        x,
-        background: TerminalWebglAttributes.colorModeRgb | x + 1,
-      );
+      _cell(model, x, background: TerminalWebglAttributes.colorModeRgb | x + 1);
     }
     renderer.updateBackgrounds(model);
     expect(renderer.backgrounds.count, 26);

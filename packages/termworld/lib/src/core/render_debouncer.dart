@@ -14,7 +14,7 @@ abstract interface class TerminalFrameHost {
 /// Coalesces dirty row ranges into one animation-frame render.
 final class RenderDebouncer implements Disposable {
   /// Creates an xterm-compatible render debouncer.
-  RenderDebouncer(this._render, this._host);
+  new(this._render, this._host);
 
   final void Function(int start, int end) _render;
   final TerminalFrameHost _host;
@@ -119,7 +119,7 @@ final class DartTerminalDebounceHost implements TerminalDebounceHost {
 /// Throttles accessibility renders while preserving a trailing refresh.
 final class TimeBasedDebouncer implements Disposable {
   /// Creates a time-based debouncer with xterm's one-second default threshold.
-  TimeBasedDebouncer(
+  new(
     this._render, {
     TerminalDebounceHost? host,
     this.thresholdMilliseconds = 1000,

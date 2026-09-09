@@ -67,18 +67,12 @@ void main() {
 
   test('foreground', () {
     const theme = TerminalColorTheme(foreground: '#010203');
-    expect(
-      TerminalThemes.resolve(theme).foreground,
-      const Color(0xff010203),
-    );
+    expect(TerminalThemes.resolve(theme).foreground, const Color(0xff010203));
   });
 
   test('background', () {
     const theme = TerminalColorTheme(background: '#040506');
-    expect(
-      TerminalThemes.resolve(theme).background,
-      const Color(0xff040506),
-    );
+    expect(TerminalThemes.resolve(theme).background, const Color(0xff040506));
   });
 
   testWidgets('focus, blur', (tester) async {
@@ -113,9 +107,7 @@ void main() {
     await _writeAndPump(tester, terminal, 'visible');
     await tester.pumpWidget(
       MaterialApp(
-        home: Offstage(
-          child: TerminalView(terminal: terminal),
-        ),
+        home: Offstage(child: TerminalView(terminal: terminal)),
       ),
     );
     await tester.pumpWidget(
@@ -174,15 +166,11 @@ void main() {
 
   testWidgets(
     'should fire on mousedown when clearing selection',
-    (
-      tester,
-    ) => _selectionPointerCase(tester, _SelectionPointerCase.clear),
+    (tester) => _selectionPointerCase(tester, _SelectionPointerCase.clear),
   );
   testWidgets(
     'should not fire on mousedown when no prior selection',
-    (
-      tester,
-    ) => _selectionPointerCase(tester, _SelectionPointerCase.noPrior),
+    (tester) => _selectionPointerCase(tester, _SelectionPointerCase.noPrior),
   );
   testWidgets(
     'should fire once on mousedown to clear, and again on mouseup after drag',
@@ -317,7 +305,7 @@ Future<void> _linkCase(WidgetTester tester, _LinkCase selected) async {
 }
 
 final class _ViewLinkProvider implements TerminalLinkProvider {
-  _ViewLinkProvider({required this.multiple, required this.callbacks});
+  new({required this.multiple, required this.callbacks});
 
   final bool multiple;
   final bool callbacks;
@@ -343,10 +331,7 @@ final class _ViewLinkProvider implements TerminalLinkProvider {
       leave: callbacks ? (_, _) => left++ : null,
       dispose: () => disposed++,
     );
-    return <TerminalLink>[
-      link(1, 4),
-      if (multiple) link(6, 9),
-    ];
+    return <TerminalLink>[link(1, 4), if (multiple) link(6, 9)];
   }
 }
 
@@ -379,24 +364,18 @@ Future<void> _selectionPointerCase(
   final origin = tester.getTopLeft(find.byType(TerminalView));
   Offset cell(int x) =>
       origin +
-      Offset(
-        (x + 0.5) * dimensions.cellWidth,
-        dimensions.cellHeight / 2,
-      );
+      Offset((x + 0.5) * dimensions.cellWidth, dimensions.cellHeight / 2);
   final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
   await mouse.addPointer(location: cell(2));
   await mouse.down(cell(2));
   if (selected == _SelectionPointerCase.drag) await mouse.moveTo(cell(5));
   await mouse.up();
   await tester.pump();
-  expect(
-    changes,
-    switch (selected) {
-      _SelectionPointerCase.clear => 1,
-      _SelectionPointerCase.noPrior => 0,
-      _SelectionPointerCase.drag => 2,
-    },
-  );
+  expect(changes, switch (selected) {
+    _SelectionPointerCase.clear => 1,
+    _SelectionPointerCase.noPrior => 0,
+    _SelectionPointerCase.drag => 2,
+  });
   await mouse.removePointer();
 }
 

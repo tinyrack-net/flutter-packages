@@ -65,11 +65,7 @@ void main() {
     await pumpRegion(tester, drops: <DropwellFile>[]);
     await tester.pump();
 
-    await pumpRegion(
-      tester,
-      drops: <DropwellFile>[],
-      size: const Size(20, 20),
-    );
+    await pumpRegion(tester, drops: <DropwellFile>[], size: const Size(20, 20));
     await tester.pump();
 
     expect(platform.publishes.last, const <Rect>[Rect.fromLTRB(0, 0, 20, 20)]);

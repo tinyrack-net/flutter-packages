@@ -6,13 +6,9 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final reference = jsonDecode(
-    File(
-      '${package.path}/tool/xterm_reference.json',
-    ).readAsStringSync(),
+    File('${package.path}/tool/xterm_reference.json').readAsStringSync(),
   ) as Map<String, Object?>;
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final mappings =
       jsonDecode(mappingsFile.readAsStringSync()) as Map<String, Object?>;
   final mappedTests = mappings['tests']! as Map<String, Object?>;
@@ -28,9 +24,8 @@ void main() {
           )
           .toList()
         ..sort(
-          (left, right) => (left['name']! as String).compareTo(
-            right['name']! as String,
-          ),
+          (left, right) =>
+              (left['name']! as String).compareTo(right['name']! as String),
         );
 
   final source = StringBuffer('''

@@ -31,10 +31,7 @@ List<(int, int)> mergeLigatureRange(
       return ranges;
     } else if (newEnd <= range.$2) {
       final previous = ranges[index - 1];
-      ranges[index - 1] = (
-        previous.$1,
-        newEnd > range.$2 ? newEnd : range.$2,
-      );
+      ranges[index - 1] = (previous.$1, newEnd > range.$2 ? newEnd : range.$2);
       ranges.removeAt(index);
       return ranges;
     } else {

@@ -23,10 +23,7 @@ void main() {
       const logical = Rect.fromLTRB(1.5, 2.5, 3.5, 4.5);
       final physical = DropwellGeometry.toPhysical(logical, 3);
 
-      expect(
-        DropwellGeometry.toLogical(physical.topLeft, 3),
-        logical.topLeft,
-      );
+      expect(DropwellGeometry.toLogical(physical.topLeft, 3), logical.topLeft);
     });
   });
 

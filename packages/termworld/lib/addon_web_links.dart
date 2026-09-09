@@ -10,14 +10,10 @@ typedef WebLinkActivationHandler = void Function(Object? event, String uri);
 /// Optional hover, leave and matching behavior for web links.
 final class WebLinkProviderOptions {
   /// Creates web link provider options.
-  const WebLinkProviderOptions({this.hover, this.leave, this.urlPattern});
+  const new({this.hover, this.leave, this.urlPattern});
 
   /// Invoked when a pointer enters a resolved link.
-  final void Function(
-    Object? event,
-    String text,
-    TerminalBufferRange range,
-  )?
+  final void Function(Object? event, String text, TerminalBufferRange range)?
   hover;
 
   /// Invoked when a pointer leaves a resolved link.
@@ -30,7 +26,7 @@ final class WebLinkProviderOptions {
 /// Detects web links in terminal rows.
 final class WebLinksAddon extends ManagedTerminalAddon {
   /// Creates a web link addon.
-  WebLinksAddon({
+  new({
     WebLinkActivationHandler? handler,
     this.options = const WebLinkProviderOptions(),
     RegExp? urlPattern,
@@ -70,12 +66,7 @@ final class WebLinksAddon extends ManagedTerminalAddon {
 }
 
 final class _WebLinkProvider implements TerminalLinkProvider {
-  const _WebLinkProvider(
-    this.terminal,
-    this.pattern,
-    this.handler,
-    this.options,
-  );
+  const new(this.terminal, this.pattern, this.handler, this.options);
 
   final Terminal terminal;
   final RegExp pattern;

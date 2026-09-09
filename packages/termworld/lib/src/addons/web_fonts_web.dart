@@ -14,7 +14,7 @@ Future<List<Object>> loadFonts([Iterable<Object>? fonts]) =>
 /// Coordinates browser font readiness with terminal relayout.
 final class WebFontsAddon extends ManagedTerminalAddon {
   /// Creates a web fonts addon.
-  WebFontsAddon({this.initialRelayout = true});
+  new({this.initialRelayout = true});
 
   /// Whether activation triggers an initial relayout.
   final bool initialRelayout;
@@ -107,9 +107,10 @@ final class WebFontsAddon extends ManagedTerminalAddon {
       .where((value) => value.isNotEmpty)
       .toList(growable: false);
 
-  static List<web.FontFace> _registeredFonts() => _arrayFrom(
-    web.document.fonts,
-  ).toDart.map((item) => item! as web.FontFace).toList();
+  static List<web.FontFace> _registeredFonts() =>
+      _arrayFrom(web.document.fonts).toDart
+          .map((item) => item! as web.FontFace)
+          .toList();
 
   static bool _sameFace(web.FontFace left, web.FontFace right) =>
       _unquote(left.family) == _unquote(right.family) &&

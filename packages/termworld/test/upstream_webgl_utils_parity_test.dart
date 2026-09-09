@@ -6,10 +6,24 @@ import 'package:termworld/src/addons/webgl_utils.dart';
 void main() {
   test('projection matrix and float expansion preserve xterm layout', () {
     expect(terminalWebglProjectionMatrix.length, 16);
-    expect(
-      terminalWebglProjectionMatrix,
-      <double>[2, 0, 0, 0, 0, -2, 0, 0, 0, 0, 1, 0, -1, 1, 0, 1],
-    );
+    expect(terminalWebglProjectionMatrix, <double>[
+      2,
+      0,
+      0,
+      0,
+      0,
+      -2,
+      0,
+      0,
+      0,
+      0,
+      1,
+      0,
+      -1,
+      1,
+      0,
+      1,
+    ]);
     expect(
       expandTerminalFloat32List(Float32List.fromList(<double>[1, 2]), 4),
       <double>[1, 2, 0, 0],
@@ -67,10 +81,7 @@ void main() {
   group('CharAtlasUtils', () {
     group('configEquals', () {
       test('should return true for identical configs', () {
-        expect(
-          terminalCharAtlasConfigEquals(_config(), _config()),
-          isTrue,
-        );
+        expect(terminalCharAtlasConfigEquals(_config(), _config()), isTrue);
       });
 
       test('should return false when deviceMaxTextureSize differs', () {
@@ -151,13 +162,7 @@ void main() {
       ],
     );
     expect(
-      terminalWebglLinkClearRectangles(
-        x1: 8,
-        y1: 1,
-        x2: 3,
-        y2: 4,
-        columns: 10,
-      ),
+      terminalWebglLinkClearRectangles(x1: 8, y1: 1, x2: 3, y2: 4, columns: 10),
       const <TerminalWebglCellRectangle>[
         TerminalWebglCellRectangle(x: 8, y: 1, width: 2),
         TerminalWebglCellRectangle(x: 0, y: 2, width: 10, height: 2),
@@ -224,11 +229,7 @@ void main() {
         0x40,
       ]);
       expect(
-        clearTerminalWebglImageBackground(
-          pixels,
-          0x123456ff,
-          0xffffffff,
-        ),
+        clearTerminalWebglImageBackground(pixels, 0x123456ff, 0xffffffff),
         isTrue,
       );
       expect(pixels, <int>[0x12, 0x34, 0x56, 0, 0x12, 0x34, 0x56, 0]);
@@ -239,11 +240,7 @@ void main() {
       final enabled = Uint8ClampedList.fromList(<int>[11, 20, 30, 0xff]);
       final disabled = Uint8ClampedList.fromList(enabled);
       expect(
-        clearTerminalWebglImageBackground(
-          enabled,
-          0x0a141eff,
-          0xfafafaff,
-        ),
+        clearTerminalWebglImageBackground(enabled, 0x0a141eff, 0xfafafaff),
         isTrue,
       );
       expect(enabled[3], 0);
@@ -272,11 +269,7 @@ void main() {
         0xff,
       ]);
       expect(
-        clearTerminalWebglImageBackground(
-          pixels,
-          0x010203ff,
-          0xaabbccff,
-        ),
+        clearTerminalWebglImageBackground(pixels, 0x010203ff, 0xaabbccff),
         isFalse,
       );
       expect(pixels[3], 0);

@@ -6,7 +6,7 @@ import 'package:dropwell/dropwell.dart';
 /// Records what the registry sends and lets a test drive native events.
 base class FakeDropwellPlatform extends DropwellPlatform {
   /// Creates a fake reporting the given capabilities.
-  FakeDropwellPlatform({
+  new({
     this.supportsDrop = true,
     this.supportsClipboardFiles = true,
     this.clipboard = const <DropwellFile>[],

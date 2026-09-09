@@ -18,7 +18,7 @@ dependencies:
   vtworld:
     git:
       url: https://github.com/tinyrack-net/dart-packages.git
-      ref: b344d8cda523ef30b65c28b118223858a9ab11e5
+      ref: 866a29af27a9f3e077b1dd905f2f79d7ca2c2769
       path: packages/vtworld
   web: ^1.1.1
   web_socket_channel: ^3.0.3
@@ -26,5 +26,5 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  material_ui: ^1.0.0
+  material_ui: ^1.2.0
   stream_channel: ^2.1.4

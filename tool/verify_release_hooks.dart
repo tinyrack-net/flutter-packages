@@ -32,9 +32,7 @@ const Map<String, List<String>> kReleaseArtifacts = <String, List<String>>{
   'windows': <String>['build/windows/x64/runner/Release'],
   'macos': <String>['build/macos/Build/Products/Release'],
   'linux': <String>['build/linux/x64/release/bundle'],
-  'android': <String>[
-    'build/app/outputs/flutter-apk/app-release.apk',
-  ],
+  'android': <String>['build/app/outputs/flutter-apk/app-release.apk'],
   'ios': <String>['build/ios/iphoneos'],
 };
 
@@ -110,9 +108,7 @@ List<File> releaseArtifactFiles(String example, String platform) {
     }
     final directory = Directory(location);
     if (!directory.existsSync()) continue;
-    artifacts.addAll(
-      directory.listSync(recursive: true).whereType<File>(),
-    );
+    artifacts.addAll(directory.listSync(recursive: true).whereType<File>());
   }
   return artifacts;
 }
@@ -123,10 +119,7 @@ List<File> releaseArtifactFiles(String example, String platform) {
 /// normally compressed. Scanning the outer bytes can therefore miss a Debug
 /// channel that will be present in the installed application.
 bool androidApkContainsTestingMarker(File apk, String marker) {
-  final archive = ZipDecoder().decodeBytes(
-    apk.readAsBytesSync(),
-    verify: true,
-  );
+  final archive = ZipDecoder().decodeBytes(apk.readAsBytesSync(), verify: true);
   try {
     return archive
         .where((entry) => entry.isFile)

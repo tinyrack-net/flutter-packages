@@ -107,9 +107,7 @@ void main() {
       expect(menuOpened, 1);
 
       // A later double-click drag still selects normally.
-      final select = await tester.createGesture(
-        kind: PointerDeviceKind.mouse,
-      );
+      final select = await tester.createGesture(kind: PointerDeviceKind.mouse);
       await select.down(const Offset(10, 15));
       await select.up();
       await select.down(const Offset(10, 15));

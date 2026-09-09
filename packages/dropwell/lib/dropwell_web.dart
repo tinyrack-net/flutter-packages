@@ -23,7 +23,7 @@ import 'package:web/web.dart' as web;
 base class DropwellWeb extends DropwellPlatform
     implements DropwellTestingSupport {
   /// Creates the implementation and starts listening to the document.
-  DropwellWeb({@visibleForTesting web.EventTarget? target})
+  new({@visibleForTesting web.EventTarget? target})
     : _target = target ?? web.document {
     _listen('dragenter', _onDragEnter);
     _listen('dragover', _onDragOver);
@@ -202,11 +202,7 @@ base class DropwellWeb extends DropwellPlatform
     List<DropwellFile> files = const <DropwellFile>[],
   ]) {
     _dragEvents.add(
-      DropwellDragEvent(
-        phase: phase,
-        physicalPosition: position,
-        files: files,
-      ),
+      DropwellDragEvent(phase: phase, physicalPosition: position, files: files),
     );
   }
 }

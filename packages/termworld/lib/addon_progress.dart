@@ -25,7 +25,7 @@ enum TerminalProgressState {
 /// Current taskbar progress.
 final class TerminalProgress {
   /// xterm-compatible `TerminalProgress` API.
-  const TerminalProgress({required this.state, required this.value});
+  const new({required this.state, required this.value});
 
   /// Semantic progress state.
   final TerminalProgressState state;

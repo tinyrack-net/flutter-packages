@@ -6,7 +6,7 @@ typedef TerminalGlyphSelector = Object;
 /// A substitution match stored in an OpenType lookup tree.
 final class TerminalLigatureLookupResult {
   /// Creates a lookup result.
-  const TerminalLigatureLookupResult({
+  const new({
     required this.substitutions,
     required this.length,
     required this.index,
@@ -33,7 +33,7 @@ final class TerminalLigatureLookupResult {
 /// One node before lookup-tree ranges have been expanded.
 final class TerminalLigatureLookupEntry {
   /// Creates an empty lookup node.
-  TerminalLigatureLookupEntry({this.lookup, this.forward, this.reverse});
+  new({this.lookup, this.forward, this.reverse});
 
   /// Best substitution terminating at this node.
   TerminalLigatureLookupResult? lookup;
@@ -48,7 +48,7 @@ final class TerminalLigatureLookupEntry {
 /// One end-exclusive glyph range sharing a lookup entry.
 final class TerminalLigatureLookupRange {
   /// Creates a ranged lookup edge.
-  const TerminalLigatureLookupRange(this.range, this.entry);
+  const new(this.range, this.entry);
 
   /// End-exclusive glyph range.
   final (int, int) range;
@@ -60,7 +60,7 @@ final class TerminalLigatureLookupRange {
 /// Sparse OpenType lookup tree before range expansion.
 final class TerminalLigatureLookupTree {
   /// Creates an empty or populated tree.
-  TerminalLigatureLookupTree({
+  new({
     Map<int, TerminalLigatureLookupEntry>? individual,
     List<TerminalLigatureLookupRange>? ranges,
   }) : individual = individual ?? <int, TerminalLigatureLookupEntry>{},
@@ -284,10 +284,7 @@ _TerminalRangeOverlap _terminalRangeOverlap(
   return (first: firstOnly, second: secondOnly, both: both);
 }
 
-_TerminalRangeOverlap _terminalIndividualOverlap(
-  int first,
-  (int, int) second,
-) {
+_TerminalRangeOverlap _terminalIndividualOverlap(int first, (int, int) second) {
   if (first < second.$1 || first > second.$2) {
     return (
       first: <TerminalGlyphSelector>[first],
@@ -505,11 +502,7 @@ bool _preferTerminalLigatureLookup(
 /// One OpenType coverage-table range (the end is inclusive).
 final class TerminalCoverageRange {
   /// Creates a coverage range.
-  const TerminalCoverageRange({
-    required this.start,
-    required this.end,
-    required this.index,
-  });
+  const new({required this.start, required this.end, required this.index});
 
   /// First covered glyph.
   final int start;
@@ -523,13 +516,13 @@ final class TerminalCoverageRange {
 
 /// Parsed OpenType coverage table.
 sealed class TerminalCoverageTable {
-  const TerminalCoverageTable();
+  const new();
 }
 
 /// Coverage format 1, listing individual glyphs.
 final class TerminalCoverageGlyphs extends TerminalCoverageTable {
   /// Creates a format 1 table.
-  const TerminalCoverageGlyphs(this.glyphs);
+  const new(this.glyphs);
 
   /// Glyphs in coverage-index order.
   final List<int> glyphs;
@@ -538,7 +531,7 @@ final class TerminalCoverageGlyphs extends TerminalCoverageTable {
 /// Coverage format 2, listing inclusive ranges.
 final class TerminalCoverageRanges extends TerminalCoverageTable {
   /// Creates a format 2 table.
-  const TerminalCoverageRanges(this.ranges);
+  const new(this.ranges);
 
   /// Covered glyph ranges.
   final List<TerminalCoverageRange> ranges;
@@ -584,11 +577,7 @@ List<({TerminalGlyphSelector glyph, int index})> terminalCoverageGlyphs(
 /// One OpenType class-definition range (the end is inclusive).
 final class TerminalGlyphClassRange {
   /// Creates a glyph class range.
-  const TerminalGlyphClassRange({
-    required this.start,
-    required this.end,
-    required this.classId,
-  });
+  const new({required this.start, required this.end, required this.classId});
 
   /// First glyph in this class.
   final int start;
@@ -603,17 +592,14 @@ final class TerminalGlyphClassRange {
 /// Parsed class-definition format 2 table.
 final class TerminalGlyphClassTable {
   /// Creates a class-definition table.
-  const TerminalGlyphClassTable(this.ranges);
+  const new(this.ranges);
 
   /// Ranges in font order.
   final List<TerminalGlyphClassRange> ranges;
 }
 
 /// Finds the class assigned to one glyph.
-int? terminalIndividualGlyphClass(
-  TerminalGlyphClassTable table,
-  int glyphId,
-) {
+int? terminalIndividualGlyphClass(TerminalGlyphClassTable table, int glyphId) {
   for (final range in table.ranges) {
     if (range.start <= glyphId && range.end >= glyphId) return range.classId;
   }
@@ -660,7 +646,7 @@ Map<TerminalGlyphSelector, int?> terminalGlyphClasses(
 
 /// Parsed OpenType single-substitution table.
 sealed class TerminalSubstitutionTable {
-  const TerminalSubstitutionTable(this.coverage);
+  const new(this.coverage);
 
   /// Glyphs to which the substitution applies.
   final TerminalCoverageTable coverage;
@@ -669,7 +655,7 @@ sealed class TerminalSubstitutionTable {
 /// Single-substitution format 1 using a glyph delta.
 final class TerminalDeltaSubstitution extends TerminalSubstitutionTable {
   /// Creates a delta substitution.
-  const TerminalDeltaSubstitution(super.coverage, this.deltaGlyphId);
+  const new(super.coverage, this.deltaGlyphId);
 
   /// Signed substitution delta.
   final int deltaGlyphId;
@@ -678,17 +664,14 @@ final class TerminalDeltaSubstitution extends TerminalSubstitutionTable {
 /// Single-substitution format 2 using explicit replacement glyphs.
 final class TerminalListSubstitution extends TerminalSubstitutionTable {
   /// Creates a replacement-list substitution.
-  const TerminalListSubstitution(super.coverage, this.substitutes);
+  const new(super.coverage, this.substitutes);
 
   /// Replacements in coverage-index order.
   final List<int> substitutes;
 }
 
 /// Returns the replacement for [glyphId], or null when it is not covered.
-int? terminalSubstitutionGlyph(
-  TerminalSubstitutionTable table,
-  int glyphId,
-) {
+int? terminalSubstitutionGlyph(TerminalSubstitutionTable table, int glyphId) {
   final coverageIndex = terminalCoverageGlyphIndex(table.coverage, glyphId);
   if (coverageIndex == null) return null;
   return switch (table) {
@@ -723,10 +706,7 @@ Map<TerminalGlyphSelector, int?> terminalRangeSubstitutionGlyphs(
 /// One GSUB contextual substitution lookup reference.
 final class TerminalSubstitutionLookupRecord {
   /// Creates a reference to a single-substitution lookup.
-  const TerminalSubstitutionLookupRecord({
-    required this.sequenceIndex,
-    required this.lookupListIndex,
-  });
+  const new({required this.sequenceIndex, required this.lookupListIndex});
 
   /// Input position to replace.
   final int sequenceIndex;
@@ -738,7 +718,7 @@ final class TerminalSubstitutionLookupRecord {
 /// Temporary tree entry and the substitutions accumulated along its path.
 final class TerminalLigatureEntryMetadata {
   /// Creates path metadata.
-  const TerminalLigatureEntryMetadata(this.entry, this.substitutions);
+  const new(this.entry, this.substitutions);
 
   /// Current lookup-tree node.
   final TerminalLigatureLookupEntry entry;
@@ -750,7 +730,7 @@ final class TerminalLigatureEntryMetadata {
 /// A GSUB format 6.3 coverage-based chaining-context table.
 final class TerminalChainingCoverageTable {
   /// Creates a coverage-based chaining table.
-  const TerminalChainingCoverageTable({
+  const new({
     required this.inputCoverage,
     required this.lookaheadCoverage,
     required this.backtrackCoverage,
@@ -773,7 +753,7 @@ final class TerminalChainingCoverageTable {
 /// One glyph-based GSUB format 6.1 chaining rule.
 final class TerminalChainingGlyphRule {
   /// Creates a glyph-context rule.
-  const TerminalChainingGlyphRule({
+  const new({
     required this.backtrack,
     required this.input,
     required this.lookahead,
@@ -796,10 +776,7 @@ final class TerminalChainingGlyphRule {
 /// A GSUB format 6.1 simple-glyph chaining-context table.
 final class TerminalChainingGlyphTable {
   /// Creates a glyph-context table.
-  const TerminalChainingGlyphTable({
-    required this.coverage,
-    required this.chainRuleSets,
-  });
+  const new({required this.coverage, required this.chainRuleSets});
 
   /// First input glyphs.
   final TerminalCoverageTable coverage;
@@ -811,7 +788,7 @@ final class TerminalChainingGlyphTable {
 /// One class-based GSUB format 6.2 chaining rule.
 final class TerminalChainingClassRule {
   /// Creates a class-context rule.
-  const TerminalChainingClassRule({
+  const new({
     required this.backtrack,
     required this.input,
     required this.lookahead,
@@ -834,7 +811,7 @@ final class TerminalChainingClassRule {
 /// A GSUB format 6.2 class-based chaining-context table.
 final class TerminalChainingClassTable {
   /// Creates a class-context table.
-  const TerminalChainingClassTable({
+  const new({
     required this.coverage,
     required this.inputClassDefinition,
     required this.lookaheadClassDefinition,
@@ -861,7 +838,7 @@ final class TerminalChainingClassTable {
 /// A GSUB format 8.1 reverse-chaining single-substitution table.
 final class TerminalReverseChainingTable {
   /// Creates a reverse chaining table.
-  const TerminalReverseChainingTable({
+  const new({
     required this.coverage,
     required this.lookaheadCoverage,
     required this.backtrackCoverage,
@@ -1021,17 +998,16 @@ TerminalLigatureLookupTree buildTerminalChainingCoverageTree(
               first.glyph,
             )
             .map(
-              (item) => TerminalLigatureEntryMetadata(
-                item.entry,
-                <int?>[item.substitution],
-              ),
+              (item) => TerminalLigatureEntryMetadata(item.entry, <int?>[
+                item.substitution,
+              ]),
             )
             .toList();
     for (var index = 1; index < table.inputCoverage.length; index++) {
       current = terminalProcessInputPosition(
-        terminalCoverageGlyphs(
-          table.inputCoverage[index],
-        ).map((item) => item.glyph).toList(),
+        terminalCoverageGlyphs(table.inputCoverage[index])
+            .map((item) => item.glyph)
+            .toList(),
         index,
         current,
         table.lookupRecords,
@@ -1087,10 +1063,9 @@ TerminalLigatureLookupTree buildTerminalChainingGlyphTree(
                 first.glyph,
               )
               .map(
-                (item) => TerminalLigatureEntryMetadata(
-                  item.entry,
-                  <int?>[item.substitution],
-                ),
+                (item) => TerminalLigatureEntryMetadata(item.entry, <int?>[
+                  item.substitution,
+                ]),
               )
               .toList();
       for (var index = 0; index < rule.input.length; index++) {
@@ -1103,16 +1078,14 @@ TerminalLigatureLookupTree buildTerminalChainingGlyphTree(
         );
       }
       for (final glyph in rule.lookahead) {
-        current = terminalProcessLookaheadPosition(
-          <TerminalGlyphSelector>[glyph],
-          current,
-        );
+        current = terminalProcessLookaheadPosition(<TerminalGlyphSelector>[
+          glyph,
+        ], current);
       }
       for (final glyph in rule.backtrack) {
-        current = terminalProcessBacktrackPosition(
-          <TerminalGlyphSelector>[glyph],
-          current,
-        );
+        current = terminalProcessBacktrackPosition(<TerminalGlyphSelector>[
+          glyph,
+        ], current);
       }
       _terminalFinishChainingEntries(
         current,
@@ -1156,18 +1129,14 @@ TerminalLigatureLookupTree buildTerminalChainingClassTree(
                   classEntry.key,
                 )
                 .map(
-                  (item) => TerminalLigatureEntryMetadata(
-                    item.entry,
-                    <int?>[item.substitution],
-                  ),
+                  (item) => TerminalLigatureEntryMetadata(item.entry, <int?>[
+                    item.substitution,
+                  ]),
                 )
                 .toList();
         for (var index = 0; index < rule.input.length; index++) {
           current = terminalProcessInputPosition(
-            terminalClassGlyphs(
-              table.inputClassDefinition,
-              rule.input[index],
-            ),
+            terminalClassGlyphs(table.inputClassDefinition, rule.input[index]),
             index + 1,
             current,
             rule.lookupRecords,

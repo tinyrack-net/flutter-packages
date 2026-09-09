@@ -11,19 +11,17 @@ void main(List<String> arguments) {
   }
   final xterm = Directory(arguments.single).absolute;
   const revision = '904ae935269eef5ec6a1415b64463c3d02eff1eb';
-  final actual = Process.runSync(
-    'git',
-    const <String>['rev-parse', 'HEAD'],
-    workingDirectory: xterm.path,
-  );
+  final actual = Process.runSync('git', const <String>[
+    'rev-parse',
+    'HEAD',
+  ], workingDirectory: xterm.path);
   if (actual.exitCode != 0 || (actual.stdout as String).trim() != revision) {
     stderr.writeln('xterm checkout is not at the approved revision');
     exitCode = 65;
     return;
   }
-  final source = File(
-    '${xterm.path}/addons/addon-unicode11/src/UnicodeV11.ts',
-  ).readAsStringSync();
+  final source = File('${xterm.path}/addons/addon-unicode11/src/UnicodeV11.ts')
+      .readAsStringSync();
   final output = StringBuffer()
     ..writeln('// Generated from xterm.js $revision; do not edit.')
     ..writeln('// Copyright xterm.js authors; MIT license.')
@@ -42,9 +40,8 @@ void main(List<String> arguments) {
     if (body == null) {
       throw StateError('Missing ${mapping.$1} in UnicodeV11.ts');
     }
-    final ranges = RegExp(
-      r'\[(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\]',
-    ).allMatches(body);
+    final ranges = RegExp(r'\[(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\]')
+        .allMatches(body);
     output.writeln('const ${mapping.$2} = <(int, int)>[');
     for (final range in ranges) {
       output.writeln('  (${range.group(1)}, ${range.group(2)}),');
@@ -53,9 +50,8 @@ void main(List<String> arguments) {
       ..writeln('];')
       ..writeln();
   }
-  final unicode6Source = File(
-    '${xterm.path}/src/common/input/UnicodeV6.ts',
-  ).readAsStringSync();
+  final unicode6Source = File('${xterm.path}/src/common/input/UnicodeV6.ts')
+      .readAsStringSync();
   for (final mapping in const <(String, String)>[
     ('BMP_COMBINING', '_unicode6BmpCombining'),
     ('HIGH_COMBINING', '_unicode6HighCombining'),
@@ -67,9 +63,8 @@ void main(List<String> arguments) {
     if (body == null) {
       throw StateError('Missing ${mapping.$1} in UnicodeV6.ts');
     }
-    final ranges = RegExp(
-      r'\[(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\]',
-    ).allMatches(body);
+    final ranges = RegExp(r'\[(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\]')
+        .allMatches(body);
     output.writeln('const ${mapping.$2} = <(int, int)>[');
     for (final range in ranges) {
       output.writeln('  (${range.group(1)}, ${range.group(2)}),');

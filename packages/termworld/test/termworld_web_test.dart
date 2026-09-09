@@ -93,10 +93,10 @@ void main() {
     await web.document.fonts.ready.toDart;
     final loaded = await loadFonts(<String>['Kongtext', 'BPdots']);
     expect(loaded, hasLength(2));
-    expect(
-      _fontStatuses().map((value) => value.replaceAll('"', '')),
-      <String>['Kongtext:loaded', 'BPdots:loaded'],
-    );
+    expect(_fontStatuses().map((value) => value.replaceAll('"', '')), <String>[
+      'Kongtext:loaded',
+      'BPdots:loaded',
+    ]);
   });
 
   test('xterm WebFontsAddon 03', () async {
@@ -105,10 +105,7 @@ void main() {
     final first = _fontFace('Kongtext');
     final second = _fontFace('BPdots');
     await loadFonts(<Object>[first, second]);
-    await loadFonts(<Object>[
-      _fontFace('Kongtext'),
-      _fontFace('BPdots'),
-    ]);
+    await loadFonts(<Object>[_fontFace('Kongtext'), _fontFace('BPdots')]);
     await loadFonts(<Object>[first, second]);
     expect(_fontStatuses(), hasLength(2));
   });
@@ -169,24 +166,27 @@ void main() {
       ..reportContextLoss()
       ..dispose();
 
-    expect(
-      events,
-      <String>['add:1', 'remove:1', 'add:2', 'change:2', 'loss', 'remove:2'],
-    );
+    expect(events, <String>[
+      'add:1',
+      'remove:1',
+      'add:2',
+      'change:2',
+      'loss',
+      'remove:2',
+    ]);
   });
 }
 
-web.FontFace _fontFace(String family) => web.FontFace(
-  family,
-  'local("DejaVu Sans")'.toJS,
-);
+web.FontFace _fontFace(String family) =>
+    web.FontFace(family, 'local("DejaVu Sans")'.toJS);
 
 List<String> _fontStatuses() => <String>[
   for (final face in _fontFaces()) '${face.family}:${face.status}',
 ];
 
-List<web.FontFace> _fontFaces() => _arrayFrom(
-  web.document.fonts,
-).toDart.map((value) => value! as web.FontFace).toList();
+List<web.FontFace> _fontFaces() =>
+    _arrayFrom(web.document.fonts).toDart
+        .map((value) => value! as web.FontFace)
+        .toList();
 
 void _clearFonts() => web.document.fonts.clear();

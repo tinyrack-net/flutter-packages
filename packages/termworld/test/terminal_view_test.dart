@@ -99,17 +99,11 @@ void main() {
       const Color(0xff000000),
     );
     expect(
-      TerminalThemes.blend(
-        const Color(0xff000000),
-        const Color(0xffffffff),
-      ),
+      TerminalThemes.blend(const Color(0xff000000), const Color(0xffffffff)),
       const Color(0xffffffff),
     );
     expect(
-      TerminalThemes.blend(
-        const Color(0xff000000),
-        const Color(0x80ffffff),
-      ),
+      TerminalThemes.blend(const Color(0xff000000), const Color(0x80ffffff)),
       const Color(0xff808080),
     );
     expect(
@@ -535,10 +529,7 @@ void main() {
     await _writeAndPump(tester, terminal, 'select this');
     await tester.pumpWidget(
       MaterialApp(
-        home: TerminalView(
-          terminal: terminal,
-          controller: controller,
-        ),
+        home: TerminalView(terminal: terminal, controller: controller),
       ),
     );
     await tester.pump();
@@ -600,10 +591,7 @@ void main() {
       ..color = '#abcdef'
       ..position = TerminalOverviewRulerPosition.right;
     expect(bottom.overviewRulerColor, '#abcdef');
-    expect(
-      bottom.overviewRulerPosition,
-      TerminalOverviewRulerPosition.right,
-    );
+    expect(bottom.overviewRulerPosition, TerminalOverviewRulerPosition.right);
     marker.dispose();
     await tester.pump();
     expect(bottom.isDisposed, isTrue);
@@ -733,25 +721,22 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.f5);
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
 
-    expect(
-      output,
-      <String>[
-        '\u001bOA',
-        '\u001bOD',
-        '\u001bOH',
-        '\u001bOF',
-        '\u001bOP',
-        '\u001bOQ',
-        '\u001bOR',
-        '\u001bOS',
-        '\u001b[15~',
-        '\u001b[24~',
-        '\u0001',
-        '\u0000',
-        '\u001ba',
-        '\u001b[15;2~',
-      ],
-    );
+    expect(output, <String>[
+      '\u001bOA',
+      '\u001bOD',
+      '\u001bOH',
+      '\u001bOF',
+      '\u001bOP',
+      '\u001bOQ',
+      '\u001bOR',
+      '\u001bOS',
+      '\u001b[15~',
+      '\u001b[24~',
+      '\u0001',
+      '\u0000',
+      '\u001ba',
+      '\u001b[15;2~',
+    ]);
   });
 
   testWidgets('uses Shift+Page keys for local scroll and reserves Insert', (
@@ -899,10 +884,7 @@ void main() {
     expect(reports, <String>['\u001b[<0;1;1M', '\u001b[<0;1;1m']);
 
     await tester.sendEventToBinding(
-      PointerScrollEvent(
-        position: start,
-        scrollDelta: const Offset(0, 100),
-      ),
+      PointerScrollEvent(position: start, scrollDelta: const Offset(0, 100)),
     );
     await tester.pump();
     expect(reports.last, '\u001b[<65;1;1M');
@@ -914,10 +896,7 @@ void main() {
     );
     final bottom = terminal.viewportY;
     await tester.sendEventToBinding(
-      PointerScrollEvent(
-        position: start,
-        scrollDelta: const Offset(0, -100),
-      ),
+      PointerScrollEvent(position: start, scrollDelta: const Offset(0, -100)),
     );
     await tester.pump();
     expect(terminal.viewportY, lessThan(bottom));
@@ -925,10 +904,7 @@ void main() {
     reports.clear();
     await _writeAndPump(tester, terminal, '\u001b[?1049h');
     await tester.sendEventToBinding(
-      PointerScrollEvent(
-        position: start,
-        scrollDelta: const Offset(0, 100),
-      ),
+      PointerScrollEvent(position: start, scrollDelta: const Offset(0, 100)),
     );
     await tester.pump();
     expect(reports, <String>['\u001b[B']);
@@ -1123,9 +1099,7 @@ void main() {
 
   testWidgets(
     'reattaches when terminal, focus, controller, or readonly changes',
-    (
-      tester,
-    ) async {
+    (tester) async {
       final first = Terminal();
       final second = Terminal();
       final focusNode = FocusNode();

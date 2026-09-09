@@ -1309,1515 +1309,867 @@ void main() {
     group('findLigatureRanges', () {
       test("Fira Code: 'abc'", () {
         final value = cases[0];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '.='", () {
         final value = cases[1];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '..='", () {
         final value = cases[2];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '.-'", () {
         final value = cases[3];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: ':='", () {
         final value = cases[4];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=:='", () {
         final value = cases[5];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=!='", () {
         final value = cases[6];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '__'", () {
         final value = cases[7];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=='", () {
         final value = cases[8];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '!='", () {
         final value = cases[9];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '==='", () {
         final value = cases[10];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '!=='", () {
         final value = cases[11];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=/='", () {
         final value = cases[12];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<-<'", () {
         final value = cases[13];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<<-'", () {
         final value = cases[14];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<--'", () {
         final value = cases[15];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<-'", () {
         final value = cases[16];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<->'", () {
         final value = cases[17];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '->'", () {
         final value = cases[18];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '-->'", () {
         final value = cases[19];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '->>'", () {
         final value = cases[20];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>->'", () {
         final value = cases[21];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<=<'", () {
         final value = cases[22];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<<='", () {
         final value = cases[23];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<=='", () {
         final value = cases[24];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<=>'", () {
         final value = cases[25];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=>'", () {
         final value = cases[26];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '==>'", () {
         final value = cases[27];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=>>'", () {
         final value = cases[28];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>=>'", () {
         final value = cases[29];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>>='", () {
         final value = cases[30];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>>-'", () {
         final value = cases[31];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>-'", () {
         final value = cases[32];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<~>'", () {
         final value = cases[33];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '-<'", () {
         final value = cases[34];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '-<<'", () {
         final value = cases[35];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '=<<'", () {
         final value = cases[36];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<~~'", () {
         final value = cases[37];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<~'", () {
         final value = cases[38];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '~~'", () {
         final value = cases[39];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '~>'", () {
         final value = cases[40];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '~~>'", () {
         final value = cases[41];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<<<'", () {
         final value = cases[42];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<<'", () {
         final value = cases[43];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<='", () {
         final value = cases[44];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<>'", () {
         final value = cases[45];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>='", () {
         final value = cases[46];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>>'", () {
         final value = cases[47];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '>>>'", () {
         final value = cases[48];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '{.'", () {
         final value = cases[49];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '{|'", () {
         final value = cases[50];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '[|'", () {
         final value = cases[51];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<:'", () {
         final value = cases[52];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: ':>'", () {
         final value = cases[53];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '|]'", () {
         final value = cases[54];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '|}'", () {
         final value = cases[55];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '.}'", () {
         final value = cases[56];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<|||'", () {
         final value = cases[57];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<||'", () {
         final value = cases[58];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<|'", () {
         final value = cases[59];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<|>'", () {
         final value = cases[60];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '|>'", () {
         final value = cases[61];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '||>'", () {
         final value = cases[62];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '|||>'", () {
         final value = cases[63];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test(r"Fira Code: '<$'", () {
         final value = cases[64];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test(r"Fira Code: '<$>'", () {
         final value = cases[65];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test(r"Fira Code: '$>'", () {
         final value = cases[66];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<+'", () {
         final value = cases[67];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<+>'", () {
         final value = cases[68];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '+>'", () {
         final value = cases[69];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<*'", () {
         final value = cases[70];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<*>'", () {
         final value = cases[71];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '*>'", () {
         final value = cases[72];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '/*'", () {
         final value = cases[73];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '*/'", () {
         final value = cases[74];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '///'", () {
         final value = cases[75];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '//'", () {
         final value = cases[76];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '</'", () {
         final value = cases[77];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '<!--'", () {
         final value = cases[78];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '</>'", () {
         final value = cases[79];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '/>'", () {
         final value = cases[80];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '0xff'", () {
         final value = cases[81];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '10x10'", () {
         final value = cases[82];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '9:45'", () {
         final value = cases[83];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '[:]'", () {
         final value = cases[84];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: ';;'", () {
         final value = cases[85];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '::'", () {
         final value = cases[86];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: ':::'", () {
         final value = cases[87];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '..'", () {
         final value = cases[88];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '...'", () {
         final value = cases[89];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '..<'", () {
         final value = cases[90];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '!!'", () {
         final value = cases[91];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '??'", () {
         final value = cases[92];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '%%'", () {
         final value = cases[93];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '&&'", () {
         final value = cases[94];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '||'", () {
         final value = cases[95];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '?.'", () {
         final value = cases[96];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '?:'", () {
         final value = cases[97];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '++'", () {
         final value = cases[98];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '+++'", () {
         final value = cases[99];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '--'", () {
         final value = cases[100];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '---'", () {
         final value = cases[101];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '**'", () {
         final value = cases[102];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '***'", () {
         final value = cases[103];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '~='", () {
         final value = cases[104];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '~-'", () {
         final value = cases[105];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: 'www'", () {
         final value = cases[106];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '-~'", () {
         final value = cases[107];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '~@'", () {
         final value = cases[108];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '^='", () {
         final value = cases[109];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '?='", () {
         final value = cases[110];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '/='", () {
         final value = cases[111];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '/=='", () {
         final value = cases[112];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '-|'", () {
         final value = cases[113];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '_|_'", () {
         final value = cases[114];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '|-'", () {
         final value = cases[115];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '|='", () {
         final value = cases[116];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '||='", () {
         final value = cases[117];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#!'", () {
         final value = cases[118];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#='", () {
         final value = cases[119];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '##'", () {
         final value = cases[120];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '###'", () {
         final value = cases[121];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '####'", () {
         final value = cases[122];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#{'", () {
         final value = cases[123];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#['", () {
         final value = cases[124];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: ']#'", () {
         final value = cases[125];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#('", () {
         final value = cases[126];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#?'", () {
         final value = cases[127];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#_'", () {
         final value = cases[128];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '#_('", () {
         final value = cases[129];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '::='", () {
         final value = cases[130];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '.?'", () {
         final value = cases[131];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Fira Code: '===>'", () {
         final value = cases[132];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<-'", () {
         final value = cases[133];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<--'", () {
         final value = cases[134];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<---'", () {
         final value = cases[135];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<-----'", () {
         final value = cases[136];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '->'", () {
         final value = cases[137];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '-->'", () {
         final value = cases[138];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '--->'", () {
         final value = cases[139];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '----->'", () {
         final value = cases[140];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<->'", () {
         final value = cases[141];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<-->'", () {
         final value = cases[142];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<--->'", () {
         final value = cases[143];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<----->'", () {
         final value = cases[144];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<='", () {
         final value = cases[145];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<=='", () {
         final value = cases[146];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<==='", () {
         final value = cases[147];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<====='", () {
         final value = cases[148];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '=>'", () {
         final value = cases[149];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '==>'", () {
         final value = cases[150];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '===>'", () {
         final value = cases[151];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '=====>'", () {
         final value = cases[152];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<=>'", () {
         final value = cases[153];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<==>'", () {
         final value = cases[154];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<===>'", () {
         final value = cases[155];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<=====>'", () {
         final value = cases[156];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<!--'", () {
         final value = cases[157];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<!---'", () {
         final value = cases[158];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<!-----'", () {
         final value = cases[159];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: 'a:b'", () {
         final value = cases[160];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: 'a::b'", () {
         final value = cases[161];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: 'a:::b'", () {
         final value = cases[162];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: ':='", () {
         final value = cases[163];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: ':-'", () {
         final value = cases[164];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: ':+'", () {
         final value = cases[165];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '=:'", () {
         final value = cases[166];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '-:'", () {
         final value = cases[167];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '+:'", () {
         final value = cases[168];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<*'", () {
         final value = cases[169];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '*>'", () {
         final value = cases[170];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<*>'", () {
         final value = cases[171];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<**>'", () {
         final value = cases[172];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '<****>'", () {
         final value = cases[173];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '=='", () {
         final value = cases[174];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '!='", () {
         final value = cases[175];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '==='", () {
         final value = cases[176];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '!=='", () {
         final value = cases[177];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '===='", () {
         final value = cases[178];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Iosevka: '!==='", () {
         final value = cases[179];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<!--'", () {
         final value = cases[180];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '-->'", () {
         final value = cases[181];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<--'", () {
         final value = cases[182];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '->>'", () {
         final value = cases[183];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<<-'", () {
         final value = cases[184];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '->'", () {
         final value = cases[185];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<-'", () {
         final value = cases[186];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '=>'", () {
         final value = cases[187];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<=>'", () {
         final value = cases[188];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<==>'", () {
         final value = cases[189];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '==>'", () {
         final value = cases[190];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<=='", () {
         final value = cases[191];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '>>='", () {
         final value = cases[192];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '=<<'", () {
         final value = cases[193];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '--'", () {
         final value = cases[194];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: ':='", () {
         final value = cases[195];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '=:='", () {
         final value = cases[196];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '=='", () {
         final value = cases[197];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '!=='", () {
         final value = cases[198];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '!='", () {
         final value = cases[199];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<='", () {
         final value = cases[200];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '>='", () {
         final value = cases[201];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '//'", () {
         final value = cases[202];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '/**'", () {
         final value = cases[203];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '/*'", () {
         final value = cases[204];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '*/'", () {
         final value = cases[205];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '&&'", () {
         final value = cases[206];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '.&'", () {
         final value = cases[207];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '||'", () {
         final value = cases[208];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '!!'", () {
         final value = cases[209];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '::'", () {
         final value = cases[210];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '>>'", () {
         final value = cases[211];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '<<'", () {
         final value = cases[212];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test(r"Monoid: '¯\_(ツ)_/¯'", () {
         final value = cases[213];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Monoid: '__'", () {
         final value = cases[214];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
       test("Ubuntu Mono: '==>'", () {
         final value = cases[215];
-        expect(
-          _font(value.font).findLigatureRanges(value.input),
-          value.ranges,
-        );
+        expect(_font(value.font).findLigatureRanges(value.input), value.ranges);
       });
     });
     group('caching', () {
@@ -2873,7 +2225,7 @@ void main() {
 }
 
 final class _Case {
-  const _Case(this.font, this.input, this.glyphs, this.ranges);
+  const new(this.font, this.input, this.glyphs, this.ranges);
   final String font;
   final String input;
   final List<int> glyphs;
@@ -2908,9 +2260,9 @@ TerminalLigatureFont _font(String name) =>
 TerminalLigatureFont _newFont(String name, {int cacheSize = 0}) =>
     TerminalLigatureFont.fromBytes(
       _fontBytes.putIfAbsent(name, () {
-        final encoded = File(
-          _fixturePath(_fontFiles[name]!),
-        ).readAsStringSync().replaceAll(RegExp(r'\s'), '');
+        final encoded = File(_fixturePath(_fontFiles[name]!))
+            .readAsStringSync()
+            .replaceAll(RegExp(r'\s'), '');
         return Uint8List.fromList(gzip.decode(base64.decode(encoded)));
       }),
       cacheSize: cacheSize,

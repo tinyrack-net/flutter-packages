@@ -41,9 +41,8 @@ void main() {
     if (artifactDirectory != null) {
       final directory = Directory(artifactDirectory)
         ..createSync(recursive: true);
-      File(
-        '${directory.path}/pty-input.bin',
-      ).writeAsBytesSync(utf8.encode(actual));
+      File('${directory.path}/pty-input.bin')
+          .writeAsBytesSync(utf8.encode(actual));
     }
     expect(
       actual,

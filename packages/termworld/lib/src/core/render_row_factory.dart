@@ -21,7 +21,7 @@ enum TerminalRowCursorStyle {
 /// Immutable renderer attributes shared by Flutter and web renderers.
 final class TerminalRowStyle {
   /// Creates resolved renderer attributes.
-  const TerminalRowStyle({
+  const new({
     required this.foreground,
     required this.background,
     required this.underlineColor,
@@ -118,7 +118,7 @@ final class TerminalRowStyle {
 /// A maximal run of cells with identical observable renderer state.
 final class TerminalRowSpan {
   /// Creates one shaped row span.
-  const TerminalRowSpan({
+  const new({
     required this.startColumn,
     required this.endColumn,
     required this.text,
@@ -159,10 +159,7 @@ final class TerminalRowInfo {
 /// Renderer-neutral port of xterm's `DomRendererRowFactory` state machine.
 final class TerminalRenderRowFactory {
   /// Creates a row factory with xterm's bold-bright default.
-  TerminalRenderRowFactory({
-    this.drawBoldTextInBrightColors = true,
-    this.defaultSpacing = 0,
-  });
+  new({this.drawBoldTextInBrightColors = true, this.defaultSpacing = 0});
 
   /// Whether palette colors 0-7 become 8-15 on bold cells.
   final bool drawBoldTextInBrightColors;
@@ -233,14 +230,8 @@ final class TerminalRenderRowFactory {
           linkEnd != -1 &&
           column >= linkStart &&
           column <= linkEnd;
-      var foreground = _color(
-        cell.foregroundMode,
-        cell.foreground,
-      );
-      var background = _color(
-        cell.backgroundMode,
-        cell.background,
-      );
+      var foreground = _color(cell.foregroundMode, cell.foreground);
+      var background = _color(cell.backgroundMode, cell.background);
       if (cell.isInverse) {
         final swap = foreground;
         foreground = background;
@@ -352,7 +343,7 @@ final class TerminalRenderRowFactory {
 }
 
 final class _PendingSpan {
-  _PendingSpan({
+  new({
     required this.startColumn,
     required this.endColumn,
     required this.text,

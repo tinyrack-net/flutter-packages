@@ -9,11 +9,7 @@ const _harnessIme =
 /// Captured result of an Android harness command.
 final class AndroidCommandResult {
   /// Creates a captured command result.
-  const AndroidCommandResult({
-    required this.exitCode,
-    required this.stdout,
-    this.stderr = '',
-  });
+  const new({required this.exitCode, required this.stdout, this.stderr = ''});
 
   /// Process exit code.
   final int exitCode;
@@ -78,11 +74,11 @@ Future<int> runAndroidInputConnectionE2e({
     );
   }
 
-  final buildExitCode = await executor.stream(
-    'flutter',
-    const <String>['build', 'apk', '--debug'],
-    workingDirectory: exampleDirectory,
-  );
+  final buildExitCode = await executor.stream('flutter', const <String>[
+    'build',
+    'apk',
+    '--debug',
+  ], workingDirectory: exampleDirectory);
   if (buildExitCode != 0) return buildExitCode;
 
   final androidDirectory = p.join(exampleDirectory, 'android');
@@ -114,16 +110,20 @@ Future<int> runAndroidInputConnectionE2e({
     'debug',
     'ime_harness-debug.apk',
   );
-  await _checkedCapture(
-    executor,
-    'adb',
-    <String>['-s', device, 'install', '-r', debugApk],
-  );
-  await _checkedCapture(
-    executor,
-    'adb',
-    <String>['-s', device, 'install', '-r', harnessApk],
-  );
+  await _checkedCapture(executor, 'adb', <String>[
+    '-s',
+    device,
+    'install',
+    '-r',
+    debugApk,
+  ]);
+  await _checkedCapture(executor, 'adb', <String>[
+    '-s',
+    device,
+    'install',
+    '-r',
+    harnessApk,
+  ]);
 
   String? user;
   String? defaultIme;
@@ -135,11 +135,13 @@ Future<int> runAndroidInputConnectionE2e({
   final restoreErrors = <Object>[];
 
   try {
-    user = (await _checkedCapture(
-      executor,
-      'adb',
-      <String>['-s', device, 'shell', 'am', 'get-current-user'],
-    )).stdout.trim();
+    user = (await _checkedCapture(executor, 'adb', <String>[
+      '-s',
+      device,
+      'shell',
+      'am',
+      'get-current-user',
+    ])).stdout.trim();
     if (user.isEmpty) {
       throw StateError('adb returned an empty Android user identifier');
     }
@@ -148,57 +150,43 @@ Future<int> runAndroidInputConnectionE2e({
     // intentionally target adb's current user; the explicit user identifier
     // remains necessary only for the secure-settings query and diagnostics.
     final installedImes = _nonEmptyLines(
-      (await _checkedCapture(
-        executor,
-        'adb',
-        <String>[
-          '-s',
-          device,
-          'shell',
-          'ime',
-          'list',
-          '-a',
-          '-s',
-        ],
-      )).stdout,
-    );
-    if (!installedImes.contains(_harnessIme)) {
-      throw StateError(
-        'Debug IME harness is not installed: $_harnessIme',
-      );
-    }
-
-    final enabledImes = _nonEmptyLines(
-      (await _checkedCapture(
-        executor,
-        'adb',
-        <String>[
-          '-s',
-          device,
-          'shell',
-          'ime',
-          'list',
-          '-s',
-        ],
-      )).stdout,
-    );
-    harnessWasEnabled = enabledImes.contains(_harnessIme);
-
-    final defaultValue = (await _checkedCapture(
-      executor,
-      'adb',
-      <String>[
+      (await _checkedCapture(executor, 'adb', <String>[
         '-s',
         device,
         'shell',
-        'settings',
-        '--user',
-        user,
-        'get',
-        'secure',
-        'default_input_method',
-      ],
-    )).stdout.trim();
+        'ime',
+        'list',
+        '-a',
+        '-s',
+      ])).stdout,
+    );
+    if (!installedImes.contains(_harnessIme)) {
+      throw StateError('Debug IME harness is not installed: $_harnessIme');
+    }
+
+    final enabledImes = _nonEmptyLines(
+      (await _checkedCapture(executor, 'adb', <String>[
+        '-s',
+        device,
+        'shell',
+        'ime',
+        'list',
+        '-s',
+      ])).stdout,
+    );
+    harnessWasEnabled = enabledImes.contains(_harnessIme);
+
+    final defaultValue = (await _checkedCapture(executor, 'adb', <String>[
+      '-s',
+      device,
+      'shell',
+      'settings',
+      '--user',
+      user,
+      'get',
+      'secure',
+      'default_input_method',
+    ])).stdout.trim();
     if (defaultValue.isEmpty || defaultValue == 'null') {
       throw StateError('Android has no default input method to restore');
     }
@@ -206,31 +194,23 @@ Future<int> runAndroidInputConnectionE2e({
 
     isolationAttempted = true;
     if (!harnessWasEnabled) {
-      await _checkedCapture(
-        executor,
-        'adb',
-        <String>[
-          '-s',
-          device,
-          'shell',
-          'ime',
-          'enable',
-          _harnessIme,
-        ],
-      );
-    }
-    await _checkedCapture(
-      executor,
-      'adb',
-      <String>[
+      await _checkedCapture(executor, 'adb', <String>[
         '-s',
         device,
         'shell',
         'ime',
-        'set',
+        'enable',
         _harnessIme,
-      ],
-    );
+      ]);
+    }
+    await _checkedCapture(executor, 'adb', <String>[
+      '-s',
+      device,
+      'shell',
+      'ime',
+      'set',
+      _harnessIme,
+    ]);
     await _waitForActiveIme(
       executor: executor,
       device: device,
@@ -243,16 +223,12 @@ Future<int> runAndroidInputConnectionE2e({
       'device=$device user=$user component=$_harnessIme',
     );
 
-    testExitCode = await executor.stream(
-      'flutter',
-      <String>[
-        'test',
-        'integration_test/android_input_connection_test.dart',
-        '-d',
-        device,
-      ],
-      workingDirectory: exampleDirectory,
-    );
+    testExitCode = await executor.stream('flutter', <String>[
+      'test',
+      'integration_test/android_input_connection_test.dart',
+      '-d',
+      device,
+    ], workingDirectory: exampleDirectory);
   } on Object catch (error, stackTrace) {
     bodyError = error;
     bodyStackTrace = stackTrace;
@@ -261,18 +237,14 @@ Future<int> runAndroidInputConnectionE2e({
       final capturedUser = user!;
       final capturedDefault = defaultIme!;
       try {
-        await _checkedCapture(
-          executor,
-          'adb',
-          <String>[
-            '-s',
-            device,
-            'shell',
-            'ime',
-            'set',
-            capturedDefault,
-          ],
-        );
+        await _checkedCapture(executor, 'adb', <String>[
+          '-s',
+          device,
+          'shell',
+          'ime',
+          'set',
+          capturedDefault,
+        ]);
         await _waitForActiveIme(
           executor: executor,
           device: device,
@@ -281,25 +253,24 @@ Future<int> runAndroidInputConnectionE2e({
           delay: activeImePollDelay,
         );
         if (!harnessWasEnabled) {
-          await _checkedCapture(
-            executor,
-            'adb',
-            <String>[
-              '-s',
-              device,
-              'shell',
-              'ime',
-              'disable',
-              _harnessIme,
-            ],
-          );
+          await _checkedCapture(executor, 'adb', <String>[
+            '-s',
+            device,
+            'shell',
+            'ime',
+            'disable',
+            _harnessIme,
+          ]);
         }
         final restoredEnabledImes = _nonEmptyLines(
-          (await _checkedCapture(
-            executor,
-            'adb',
-            <String>['-s', device, 'shell', 'ime', 'list', '-s'],
-          )).stdout,
+          (await _checkedCapture(executor, 'adb', <String>[
+            '-s',
+            device,
+            'shell',
+            'ime',
+            'list',
+            '-s',
+          ])).stdout,
         );
         final harnessIsEnabled = restoredEnabledImes.contains(_harnessIme);
         if (harnessIsEnabled != harnessWasEnabled) {
@@ -354,11 +325,13 @@ Future<void> _waitForActiveIme({
 }) async {
   String? lastDump;
   for (var attempt = 0; attempt < attempts; attempt++) {
-    lastDump = (await _checkedCapture(
-      executor,
-      'adb',
-      <String>['-s', device, 'shell', 'dumpsys', 'input_method'],
-    )).stdout;
+    lastDump = (await _checkedCapture(executor, 'adb', <String>[
+      '-s',
+      device,
+      'shell',
+      'dumpsys',
+      'input_method',
+    ])).stdout;
     if (_isImeActive(lastDump, expectedComponent)) return;
     if (attempt + 1 < attempts) await Future<void>.delayed(delay);
   }
@@ -437,7 +410,7 @@ Future<void> main(List<String> arguments) async {
 }
 
 final class _ProcessAndroidCommandExecutor implements AndroidCommandExecutor {
-  const _ProcessAndroidCommandExecutor();
+  const new();
 
   @override
   Future<AndroidCommandResult> capture(
@@ -469,6 +442,6 @@ final class _ProcessAndroidCommandExecutor implements AndroidCommandExecutor {
       mode: ProcessStartMode.inheritStdio,
       runInShell: Platform.isWindows,
     );
-    return process.exitCode;
+    return await process.exitCode;
   }
 }

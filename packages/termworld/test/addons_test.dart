@@ -110,10 +110,7 @@ void main() {
     addTearDown(terminal.dispose);
     terminal.loadAddon(addon);
 
-    expect(
-      terminal.characterJoins('a===b'),
-      hasLength(1),
-    );
+    expect(terminal.characterJoins('a===b'), hasLength(1));
     expect(terminal.characterJoins('a===b').single.end, 4);
   });
 
@@ -166,9 +163,7 @@ void main() {
     final addon = SerializeAddon();
     addTearDown(terminal.dispose);
     terminal.loadAddon(addon);
-    await terminal.writeAndWait(
-      '\u001b[32m> \u001b[0m\u001b[2;4r\u001b[4;3H',
-    );
+    await terminal.writeAndWait('\u001b[32m> \u001b[0m\u001b[2;4r\u001b[4;3H');
 
     final serialized = addon.serialize();
     expect(serialized, startsWith('\u001b[32m> '));
@@ -177,9 +172,7 @@ void main() {
   });
 
   test('unicode addons register all pinned providers', () {
-    final terminal = Terminal(
-      options: TerminalOptions(allowProposedApi: true),
-    );
+    final terminal = Terminal(options: TerminalOptions(allowProposedApi: true));
     addTearDown(terminal.dispose);
     terminal
       ..loadAddon(Unicode11Addon())
@@ -260,7 +253,7 @@ void main() {
 }
 
 final class _ClipboardProvider implements TerminalClipboardProvider {
-  _ClipboardProvider(this.value);
+  new(this.value);
 
   String value;
 
@@ -274,7 +267,7 @@ final class _ClipboardProvider implements TerminalClipboardProvider {
 }
 
 final class _SyncClipboardProvider implements TerminalClipboardProvider {
-  _SyncClipboardProvider(this.value);
+  new(this.value);
 
   String value;
 
@@ -286,7 +279,7 @@ final class _SyncClipboardProvider implements TerminalClipboardProvider {
 }
 
 final class _ThrowingCodec implements TerminalBase64Codec {
-  const _ThrowingCodec();
+  const new();
 
   @override
   String decodeText(String data) => throw const FormatException('invalid');

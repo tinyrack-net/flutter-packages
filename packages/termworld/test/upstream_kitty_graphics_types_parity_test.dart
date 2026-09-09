@@ -8,9 +8,7 @@ void main() {
     expect(command.format, 100);
   });
   test('xterm KittyGraphicsTypes 01', () {
-    final command = parseKittyCommand(
-      'a=t,f=32,i=5,s=10,v=20,c=3,r=2,m=1,q=2',
-    );
+    final command = parseKittyCommand('a=t,f=32,i=5,s=10,v=20,c=3,r=2,m=1,q=2');
     expect(command.action, 't');
     expect(command.format, 32);
     expect(command.id, 5);

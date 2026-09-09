@@ -117,11 +117,11 @@ Future<void> main(List<String> arguments) async {
 
 Future<List<Map<String, Object>>> _discoverTests(Directory root) async {
   final tests = <Map<String, Object>>[];
-  final unit = await _run(
-    root,
-    'node',
-    <String>['bin/test_unit.js', '--dry-run', '--reporter=json'],
-  );
+  final unit = await _run(root, 'node', <String>[
+    'bin/test_unit.js',
+    '--dry-run',
+    '--reporter=json',
+  ]);
   final unitJson = jsonDecode(unit) as Map<String, Object?>;
   final occurrences = <String, int>{};
   for (final item
@@ -144,16 +144,12 @@ Future<List<Map<String, Object>>> _discoverTests(Directory root) async {
     });
   }
 
-  final integration = await _run(
-    root,
-    'node',
-    <String>[
-      'bin/test_integration.js',
-      '--list',
-      '--project=Chromium',
-      '--reporter=json',
-    ],
-  );
+  final integration = await _run(root, 'node', <String>[
+    'bin/test_integration.js',
+    '--list',
+    '--project=Chromium',
+    '--reporter=json',
+  ]);
   for (final document in _playwrightDocuments(integration)) {
     final config = document['config']! as Map<String, Object?>;
     final rootDirectory = Directory(config['rootDir']! as String);
@@ -166,9 +162,7 @@ Future<List<Map<String, Object>>> _discoverTests(Directory root) async {
     );
   }
   tests.sort(
-    (left, right) => (left['id']! as String).compareTo(
-      right['id']! as String,
-    ),
+    (left, right) => (left['id']! as String).compareTo(right['id']! as String),
   );
   return tests;
 }
@@ -256,15 +250,12 @@ bool _isContractLine(String line) {
   if (line.isEmpty || line.startsWith('//') || line.startsWith('*')) {
     return false;
   }
-  return RegExp(
-        r'^(?:export )?(?:interface|class|type|enum|namespace)\b',
-      ).hasMatch(line) ||
-      RegExp(
-        r'^(?:readonly )?[A-Za-z_$][A-Za-z0-9_$]*[?]?(?:<[^;]+>)?[(:].*;$',
-      ).hasMatch(line) ||
-      RegExp(
-        r'^(?:readonly )?[A-Za-z_$][A-Za-z0-9_$]*[?]?:.*;$',
-      ).hasMatch(line);
+  return RegExp(r'^(?:export )?(?:interface|class|type|enum|namespace)\b')
+          .hasMatch(line) ||
+      RegExp(r'^(?:readonly )?[A-Za-z_$][A-Za-z0-9_$]*[?]?(?:<[^;]+>)?[(:].*;$')
+          .hasMatch(line) ||
+      RegExp(r'^(?:readonly )?[A-Za-z_$][A-Za-z0-9_$]*[?]?:.*;$')
+          .hasMatch(line);
 }
 
 String _relative(Directory root, File file) =>

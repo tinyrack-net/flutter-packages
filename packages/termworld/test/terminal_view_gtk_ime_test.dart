@@ -17,7 +17,7 @@ import 'package:termworld/termworld.dart';
 /// handlers in `shell/platform/linux/fl_text_input_handler.cc` so the terminal
 /// sees exactly what a real ibus session sends it.
 final class _GtkEmbedder {
-  _GtkEmbedder(this._client);
+  new(this._client);
 
   final DeltaTextInputClient _client;
 
@@ -215,7 +215,7 @@ final class _GtkEmbedder {
 
 /// A `flutter::TextRange`: an ordered base/extent pair over UTF-16 offsets.
 final class _Range {
-  const _Range(this.base, [int? extent]) : extent = extent ?? base;
+  const new(this.base, [int? extent]) : extent = extent ?? base;
 
   final int base;
   final int extent;
@@ -230,7 +230,7 @@ final class _Range {
 
 /// One ibus-hangul key press: the syllable it flushes, then the new preedit.
 final class _HangulKey {
-  const _HangulKey({required this.preedit, this.commits});
+  const new({required this.preedit, this.commits});
 
   final String? commits;
   final String preedit;

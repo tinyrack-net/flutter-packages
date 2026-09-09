@@ -32,7 +32,7 @@ abstract interface class DropwellTarget {
 /// many regions are mounted.
 final class DropwellRegistry {
   /// Creates a registry over the given platform implementation.
-  DropwellRegistry(this._platform) {
+  new(this._platform) {
     _subscription = _platform.dragEvents.listen(handleEvent);
     SchedulerBinding.instance.addPersistentFrameCallback(_onFrame);
   }

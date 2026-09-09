@@ -7,7 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:termworld/termworld.dart';
 
 final class _FixtureCase {
-  const _FixtureCase({
+  const new({
     required this.name,
     required this.family,
     required this.steps,
@@ -15,7 +15,7 @@ final class _FixtureCase {
     required this.expectedReconnections,
   });
 
-  factory _FixtureCase.fromJson(Map<String, Object?> json) => _FixtureCase(
+  factory fromJson(Map<String, Object?> json) => _FixtureCase(
     name: json['name']! as String,
     family: json['family']! as String,
     steps: (json['steps']! as List<Object?>)
@@ -65,7 +65,7 @@ List<_FixtureCase> _loadFixtureCases() {
 /// [DeltaTextInputClient] owned by [TerminalView]. This catches reset races and
 /// empty-buffer deletion gaps that direct `updateEditingValue` tests bypass.
 final class _AndroidInputConnectionFake {
-  _AndroidInputConnectionFake(this.tester, this.focusNode) {
+  new(this.tester, this.focusNode) {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.textInput,
       _handleFrameworkCall,
@@ -394,10 +394,7 @@ final class _AndroidInputConnectionFake {
     if (!range.isValid || range.isCollapsed) return TextRange.empty;
     final removed = end - start;
     if (end <= range.start) {
-      return TextRange(
-        start: range.start - removed,
-        end: range.end - removed,
-      );
+      return TextRange(start: range.start - removed, end: range.end - removed);
     }
     if (start >= range.end) return range;
     final adjustedStart = range.start.clamp(0, start);
@@ -430,43 +427,39 @@ void main() {
   final android = TargetPlatformVariant.only(TargetPlatform.android);
 
   for (final fixture in cases) {
-    testWidgets(
-      '${fixture.family}: ${fixture.name}',
-      (tester) async {
-        final terminal = Terminal();
-        final focusNode = FocusNode(debugLabel: fixture.name);
-        final output = <String>[];
-        addTearDown(terminal.dispose);
-        addTearDown(focusNode.dispose);
-        terminal.onData.listen(output.add);
-        final input = _AndroidInputConnectionFake(tester, focusNode);
+    testWidgets('${fixture.family}: ${fixture.name}', (tester) async {
+      final terminal = Terminal();
+      final focusNode = FocusNode(debugLabel: fixture.name);
+      final output = <String>[];
+      addTearDown(terminal.dispose);
+      addTearDown(focusNode.dispose);
+      terminal.onData.listen(output.add);
+      final input = _AndroidInputConnectionFake(tester, focusNode);
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: TerminalView(
-              terminal: terminal,
-              focusNode: focusNode,
-              autofocus: true,
-            ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: TerminalView(
+            terminal: terminal,
+            focusNode: focusNode,
+            autofocus: true,
           ),
-        );
-        await tester.pump();
-        input.attachClient();
-        final initialConnections = input.connectionCount;
+        ),
+      );
+      await tester.pump();
+      input.attachClient();
+      final initialConnections = input.connectionCount;
 
-        for (final step in fixture.steps) {
-          await input.run(step);
-        }
-        await tester.pump();
+      for (final step in fixture.steps) {
+        await input.run(step);
+      }
+      await tester.pump();
 
-        expect(output.join(), fixture.expectedPty);
-        expect(
-          input.connectionCount - initialConnections,
-          fixture.expectedReconnections,
-        );
-      },
-      variant: android,
-    );
+      expect(output.join(), fixture.expectedPty);
+      expect(
+        input.connectionCount - initialConnections,
+        fixture.expectedReconnections,
+      );
+    }, variant: android);
   }
 
   testWidgets(
@@ -528,102 +521,93 @@ void main() {
     variant: android,
   );
 
-  testWidgets(
-    'Android preserves legacy modifiers on physical control keys',
-    (tester) async {
-      final terminal = Terminal();
-      final output = <String>[];
-      addTearDown(terminal.dispose);
-      terminal.onData.listen(output.add);
-      await tester.pumpWidget(
-        MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
-      );
-      await tester.pump();
+  testWidgets('Android preserves legacy modifiers on physical control keys', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    final output = <String>[];
+    addTearDown(terminal.dispose);
+    terminal.onData.listen(output.add);
+    await tester.pumpWidget(
+      MaterialApp(home: TerminalView(terminal: terminal, autofocus: true)),
+    );
+    await tester.pump();
 
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
-      await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.backspace);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
 
-      expect(output.join(), '\u001b\u007f\u001b\r');
-    },
-    variant: android,
-  );
+    expect(output.join(), '\u001b\u007f\u001b\r');
+  }, variant: android);
 
-  testWidgets(
-    'Android preserves Kitty protocol physical control sequences',
-    (tester) async {
-      final terminal = Terminal(
-        options: TerminalOptions(
-          vtExtensions: const TerminalVtExtensions(kittyKeyboard: true),
+  testWidgets('Android preserves Kitty protocol physical control sequences', (
+    tester,
+  ) async {
+    final terminal = Terminal(
+      options: TerminalOptions(
+        vtExtensions: const TerminalVtExtensions(kittyKeyboard: true),
+      ),
+    );
+    final focusNode = FocusNode();
+    final output = <String>[];
+    addTearDown(terminal.dispose);
+    addTearDown(focusNode.dispose);
+    final input = _AndroidInputConnectionFake(tester, focusNode);
+    await tester.runAsync(() => terminal.writeAndWait('\u001b[=1u'));
+    terminal.onData.listen(output.add);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal: terminal,
+          focusNode: focusNode,
+          autofocus: true,
         ),
-      );
-      final focusNode = FocusNode();
-      final output = <String>[];
-      addTearDown(terminal.dispose);
-      addTearDown(focusNode.dispose);
-      final input = _AndroidInputConnectionFake(tester, focusNode);
-      await tester.runAsync(() => terminal.writeAndWait('\u001b[=1u'));
-      terminal.onData.listen(output.add);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: TerminalView(
-            terminal: terminal,
-            focusNode: focusNode,
-            autofocus: true,
-          ),
+      ),
+    );
+    await tester.pump();
+    input.attachClient();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+    input._client.performAction(TextInputAction.done);
+
+    expect(output.join(), '\u001b[57443;3u\u001b[13;3u');
+  }, variant: android);
+
+  testWidgets('Android preserves Win32 physical control sequences', (
+    tester,
+  ) async {
+    final terminal = Terminal(
+      options: TerminalOptions(
+        vtExtensions: const TerminalVtExtensions(win32InputMode: true),
+      ),
+    );
+    final focusNode = FocusNode();
+    final output = <String>[];
+    addTearDown(terminal.dispose);
+    addTearDown(focusNode.dispose);
+    final input = _AndroidInputConnectionFake(tester, focusNode);
+    await tester.runAsync(() => terminal.writeAndWait('\u001b[?9001h'));
+    terminal.onData.listen(output.add);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal: terminal,
+          focusNode: focusNode,
+          autofocus: true,
         ),
-      );
-      await tester.pump();
-      input.attachClient();
+      ),
+    );
+    await tester.pump();
+    input.attachClient();
 
-      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
-      input._client.performAction(TextInputAction.done);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    input._client.performAction(TextInputAction.done);
 
-      expect(output.join(), '\u001b[57443;3u\u001b[13;3u');
-    },
-    variant: android,
-  );
-
-  testWidgets(
-    'Android preserves Win32 physical control sequences',
-    (tester) async {
-      final terminal = Terminal(
-        options: TerminalOptions(
-          vtExtensions: const TerminalVtExtensions(win32InputMode: true),
-        ),
-      );
-      final focusNode = FocusNode();
-      final output = <String>[];
-      addTearDown(terminal.dispose);
-      addTearDown(focusNode.dispose);
-      final input = _AndroidInputConnectionFake(tester, focusNode);
-      await tester.runAsync(() => terminal.writeAndWait('\u001b[?9001h'));
-      terminal.onData.listen(output.add);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: TerminalView(
-            terminal: terminal,
-            focusNode: focusNode,
-            autofocus: true,
-          ),
-        ),
-      );
-      await tester.pump();
-      input.attachClient();
-
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      input._client.performAction(TextInputAction.done);
-
-      expect(
-        output.join(),
-        '\u001b[13;0;13;1;0;1_\u001b[13;0;13;0;0;1_',
-      );
-    },
-    variant: android,
-  );
+    expect(output.join(), '\u001b[13;0;13;1;0;1_\u001b[13;0;13;0;0;1_');
+  }, variant: android);
 
   testWidgets(
     'Android exposes a guarded platform model without exposing guard text',
@@ -821,38 +805,36 @@ void main() {
     variant: android,
   );
 
-  testWidgets(
-    'Android whole-value input preserves two leading user spaces',
-    (tester) async {
-      final terminal = Terminal();
-      final focusNode = FocusNode();
-      final output = <String>[];
-      addTearDown(terminal.dispose);
-      addTearDown(focusNode.dispose);
-      terminal.onData.listen(output.add);
-      final input = _AndroidInputConnectionFake(tester, focusNode);
-      await tester.pumpWidget(
-        MaterialApp(
-          home: TerminalView(
-            terminal: terminal,
-            focusNode: focusNode,
-            autofocus: true,
-          ),
+  testWidgets('Android whole-value input preserves two leading user spaces', (
+    tester,
+  ) async {
+    final terminal = Terminal();
+    final focusNode = FocusNode();
+    final output = <String>[];
+    addTearDown(terminal.dispose);
+    addTearDown(focusNode.dispose);
+    terminal.onData.listen(output.add);
+    final input = _AndroidInputConnectionFake(tester, focusNode);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TerminalView(
+          terminal: terminal,
+          focusNode: focusNode,
+          autofocus: true,
         ),
-      );
-      await tester.pump();
-      input.attachClient();
+      ),
+    );
+    await tester.pump();
+    input.attachClient();
 
-      input._client.updateEditingValue(
-        const TextEditingValue(
-          text: '  a',
-          selection: TextSelection.collapsed(offset: 3),
-        ),
-      );
+    input._client.updateEditingValue(
+      const TextEditingValue(
+        text: '  a',
+        selection: TextSelection.collapsed(offset: 3),
+      ),
+    );
 
-      expect(output.join(), '  a');
-      expect(input._value.text, '  ');
-    },
-    variant: android,
-  );
+    expect(output.join(), '  a');
+    expect(input._value.text, '  ');
+  }, variant: android);
 }

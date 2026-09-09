@@ -12,12 +12,7 @@ void main() {
       ..handleBlur(terminal)
       ..handleCursorMove(terminal)
       ..handleGridChanged(terminal, 1, 2)
-      ..handleSelectionChanged(
-        terminal,
-        (1, 2),
-        (3, 4),
-        columnSelectMode: true,
-      )
+      ..handleSelectionChanged(terminal, (1, 2), (3, 4), columnSelectMode: true)
       ..resize(
         terminal,
         const TerminalRenderDimensions(
@@ -92,9 +87,7 @@ final class _Layer
   void reset(Terminal terminal) => calls.add('reset');
 
   @override
-  int registerCharacterJoiner(
-    List<(int, int)> Function(String text) handler,
-  ) {
+  int registerCharacterJoiner(List<(int, int)> Function(String text) handler) {
     final id = _nextJoinerId++;
     _joiners[id] = handler;
     return id;

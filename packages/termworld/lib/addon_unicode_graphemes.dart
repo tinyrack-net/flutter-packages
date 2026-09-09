@@ -8,7 +8,7 @@ part 'unicode15_properties.g.dart';
 /// Unicode 15 provider with optional extended grapheme joining.
 final class UnicodeGraphemeProvider implements TerminalUnicodeProvider {
   /// xterm-compatible `UnicodeGraphemeProvider` API.
-  UnicodeGraphemeProvider({this.handleGraphemes = true});
+  new({this.handleGraphemes = true});
 
   /// xterm-compatible `handleGraphemes` API.
   final bool handleGraphemes;

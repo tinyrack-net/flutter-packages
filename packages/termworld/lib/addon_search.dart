@@ -10,7 +10,7 @@ import 'package:vtworld/vtworld.dart';
 /// Colors used for inactive and active search result decorations.
 final class TerminalSearchDecorationOptions {
   /// Creates xterm-compatible search decoration options.
-  const TerminalSearchDecorationOptions({
+  const new({
     required this.matchOverviewRuler,
     required this.activeMatchColorOverviewRuler,
     this.matchBackground,
@@ -41,7 +41,7 @@ final class TerminalSearchDecorationOptions {
 /// Search behavior flags.
 final class TerminalSearchOptions {
   /// Creates xterm-compatible search options.
-  const TerminalSearchOptions({
+  const new({
     this.regex = false,
     this.wholeWord = false,
     this.caseSensitive = false,
@@ -68,10 +68,7 @@ final class TerminalSearchOptions {
 /// Current result position and tracked match count.
 final class TerminalSearchResult {
   /// Creates a search result change event.
-  const TerminalSearchResult({
-    required this.resultIndex,
-    required this.resultCount,
-  });
+  const new({required this.resultIndex, required this.resultCount});
 
   /// Index of the active result, or -1 when it is not tracked.
   final int resultIndex;
@@ -83,7 +80,7 @@ final class TerminalSearchResult {
 /// Searches retained terminal content with xterm-compatible wrap semantics.
 final class SearchAddon extends ManagedTerminalAddon {
   /// Creates a search addon.
-  SearchAddon({this.highlightLimit = 1000}) {
+  new({this.highlightLimit = 1000}) {
     if (highlightLimit < 1) {
       throw ArgumentError.value(highlightLimit, 'highlightLimit');
     }
@@ -176,12 +173,7 @@ final class SearchAddon extends ManagedTerminalAddon {
         _replaceHighlights(matches, options.decorations!);
       }
 
-      final selected = _selectMatch(
-        matches,
-        selection,
-        term,
-        forward: forward,
-      );
+      final selected = _selectMatch(matches, selection, term, forward: forward);
       _clearActiveDecoration();
       if (selected == null) {
         terminal.clearSelection();
@@ -274,12 +266,7 @@ final class SearchAddon extends ManagedTerminalAddon {
       if (match == null) break;
       final linearStart = match.row * terminal.cols + match.column;
       result.add(
-        _SearchMatch(
-          match.row,
-          match.column,
-          match.size,
-          linearStart,
-        ),
+        _SearchMatch(match.row, match.column, match.size, linearStart),
       );
       final next = linearStart + match.size.clamp(1, 0x7fffffff);
       row = next ~/ terminal.cols;
@@ -355,10 +342,7 @@ final class SearchAddon extends ManagedTerminalAddon {
         : _SearchDecorationGroup(match, decorations);
   }
 
-  void _fireResults(
-    TerminalSearchOptions options,
-    _SearchMatch? selected,
-  ) {
+  void _fireResults(TerminalSearchOptions options, _SearchMatch? selected) {
     if (options.decorations == null) return;
     final activeIndex = selected == null
         ? -1
@@ -408,7 +392,7 @@ final class SearchAddon extends ManagedTerminalAddon {
 }
 
 final class _SearchMatch {
-  const _SearchMatch(this.row, this.column, this.length, this.linearStart);
+  const new(this.row, this.column, this.length, this.linearStart);
 
   final int row;
   final int column;
@@ -420,7 +404,7 @@ final class _SearchMatch {
 }
 
 final class _SearchDecoration implements Disposable {
-  const _SearchDecoration(this.marker, this.decoration);
+  const new(this.marker, this.decoration);
 
   final TerminalMarker marker;
   final TerminalDecoration decoration;
@@ -436,7 +420,7 @@ final class _SearchDecoration implements Disposable {
 }
 
 final class _SearchDecorationGroup implements Disposable {
-  const _SearchDecorationGroup(this.match, this.decorations);
+  const new(this.match, this.decorations);
 
   final _SearchMatch match;
   final List<_SearchDecoration> decorations;

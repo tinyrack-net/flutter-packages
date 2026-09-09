@@ -71,21 +71,21 @@ void main() {
 
   test('cmap format 4 glyph arrays and supplementary cmap groups resolve', () {
     expect(
-      TerminalLigatureFont.fromBytes(
-        _format4GlyphArrayFont(),
-      ).findLigatures('a').inputGlyphs,
+      TerminalLigatureFont.fromBytes(_format4GlyphArrayFont())
+          .findLigatures('a')
+          .inputGlyphs,
       <int>[5],
     );
     expect(
-      TerminalLigatureFont.fromBytes(
-        _minimalFormat12Font(),
-      ).findLigatures(String.fromCharCode(0x1f600)).inputGlyphs,
+      TerminalLigatureFont.fromBytes(_minimalFormat12Font())
+          .findLigatures(String.fromCharCode(0x1f600))
+          .inputGlyphs,
       <int>[9],
     );
     expect(
-      TerminalLigatureFont.fromBytes(
-        _minimalFormat12Font(),
-      ).findLigatures(String.fromCharCode(0x1f601)).inputGlyphs,
+      TerminalLigatureFont.fromBytes(_minimalFormat12Font())
+          .findLigatures(String.fromCharCode(0x1f601))
+          .inputGlyphs,
       <int>[0],
     );
   });
@@ -99,17 +99,15 @@ void main() {
   });
 
   test('GSUB chaining format 1 applies glyph rules', () {
-    final result = TerminalLigatureFont.fromBytes(
-      _format1ChainingFont(),
-    ).findLigatures('ab');
+    final result = TerminalLigatureFont.fromBytes(_format1ChainingFont())
+        .findLigatures('ab');
     expect(result.outputGlyphs, <int>[11, 12]);
     expect(result.contextRanges, <(int, int)>[(0, 2)]);
   });
 
   test('GSUB chaining format 2 applies class rules', () {
-    final result = TerminalLigatureFont.fromBytes(
-      _format2ChainingFont(),
-    ).findLigatures('ab');
+    final result = TerminalLigatureFont.fromBytes(_format2ChainingFont())
+        .findLigatures('ab');
     // The pinned xterm helper intentionally drops an all-non-null range
     // substitution, so the second class-range glyph remains unchanged.
     expect(result.outputGlyphs, <int>[11, 2]);
@@ -117,9 +115,8 @@ void main() {
   });
 
   test('GSUB reverse chaining format 1 processes from the end', () {
-    final result = TerminalLigatureFont.fromBytes(
-      _reverseChainingFont(),
-    ).findLigatures('ab');
+    final result = TerminalLigatureFont.fromBytes(_reverseChainingFont())
+        .findLigatures('ab');
     expect(result.outputGlyphs, <int>[11, 12]);
     expect(result.contextRanges, <(int, int)>[(0, 1), (1, 2)]);
   });
@@ -497,12 +494,7 @@ void _tableRecord(
     ..setUint32(offset + 12, length);
 }
 
-void _coverage1(
-  ByteData data,
-  int offset,
-  int glyph, {
-  int? secondGlyph,
-}) {
+void _coverage1(ByteData data, int offset, int glyph, {int? secondGlyph}) {
   data
     ..setUint16(offset, 1)
     ..setUint16(offset + 2, secondGlyph == null ? 1 : 2)

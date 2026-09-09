@@ -19,7 +19,7 @@ abstract interface class TerminalBase64Codec {
 /// Default UTF-8 base64 codec.
 final class Base64Codec implements TerminalBase64Codec {
   /// xterm-compatible `Base64Codec` API.
-  const Base64Codec();
+  const new();
 
   @override
   String encodeText(String data) => base64.encode(utf8.encode(data));
@@ -46,7 +46,7 @@ abstract interface class TerminalClipboardProvider {
 /// Clipboard provider backed by Flutter's platform clipboard channel.
 final class FlutterClipboardProvider implements TerminalClipboardProvider {
   /// xterm-compatible `FlutterClipboardProvider` API.
-  const FlutterClipboardProvider();
+  const new();
 
   @override
   Future<String> readText(String selection) async =>
@@ -60,7 +60,7 @@ final class FlutterClipboardProvider implements TerminalClipboardProvider {
 /// Handles clipboard read and write requests over OSC 52.
 final class ClipboardAddon extends ManagedTerminalAddon {
   /// Creates a clipboard addon with injectable security boundaries.
-  ClipboardAddon({
+  new({
     this._codec = const Base64Codec(),
     this._provider = const FlutterClipboardProvider(),
   });

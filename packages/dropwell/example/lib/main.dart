@@ -7,7 +7,7 @@ void main() => runApp(const DropwellExampleApp());
 /// drive, and so a person can sanity-check a platform by hand.
 class DropwellExampleApp extends StatelessWidget {
   /// Creates the example app.
-  const DropwellExampleApp({super.key});
+  const new({super.key});
 
   @override
   Widget build(BuildContext context) =>
@@ -15,7 +15,7 @@ class DropwellExampleApp extends StatelessWidget {
 }
 
 class _HomePage extends StatefulWidget {
-  const _HomePage();
+  const new();
 
   @override
   State<_HomePage> createState() => _HomePageState();

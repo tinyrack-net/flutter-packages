@@ -124,7 +124,7 @@ abstract final class KittyPixelConstants {
 /// for malformed values. This preserves that observable upstream result.
 final class KittyCommand {
   /// Creates a parsed command value.
-  const KittyCommand({
+  const new({
     this.action,
     this.format,
     this.id,

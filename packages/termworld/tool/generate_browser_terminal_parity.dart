@@ -6,9 +6,7 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final referenceFile = File('${package.path}/tool/xterm_reference.json');
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final reference =
       jsonDecode(referenceFile.readAsStringSync()) as Map<String, Object?>;
   final mappings =
@@ -26,9 +24,8 @@ void main() {
           })
           .toList()
         ..sort(
-          (left, right) => (left['id']! as String).compareTo(
-            right['id']! as String,
-          ),
+          (left, right) =>
+              (left['id']! as String).compareTo(right['id']! as String),
         );
 
   final source = StringBuffer('''
@@ -61,9 +58,8 @@ void main() {
       ..writeln('  );');
   }
   source.writeln('}');
-  File(
-    '${package.path}/test/upstream_browser_terminal_parity_test.dart',
-  ).writeAsStringSync(source.toString());
+  File('${package.path}/test/upstream_browser_terminal_parity_test.dart')
+      .writeAsStringSync(source.toString());
 
   final additions = StringBuffer();
   for (final entry in cases) {
@@ -77,9 +73,7 @@ void main() {
         '"dartTestFile":'
         '"test/upstream_browser_terminal_parity_test.dart",',
       )
-      ..write(
-        '"dartTestName":${jsonEncode(name)},"dartTestKind":"test"},\n',
-      );
+      ..write('"dartTestName":${jsonEncode(name)},"dartTestKind":"test"},\n');
   }
   if (additions.isEmpty) return;
   const marker = '  "tests": {\n';

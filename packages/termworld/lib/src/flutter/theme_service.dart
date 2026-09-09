@@ -43,7 +43,7 @@ final class ColorContrastCache {
 /// Mutable renderer color set owned by [TerminalThemeService].
 final class TerminalColorSet {
   /// Creates a complete renderer color set.
-  TerminalColorSet({
+  new({
     required this.foreground,
     required this.background,
     required this.cursor,
@@ -114,8 +114,7 @@ final class TerminalColorSet {
 /// Resolves live terminal options into xterm-compatible renderer colors.
 final class TerminalThemeService extends DisposableStore {
   /// Creates a service that follows [terminalOptions] theme changes.
-  TerminalThemeService(TerminalOptions terminalOptions)
-    : _options = terminalOptions {
+  new(TerminalOptions terminalOptions) : _options = terminalOptions {
     _colors = _resolve(_options.theme);
     _updateRestoreColors();
     add(
@@ -185,10 +184,7 @@ final class TerminalThemeService extends DisposableStore {
         TerminalThemes.blend(resolved.background, resolved.selection);
     final inactiveOpaque =
         resolved.selectionInactiveOpaque ??
-        TerminalThemes.blend(
-          resolved.background,
-          resolved.selectionInactive,
-        );
+        TerminalThemes.blend(resolved.background, resolved.selectionInactive);
     return TerminalColorSet(
       foreground: resolved.foreground,
       background: resolved.background,
@@ -239,7 +235,7 @@ final class TerminalThemeService extends DisposableStore {
 }
 
 final class _RestoreColorSet {
-  const _RestoreColorSet({
+  const new({
     required this.foreground,
     required this.background,
     required this.cursor,

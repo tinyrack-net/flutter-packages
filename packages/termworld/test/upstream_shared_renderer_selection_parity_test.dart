@@ -74,19 +74,14 @@ void main() {
     });
 
     test('WebGL selection blending background', () {
-      final colors = _webglColors(
-        ansi: const <int>[0x000000ff, 0xcc0000ff],
-      );
+      final colors = _webglColors(ansi: const <int>[0x000000ff, 0xcc0000ff]);
       const red = TerminalWebglAttributes.colorModePalette16 | 1;
       const trueRed = TerminalWebglAttributes.colorModeRgb | 0xcc0000;
       expect(
         _rgb(_webgl(colors: colors, background: red).background),
         0xe68080,
       );
-      expect(
-        _rgb(_webgl(colors: colors, inverse: true).background),
-        0xffffff,
-      );
+      expect(_rgb(_webgl(colors: colors, inverse: true).background), 0xffffff);
       expect(
         _rgb(
           _webgl(
@@ -108,10 +103,7 @@ void main() {
       );
       const red = TerminalWebglAttributes.colorModePalette16 | 1;
       const green = TerminalWebglAttributes.colorModePalette16 | 2;
-      expect(
-        _rgb(_webgl(colors: colors, code: 0xe0b4).foreground),
-        0xffffff,
-      );
+      expect(_rgb(_webgl(colors: colors, code: 0xe0b4).foreground), 0xffffff);
       expect(
         _rgb(
           _webgl(
@@ -176,10 +168,7 @@ void main() {
         inactiveSelection: 0x0000ffff,
       );
       expect(_rgb(_webgl(colors: colors).background), 0xff0000);
-      expect(
-        _rgb(_webgl(colors: colors, focused: false).background),
-        0x0000ff,
-      );
+      expect(_rgb(_webgl(colors: colors, focused: false).background), 0x0000ff);
     });
   });
 }
@@ -190,12 +179,7 @@ TerminalResolvedCellColors _dom({
   bool focused = true,
 }) {
   final line = TerminalBufferLine(1)
-    ..setCell(
-      0,
-      '■',
-      1,
-      TerminalCellAttributes(inverse: inverse),
-    );
+    ..setCell(0, '■', 1, TerminalCellAttributes(inverse: inverse));
   return TerminalCellColorResolver(
     theme: theme,
     focused: focused,

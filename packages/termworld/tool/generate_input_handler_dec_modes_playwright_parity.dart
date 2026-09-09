@@ -6,13 +6,9 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final reference = jsonDecode(
-    File(
-      '${package.path}/tool/xterm_reference.json',
-    ).readAsStringSync(),
+    File('${package.path}/tool/xterm_reference.json').readAsStringSync(),
   ) as Map<String, Object?>;
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final mappings =
       jsonDecode(mappingsFile.readAsStringSync()) as Map<String, Object?>;
   final mappedTests = mappings['tests']! as Map<String, Object?>;
@@ -27,9 +23,8 @@ void main() {
               fullName.contains('DECRST: DEC Private Mode Reset');
         },
       ).toList()..sort(
-        (left, right) => (left['id']! as String).compareTo(
-          right['id']! as String,
-        ),
+        (left, right) =>
+            (left['id']! as String).compareTo(right['id']! as String),
       );
 
   final source = StringBuffer('''

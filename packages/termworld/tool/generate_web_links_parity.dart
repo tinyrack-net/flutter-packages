@@ -6,9 +6,7 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final referenceFile = File('${package.path}/tool/xterm_reference.json');
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final reference =
       jsonDecode(referenceFile.readAsStringSync()) as Map<String, Object?>;
   final mappings =
@@ -24,9 +22,8 @@ void main() {
           )
           .toList()
         ..sort(
-          (left, right) => (left['name']! as String).compareTo(
-            right['name']! as String,
-          ),
+          (left, right) =>
+              (left['name']! as String).compareTo(right['name']! as String),
         );
 
   final source = StringBuffer(_header);
@@ -35,19 +32,14 @@ void main() {
     final escapedName = _dartString(name);
     if (name.startsWith('.')) {
       final host = name == '.com' ? 'foo.com' : 'foo$name';
-      source.writeln(
-        "    test('$escapedName', () => _verifyHost('$host'));",
-      );
+      source.writeln("    test('$escapedName', () => _verifyHost('$host'));");
     } else {
-      source.writeln(
-        "    test('$escapedName', ${_helperFor(name)});",
-      );
+      source.writeln("    test('$escapedName', ${_helperFor(name)});");
     }
   }
   source.write(_footer);
-  File(
-    '${package.path}/test/upstream_web_links_addon_parity_test.dart',
-  ).writeAsStringSync(source.toString());
+  File('${package.path}/test/upstream_web_links_addon_parity_test.dart')
+      .writeAsStringSync(source.toString());
 
   final additions = StringBuffer();
   for (final entry in cases) {

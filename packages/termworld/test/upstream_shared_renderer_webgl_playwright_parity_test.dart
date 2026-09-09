@@ -5,27 +5,19 @@ import 'support/shared_renderer_webgl_playwright_cases.dart';
 void main() {
   test(
     'background 0-15 bright',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 0-15 bright',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 0-15 bright'),
   );
   test(
     'background 0-15 inverse',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 0-15 inverse',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 0-15 inverse'),
   );
   test(
     'background true color grey',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background true color grey',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background true color grey'),
   );
   test(
     'background 0-15 invisible',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 0-15 invisible',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 0-15 invisible'),
   );
   test(
     'should adjust 0-15 colors on white background',
@@ -36,9 +28,7 @@ void main() {
   );
   test(
     'background true color red',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background true color red',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background true color red'),
   );
   test(
     'background true color grey inverse',
@@ -68,9 +58,7 @@ void main() {
   );
   test(
     'foreground 0-15 inverse',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 0-15 inverse',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground 0-15 inverse'),
   );
   test(
     'foreground true color grey inverse',
@@ -80,9 +68,7 @@ void main() {
   );
   test(
     'background 16-255',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 16-255',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 16-255'),
   );
   test(
     'background true color green inverse',
@@ -92,27 +78,20 @@ void main() {
   );
   test(
     'foreground true color grey',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground true color grey',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground true color grey'),
   );
   test(
     'foreground true color blue',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground true color blue',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground true color blue'),
   );
   test(
     'foreground 16-255 dim',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 16-255 dim',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground 16-255 dim'),
   );
   test(
     'foreground true color green',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground true color green',
-    ),
+    () =>
+        verifyWebglSharedRendererPlaywrightCase('foreground true color green'),
   );
   test(
     'foreground true color green inverse',
@@ -144,21 +123,15 @@ void main() {
   );
   test(
     'foreground true color red',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground true color red',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground true color red'),
   );
   test(
     'background 16-255 dim',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 16-255 dim',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 16-255 dim'),
   );
   test(
     'foreground 16-255 inverse',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 16-255 inverse',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground 16-255 inverse'),
   );
   test(
     'transparent background inverse',
@@ -174,9 +147,7 @@ void main() {
   );
   test(
     'background 0-15',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 0-15',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 0-15'),
   );
   testWidgets(
     '#4799: cursor should be in the correct position',
@@ -194,9 +165,7 @@ void main() {
   );
   test(
     'background 16-255 inverse',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 16-255 inverse',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background 16-255 inverse'),
   );
   testWidgets(
     '#4790: cursor should not be displayed before focusing',
@@ -208,9 +177,8 @@ void main() {
   );
   test(
     'foreground 16-255 invisible',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 16-255 invisible',
-    ),
+    () =>
+        verifyWebglSharedRendererPlaywrightCase('foreground 16-255 invisible'),
   );
   test(
     'background true color red inverse',
@@ -228,9 +196,8 @@ void main() {
   );
   test(
     'background 16-255 invisible',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background 16-255 invisible',
-    ),
+    () =>
+        verifyWebglSharedRendererPlaywrightCase('background 16-255 invisible'),
   );
   test(
     'should enforce half the contrast for dim cells',
@@ -252,9 +219,7 @@ void main() {
   );
   test(
     'foreground 0-15 bright',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 0-15 bright',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground 0-15 bright'),
   );
   testWidgets(
     '#4773: block cursor should render when the cell is selected',
@@ -272,9 +237,7 @@ void main() {
   );
   test(
     'foreground 0-15',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'colors foreground 0-15',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('colors foreground 0-15'),
   );
   testWidgets(
     '#5241 cursorAccent with alpha should blend color with background color',
@@ -295,27 +258,20 @@ void main() {
   );
   test(
     'background true color green',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background true color green',
-    ),
+    () =>
+        verifyWebglSharedRendererPlaywrightCase('background true color green'),
   );
   test(
     'foreground 0-15 invisible',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 0-15 invisible',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground 0-15 invisible'),
   );
   test(
     'foreground 16-255',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'foreground 16-255',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('foreground 16-255'),
   );
   test(
     'background true color blue',
-    () => verifyWebglSharedRendererPlaywrightCase(
-      'background true color blue',
-    ),
+    () => verifyWebglSharedRendererPlaywrightCase('background true color blue'),
   );
   test(
     'should adjust 0-15 colors on black background',

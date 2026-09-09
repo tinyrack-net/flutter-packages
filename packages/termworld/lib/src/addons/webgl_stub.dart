@@ -3,7 +3,7 @@ import 'package:vtworld/vtworld.dart';
 /// Opaque handle identifying the current renderer texture atlas generation.
 final class TerminalTextureAtlas {
   /// Creates an atlas handle.
-  const TerminalTextureAtlas(this.generation, [this.canvas]);
+  const new(this.generation, [this.canvas]);
 
   /// Monotonically increasing atlas generation.
   final int generation;
@@ -15,10 +15,7 @@ final class TerminalTextureAtlas {
 /// Configuration for the browser WebGL renderer.
 final class WebglAddonOptions {
   /// Creates WebGL renderer options with xterm.js defaults.
-  const WebglAddonOptions({
-    this.customGlyphs = true,
-    this.preserveDrawingBuffer = false,
-  });
+  const new({this.customGlyphs = true, this.preserveDrawingBuffer = false});
 
   /// Whether xterm's custom box, block, braille and powerline glyphs are used.
   final bool customGlyphs;
@@ -30,7 +27,7 @@ final class WebglAddonOptions {
 /// Explicitly unsupported WebGL capability on non-web platforms.
 final class WebglAddon extends ManagedTerminalAddon {
   /// Creates a WebGL addon capability object.
-  WebglAddon({
+  new({
     bool customGlyphs = true,
     bool preserveDrawingBuffer = false,
     WebglAddonOptions? options,

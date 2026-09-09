@@ -6,9 +6,7 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final referenceFile = File('${package.path}/tool/xterm_reference.json');
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final reference =
       jsonDecode(referenceFile.readAsStringSync()) as Map<String, Object?>;
   final mappings =
@@ -20,9 +18,8 @@ void main() {
           .where((entry) => entry['file'] == 'src/browser/Terminal2.test.ts')
           .toList()
         ..sort(
-          (left, right) => (left['name']! as String).compareTo(
-            right['name']! as String,
-          ),
+          (left, right) =>
+              (left['name']! as String).compareTo(right['name']! as String),
         );
 
   final source = StringBuffer(_header);
@@ -32,9 +29,8 @@ void main() {
     source.writeln("    test('$name', () => _verifyFixture('$fixture')); ");
   }
   source.write(_footer);
-  File(
-    '${package.path}/test/upstream_terminal2_fixture_parity_test.dart',
-  ).writeAsStringSync(source.toString());
+  File('${package.path}/test/upstream_terminal2_fixture_parity_test.dart')
+      .writeAsStringSync(source.toString());
 
   final additions = StringBuffer();
   for (final entry in cases) {

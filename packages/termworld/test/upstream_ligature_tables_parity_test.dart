@@ -187,23 +187,20 @@ void main() {
     const glyphs = TerminalCoverageGlyphs(<int>[3, 8]);
     expect(terminalCoverageGlyphIndex(glyphs, 8), 1);
     expect(terminalCoverageGlyphIndex(glyphs, 9), isNull);
-    expect(
-      terminalCoverageGlyphs(glyphs),
-      <({Object glyph, int index})>[(glyph: 3, index: 0), (glyph: 8, index: 1)],
-    );
+    expect(terminalCoverageGlyphs(glyphs), <({Object glyph, int index})>[
+      (glyph: 3, index: 0),
+      (glyph: 8, index: 1),
+    ]);
 
     const ranges = TerminalCoverageRanges(<TerminalCoverageRange>[
       TerminalCoverageRange(start: 10, end: 12, index: 4),
       TerminalCoverageRange(start: 20, end: 20, index: 7),
     ]);
     expect(terminalCoverageGlyphIndex(ranges, 11), 4);
-    expect(
-      terminalCoverageGlyphs(ranges),
-      <({Object glyph, int index})>[
-        (glyph: (10, 13), index: 0),
-        (glyph: 20, index: 1),
-      ],
-    );
+    expect(terminalCoverageGlyphs(ranges), <({Object glyph, int index})>[
+      (glyph: (10, 13), index: 0),
+      (glyph: 20, index: 1),
+    ]);
   });
 
   test('class definitions partition ranges when the class changes', () {
@@ -214,10 +211,12 @@ void main() {
     expect(terminalIndividualGlyphClass(table, 3), 1);
     expect(terminalIndividualGlyphClass(table, 8), isNull);
     expect(terminalClassGlyphs(table, 2), <Object>[(4, 6)]);
-    expect(
-      terminalGlyphClasses(table, (2, 7)),
-      <Object, int?>{(2, 4): 1, (2, 5): 1, (2, 6): 1, (2, 7): 1},
-    );
+    expect(terminalGlyphClasses(table, (2, 7)), <Object, int?>{
+      (2, 4): 1,
+      (2, 5): 1,
+      (2, 6): 1,
+      (2, 7): 1,
+    });
   });
 
   test('single substitutions support delta, list and range partitioning', () {
@@ -228,10 +227,11 @@ void main() {
 
     const listed = TerminalListSubstitution(coverage, <int>[10, 10, 12]);
     expect(terminalSubstitutionGlyph(listed, 3), 12);
-    expect(
-      terminalRangeSubstitutionGlyphs(listed, (1, 5)),
-      <Object, int?>{(1, 3): 10, (1, 4): 10, (1, 5): 10},
-    );
+    expect(terminalRangeSubstitutionGlyphs(listed, (1, 5)), <Object, int?>{
+      (1, 3): 10,
+      (1, 4): 10,
+      (1, 5): 10,
+    });
   });
 
   test('GSUB format 6.3 and 8.1 build contextual lookup trees', () {
@@ -244,26 +244,16 @@ void main() {
       lookaheadCoverage: <TerminalCoverageTable>[three],
       backtrackCoverage: <TerminalCoverageTable>[zero],
       lookupRecords: <TerminalSubstitutionLookupRecord>[
-        TerminalSubstitutionLookupRecord(
-          sequenceIndex: 0,
-          lookupListIndex: 0,
-        ),
-        TerminalSubstitutionLookupRecord(
-          sequenceIndex: 1,
-          lookupListIndex: 1,
-        ),
+        TerminalSubstitutionLookupRecord(sequenceIndex: 0, lookupListIndex: 0),
+        TerminalSubstitutionLookupRecord(sequenceIndex: 1, lookupListIndex: 1),
       ],
     );
     final chainingTree = flattenTerminalLigatureTree(
       buildTerminalChainingCoverageTree(
         chaining,
         const <List<TerminalSubstitutionTable>>[
-          <TerminalSubstitutionTable>[
-            TerminalDeltaSubstitution(one, 10),
-          ],
-          <TerminalSubstitutionTable>[
-            TerminalDeltaSubstitution(two, 20),
-          ],
+          <TerminalSubstitutionTable>[TerminalDeltaSubstitution(one, 10)],
+          <TerminalSubstitutionTable>[TerminalDeltaSubstitution(two, 20)],
         ],
         7,
       ),
@@ -306,14 +296,8 @@ void main() {
     const one = TerminalCoverageGlyphs(<int>[1]);
     const two = TerminalCoverageGlyphs(<int>[2]);
     const records = <TerminalSubstitutionLookupRecord>[
-      TerminalSubstitutionLookupRecord(
-        sequenceIndex: 0,
-        lookupListIndex: 0,
-      ),
-      TerminalSubstitutionLookupRecord(
-        sequenceIndex: 1,
-        lookupListIndex: 1,
-      ),
+      TerminalSubstitutionLookupRecord(sequenceIndex: 0, lookupListIndex: 0),
+      TerminalSubstitutionLookupRecord(sequenceIndex: 1, lookupListIndex: 1),
     ];
     const lookups = <List<TerminalSubstitutionTable>>[
       <TerminalSubstitutionTable>[TerminalDeltaSubstitution(one, 10)],

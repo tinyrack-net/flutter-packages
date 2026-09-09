@@ -5,7 +5,7 @@ import 'package:vtworld/vtworld.dart';
 /// Cached string form of one logical buffer line and its wrapped-line offsets.
 final class SearchLineCacheEntry {
   /// Creates an entry matching xterm.js' `LineCacheEntry` tuple.
-  const SearchLineCacheEntry(this.line, this.lineOffsets);
+  const new(this.line, this.lineOffsets);
 
   /// String representation of the logical line.
   final String line;
@@ -17,7 +17,7 @@ final class SearchLineCacheEntry {
 /// Memoizes xterm search line translations with a sliding 15 second lifetime.
 final class SearchLineCache extends DisposableStore {
   /// Creates an uninitialized cache for [terminal].
-  SearchLineCache(this.terminal);
+  new(this.terminal);
 
   static const Duration _timeToLive = Duration(seconds: 15);
 

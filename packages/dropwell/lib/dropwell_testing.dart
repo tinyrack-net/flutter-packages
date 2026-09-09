@@ -34,7 +34,7 @@ abstract final class DropwellTesting {
     _assertDebug();
     final dart = _dartSupport;
     if (dart != null) {
-      return dart.setSystemClipboard(files, asBitmap: asBitmap);
+      return await dart.setSystemClipboard(files, asBitmap: asBitmap);
     }
     await kDropwellTestingChannel.invokeMethod<void>(
       'setSystemClipboard',
@@ -49,7 +49,7 @@ abstract final class DropwellTesting {
   static Future<void> clearSystemClipboard() async {
     _assertDebug();
     final dart = _dartSupport;
-    if (dart != null) return dart.clearSystemClipboard();
+    if (dart != null) return await dart.clearSystemClipboard();
     await kDropwellTestingChannel.invokeMethod<void>('clearSystemClipboard');
   }
 
@@ -67,7 +67,7 @@ abstract final class DropwellTesting {
     _assertDebug();
     final dart = _dartSupport;
     if (dart != null) {
-      return dart.synthesizeDrag(
+      return await dart.synthesizeDrag(
         phase: phase,
         physicalPosition: physicalPosition,
         files: files,
@@ -93,7 +93,7 @@ abstract final class DropwellTesting {
   static Future<Uint8List> readFile(String path) async {
     _assertDebug();
     final dart = _dartSupport;
-    if (dart != null) return dart.readFile(path);
+    if (dart != null) return await dart.readFile(path);
     final bytes = await kDropwellTestingChannel.invokeMethod<Uint8List>(
       'readFile',
       path,

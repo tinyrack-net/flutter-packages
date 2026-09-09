@@ -7,7 +7,7 @@ import 'package:termworld/src/addons/ligature_tables.dart';
 /// Glyph substitutions and context ranges found for one string.
 final class TerminalLigatureData {
   /// Creates a ligature result.
-  const TerminalLigatureData({
+  const new({
     required this.inputGlyphs,
     required this.outputGlyphs,
     required this.contextRanges,
@@ -25,10 +25,10 @@ final class TerminalLigatureData {
 
 /// A dependency-free OpenType font wrapper matching xterm's ligature engine.
 final class TerminalLigatureFont {
-  TerminalLigatureFont._(this._cmap, this._lookups, this._cacheSize);
+  new _(this._cmap, this._lookups, this._cacheSize);
 
   /// Parses an SFNT/TrueType/OpenType byte buffer without external packages.
-  factory TerminalLigatureFont.fromBytes(Uint8List bytes, {int cacheSize = 0}) {
+  factory fromBytes(Uint8List bytes, {int cacheSize = 0}) {
     final parser = _OpenTypeParser(bytes);
     final parsed = parser.parse();
     final font = TerminalLigatureFont._(
@@ -71,29 +71,27 @@ final class TerminalLigatureFont {
         case _ChainingLookup(:final tables):
           for (var subIndex = 0; subIndex < tables.length; subIndex++) {
             final table = tables[subIndex];
-            trees.add(
-              switch (table) {
-                TerminalChainingGlyphTable() => buildTerminalChainingGlyphTree(
+            trees.add(switch (table) {
+              TerminalChainingGlyphTable() => buildTerminalChainingGlyphTree(
+                table,
+                _singleLookups,
+                subIndex,
+              ),
+              TerminalChainingClassTable() => buildTerminalChainingClassTree(
+                table,
+                _singleLookups,
+                subIndex,
+              ),
+              TerminalChainingCoverageTable() =>
+                buildTerminalChainingCoverageTree(
                   table,
                   _singleLookups,
                   subIndex,
                 ),
-                TerminalChainingClassTable() => buildTerminalChainingClassTree(
-                  table,
-                  _singleLookups,
-                  subIndex,
-                ),
-                TerminalChainingCoverageTable() =>
-                  buildTerminalChainingCoverageTree(
-                    table,
-                    _singleLookups,
-                    subIndex,
-                  ),
-                _ => throw const FormatException(
-                  'Unsupported chaining substitution table',
-                ),
-              },
-            );
+              _ => throw const FormatException(
+                'Unsupported chaining substitution table',
+              ),
+            });
           }
         case _ReverseLookup(:final tables):
           for (var subIndex = 0; subIndex < tables.length; subIndex++) {
@@ -249,21 +247,21 @@ final class TerminalLigatureFont {
 }
 
 sealed class _ParsedLookup {
-  const _ParsedLookup();
+  const new();
 }
 
 final class _SingleLookup extends _ParsedLookup {
-  const _SingleLookup(this.tables);
+  const new(this.tables);
   final List<TerminalSubstitutionTable> tables;
 }
 
 final class _ChainingLookup extends _ParsedLookup {
-  const _ChainingLookup(this.tables);
+  const new(this.tables);
   final List<Object> tables;
 }
 
 final class _ReverseLookup extends _ParsedLookup {
-  const _ReverseLookup(this.tables);
+  const new(this.tables);
   final List<TerminalReverseChainingTable> tables;
 }
 
@@ -274,7 +272,7 @@ abstract interface class _TerminalCmap {
 }
 
 final class _CmapGroups implements _TerminalCmap {
-  const _CmapGroups(this.groups);
+  const new(this.groups);
   final List<(int, int, int)> groups;
 
   @override
@@ -300,7 +298,7 @@ final class _CmapGroups implements _TerminalCmap {
 }
 
 final class _CmapFormat4 implements _TerminalCmap {
-  const _CmapFormat4(this.data, this.base, this.segCount);
+  const new(this.data, this.base, this.segCount);
   final ByteData data;
   final int base;
   final int segCount;
@@ -333,7 +331,7 @@ final class _CmapFormat4 implements _TerminalCmap {
 }
 
 final class _OpenTypeParser {
-  _OpenTypeParser(Uint8List bytes)
+  new(Uint8List bytes)
     : data = ByteData.sublistView(bytes),
       length = bytes.length;
 

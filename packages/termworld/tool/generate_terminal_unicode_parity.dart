@@ -6,9 +6,7 @@ void main() {
       ? Directory.current
       : Directory('packages/termworld');
   final referenceFile = File('${package.path}/tool/xterm_reference.json');
-  final mappingsFile = File(
-    '${package.path}/tool/xterm_parity_mappings.json',
-  );
+  final mappingsFile = File('${package.path}/tool/xterm_parity_mappings.json');
   final reference =
       jsonDecode(referenceFile.readAsStringSync()) as Map<String, Object?>;
   final mappings =
@@ -33,9 +31,8 @@ void main() {
   for (final entry in cases) {
     final fullName = entry['fullName']! as String;
     final name = fullName.substring('Terminal '.length);
-    final surrogate = RegExp(
-      r'0x(DC[0-9A-F]0)-0xDC[0-9A-F]F: (.*)$',
-    ).firstMatch(name);
+    final surrogate = RegExp(r'0x(DC[0-9A-F]0)-0xDC[0-9A-F]F: (.*)$')
+        .firstMatch(name);
     if (surrogate != null) {
       final start = surrogate.group(1)!;
       final variant = switch (surrogate.group(2)!) {
@@ -65,9 +62,8 @@ void main() {
     }
   }
   source.write(_footer);
-  File(
-    '${package.path}/test/upstream_terminal_unicode_parity_test.dart',
-  ).writeAsStringSync(source.toString());
+  File('${package.path}/test/upstream_terminal_unicode_parity_test.dart')
+      .writeAsStringSync(source.toString());
 
   final additions = StringBuffer();
   for (final entry in cases) {

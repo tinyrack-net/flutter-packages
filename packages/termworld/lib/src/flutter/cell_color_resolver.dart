@@ -6,7 +6,7 @@ import 'package:vtworld/vtworld.dart';
 @immutable
 final class TerminalCellDecorationColors {
   /// Creates a foreground/background override.
-  const TerminalCellDecorationColors({this.foreground, this.background});
+  const new({this.foreground, this.background});
 
   /// Optional foreground override.
   final Color? foreground;
@@ -19,7 +19,7 @@ final class TerminalCellDecorationColors {
 @immutable
 final class TerminalResolvedCellColors {
   /// Creates a resolved cell color pair.
-  const TerminalResolvedCellColors({
+  const new({
     required this.foreground,
     required this.background,
     required this.cellBackground,
@@ -49,7 +49,7 @@ final class TerminalResolvedCellColors {
 /// inverse, bottom decoration, selection and finally top decoration.
 final class TerminalCellColorResolver {
   /// Creates a resolver for one renderer frame.
-  const TerminalCellColorResolver({
+  const new({
     required this.theme,
     required this.focused,
     required this.drawBoldTextInBrightColors,
@@ -139,10 +139,7 @@ final class TerminalCellColorResolver {
           ? theme.selectionOpaque ??
                 TerminalThemes.blend(theme.background, theme.selection)
           : theme.selectionInactiveOpaque ??
-                TerminalThemes.blend(
-                  theme.background,
-                  theme.selectionInactive,
-                );
+                TerminalThemes.blend(theme.background, theme.selectionInactive);
       final hasOriginalBackground =
           cell.isInverse ||
           cell.backgroundMode != TerminalColorMode.defaultColor;
