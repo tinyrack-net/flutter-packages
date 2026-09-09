@@ -1,6 +1,6 @@
 # termworld
 
-`termworld` 0.5.1 is an independent Flutter and pure-Dart port of xterm.js
+`termworld` 0.6.0 is an independent Flutter and pure-Dart port of xterm.js
 6.0.0, pinned to revision `904ae935269eef5ec6a1415b64463c3d02eff1eb`.
 It does not depend on, export, wrap, or delegate to `xterm.dart`. The headless terminal owns
 VT parsing, normal and alternate buffers, Unicode width, selection, modes,

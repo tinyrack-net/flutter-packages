@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+- Updates direct dependencies to their latest Dart 3.13-compatible releases
+  and refreshes the pinned `vtworld` revision.
+- Adopts the current Dart formatter and `very_good_analysis` 11 conventions
+  across the package, examples, tests, and tooling.
+- Makes source-based Android and xterm parity checks resilient to the updated
+  formatter output.
+
 ## 0.5.1
 
 - Keeps Android software-keyboard input responsive across fast ASCII, Hangul
