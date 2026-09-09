@@ -2,7 +2,7 @@
 
 Native file drag-and-drop and clipboard file reading for Flutter.
 
-Version 0.2.0 requires Flutter 3.47 or newer and Dart 3.13 or newer.
+Version 0.3.0 requires Flutter 3.47 or newer and Dart 3.13 or newer.
 
 ## Getting Started
 
